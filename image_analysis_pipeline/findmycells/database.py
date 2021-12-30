@@ -100,6 +100,12 @@ class Database():
         self.root_dir = user_input['project_root_dir']
         if 'preprocessing' in user_input.keys():
             self.preprocessing_configs = user_input['preprocessing']
+            for key in self.preprocessing_configs:
+                self.preprocessing_configs[key]['ProcessingStrategy'] = self.preprocessing_configs[key]['ProcessingMethod'].processsing_strategy
+                self.preprocessing_configs[key]['method_category'] = self.preprocessing_configs[key]['ProcessingMethod'].method_category
+                self.preprocessing_configs[key]['method_specifier'] = self.preprocessing_configs[key]['ProcessingMethod'].method_info  
+        if 'segmentation_strategy' in user_input.keys():
+            self.segmentation_strategy = user_input['segmentation_strategy']
 
     def construct_main_subdirectories(self):
         # At first, ensure that all seven main subdirectories are present - if not: create the missing ones
@@ -255,8 +261,7 @@ class Database():
         """
         self.save_file_infos()
         self.save_project_configs()
-        self.save_imported_rois()
-    
+        self.save_imported_rois()    
     
     def save_file_infos(self):
         filepath = f'{self.results_dir}{datetime.now().strftime("%Y_%m_%d")}_findmycells_project_summary.p'
@@ -265,19 +270,18 @@ class Database():
             
         
     def save_project_configs(self):
-        filepath = f'{self.results_dir}{datetime.now().strftime("%Y_%m_%d")}_findmycells_project_configs.p'
-        
         project_configs = dict()
         for key, value in self.__dict__.items():
             if type(value) == str:
                 project_configs[key] = value
+        if hasattr(self, 'preprocessing_configs'):
+            project_configs['preprocessing'] = self.preprocessing_configs.copy()
+        if hasattr(self, 'segmentation_strategy'):
+            project_configs['segmentation_strategy'] = self.segmentation_strategy
+        if hasattr(self, 'segmented_file_lists'):
+            project_configs['segmented_file_lists'] = self.segmented_file_lists
         
-        project_configs['preprocessing'] = dict()
-        for key in self.preprocessing_configs.keys():
-            project_configs['preprocessing'][key] = self.preprocessing_configs[key].copy()
-            project_configs['preprocessing'][key]['method_category'] = project_configs['preprocessing'][key]['ProcessingMethod'].method_category
-            project_configs['preprocessing'][key]['method_specifier'] = project_configs['preprocessing'][key]['ProcessingMethod'].method_info
-        
+        filepath = f'{self.results_dir}{datetime.now().strftime("%Y_%m_%d")}_findmycells_project_configs.p'        
         with open(filepath, 'wb') as io:
             pickle.dump(project_configs, io)
                              
@@ -289,7 +293,7 @@ class Database():
                 pickle.dump(self.rois_as_shapely_polygons, io)
         else:
             pass
-                  
+    
     
     def load_all(self):
         result_files = [fname for fname in os.listdir(self.results_dir) if fname.endswith('.p')]
@@ -304,7 +308,7 @@ class Database():
                     self.rois_as_shapely_polygons = pickle.load(io)
             except:
                 pass
-        
+            
             project_summary_filename = [fname for fname in result_files if fname.endswith('project_summary.p')][0]
             with open(self.results_dir + project_summary_filename, 'rb') as io:
                 self.file_infos = pickle.load(io)
@@ -313,8 +317,9 @@ class Database():
             with open(self.results_dir + project_configs_filename, 'rb') as io:
                 project_configs = pickle.load(io)
             
-            self.preprocessing_configs = project_configs['preprocessing'].copy()
-            project_configs.pop('preprocessing')
+            if 'preprocessing' in project_configs.keys():
+                self.preprocessing_configs = project_configs['preprocessing'].copy()
+                project_configs.pop('preprocessing')
             
             for key, value in project_configs.items():
                 if hasattr(self, key) == False:

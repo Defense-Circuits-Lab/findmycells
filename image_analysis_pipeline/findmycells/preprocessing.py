@@ -171,6 +171,7 @@ class CropStitchingArtefacts(CroppingMethod):
         upper_cropping_index = indices_with_black_pixels[np.where(np.diff(indices_with_black_pixels) > 1)[0] + 1][0]
         return lower_cropping_index, upper_cropping_index    
 
+    
 class Preprocessor:
     """
     This class collects all preprocessing steps 
