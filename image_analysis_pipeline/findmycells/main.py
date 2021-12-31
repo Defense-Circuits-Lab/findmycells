@@ -25,8 +25,8 @@ class Project:
         preprocessor = Preprocessor(file_ids, self.database)
         self.database = preprocessor.run_individually()
     
-    def run_segmentation(self):
-        segmentor = Segmentor(self.database)
+    def run_segmentation(self, file_ids = None):
+        segmentor = Segmentor(self.database, file_ids)
         self.database = segmentor.run_all()
     
     def run_quantificatons(self):
