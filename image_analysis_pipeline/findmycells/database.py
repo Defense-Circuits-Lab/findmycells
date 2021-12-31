@@ -98,8 +98,8 @@ class Database():
         
     def extract_user_input(self, user_input: dict):
         self.root_dir = user_input['project_root_dir']
-        if 'preprocessing' in user_input.keys():
-            self.preprocessing_configs = user_input['preprocessing']
+        if 'preprocessing_configs' in user_input.keys():
+            self.preprocessing_configs = user_input['preprocessing_configs']
             for key in self.preprocessing_configs:
                 self.preprocessing_configs[key]['ProcessingStrategy'] = self.preprocessing_configs[key]['ProcessingMethod'].processsing_strategy
                 self.preprocessing_configs[key]['method_category'] = self.preprocessing_configs[key]['ProcessingMethod'].method_category
@@ -275,11 +275,13 @@ class Database():
             if type(value) == str:
                 project_configs[key] = value
         if hasattr(self, 'preprocessing_configs'):
-            project_configs['preprocessing'] = self.preprocessing_configs.copy()
+            project_configs['preprocessing_configs'] = self.preprocessing_configs
         if hasattr(self, 'segmentation_strategy'):
             project_configs['segmentation_strategy'] = self.segmentation_strategy
         if hasattr(self, 'segmented_file_lists'):
             project_configs['segmented_file_lists'] = self.segmented_file_lists
+        if hasattr(self, 'deepflash2_configs'):
+            project_configs['deepflash2_configs'] = self.deepflash2_configs
         
         filepath = f'{self.results_dir}{datetime.now().strftime("%Y_%m_%d")}_findmycells_project_configs.p'        
         with open(filepath, 'wb') as io:
@@ -316,10 +318,6 @@ class Database():
             project_configs_filename = [fname for fname in result_files if fname.endswith('project_configs.p')][0]
             with open(self.results_dir + project_configs_filename, 'rb') as io:
                 project_configs = pickle.load(io)
-            
-            if 'preprocessing' in project_configs.keys():
-                self.preprocessing_configs = project_configs['preprocessing'].copy()
-                project_configs.pop('preprocessing')
             
             for key, value in project_configs.items():
                 if hasattr(self, key) == False:
