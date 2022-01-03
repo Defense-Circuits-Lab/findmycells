@@ -98,6 +98,8 @@ class Database():
         
     def extract_user_input(self, user_input: dict):
         self.root_dir = user_input['project_root_dir']
+        if 'low_memory' in user_input.keys():
+            self.low_memory = user_input['low_memory']
         if 'preprocessing_configs' in user_input.keys():
             self.preprocessing_configs = user_input['preprocessing_configs']
             for key in self.preprocessing_configs:

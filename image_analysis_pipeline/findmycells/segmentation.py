@@ -14,6 +14,20 @@ from deepflash2.models import get_diameters
 
 from .database import Database
 
+"""
+
+Currently remaining issues:
+
+1.  Due to low memory (Linux distribution), not all files can be processed by the df2 implementation at once (temp files in Linux system tmp directory).
+    As work-arround, df2 perdictions will be done on individual batches ( = all single plane images of an original z-stack). 
+    This should have no consequences for the regular "binary" segmentations of df2, since the "stats" are calculated on all preprocessed images.
+    After initial computation of these stats, however, df2 predictions (binary & instance segmentations) are done on the individual batches.
+    This allows to regularly clear all temp files and only consumes some GBs of disk space. The cellpose diameter, however, is calculated on base of all
+    masks (binary segmentations) that are present - and for the first batch, these are only the masks of all single planes of file_id 0000.
+    
+"""
+
+
 
 class SegmentationMethod(ABC):
     
@@ -40,7 +54,8 @@ class Deepflash2BinarySegmentation(SegmentationMethod):
 
     
     def run_segmentations(self) -> Database:         
-
+        files_to_segment = os.listdir(self.image_dir)
+        
         ensemble_learner = EnsembleLearner(image_dir = self.image_dir, ensemble_path = self.ensemble_path, stats = self.stats)
         ensemble_learner.get_ensemble_results(ensemble_learner.files, 
                                               zarr_store = self.database.deepflash2_temp_dir,
@@ -52,10 +67,7 @@ class Deepflash2BinarySegmentation(SegmentationMethod):
         else:
             self.database.deepflash2_configs['df_ens'] = pd.concat([self.database.deepflash2_configs['df_ens'], ensemble_learner.df_ens.copy()]) # axis?!
 
-        if hasattr(self.database, 'segmented_file_lists') == False:
-            self.database.segmented_file_lists = {'binary_segmented_files': list(),
-                                                  'instance_segmented_files': list()}
-        self.database.segmented_file_lists['binary_segmented_files'].append(files_to_segment)
+        self.database.segmented_file_lists['binary_segmented_files'] = self.database.segmented_file_lists['binary_segmented_files'] + files_to_segment
         del ensemble_learner
 
         return self.database
@@ -109,7 +121,8 @@ class Deepflash2InstanceSegmentation(SegmentationMethod):
             ensemble_learner.get_cellpose_results(export_dir = self.database.deepflash2_dir)
             del ensemble_learner
             empty_cache()      
-        self.database.segmented_file_lists['instance_segmented_files'] = instance_segmented_files
+        
+        self.database.segmented_file_lists['instance_segmented_files'] = self.database.segmented_file_lists['instance_segmented_files'] + instance_segmented_files
         
         return self.database
     
@@ -136,17 +149,23 @@ class Deepflash2BinaryAndInstanceSegmentationStrategy(SegmentationStrategy):
 
     def run(self, database: Database, file_ids = None) -> Database:
         self.database = database
-        
+
         if all(self.database.file_infos['preprocessing_completed']) == False:
             raise TypeError('Not all files have been preprocessed yet! This has to be finished before deepflash2 can be used.')
         
         if hasattr(self.database, 'deepflash2_configs') == False:
             self.database.deepflash2_configs = {'n_models': len([elem for elem in os.listdir(self.database.trained_models_dir) if elem.endswith('.pth')]),
                                                 'ensemble_path': Path(self.database.trained_models_dir),
-                                                'stats': self.compute_stats(),
+                                                'stats': None,
                                                 'df_ens': None,
                                                 'cellpose_diameter_first_batch': None,
                                                 'cellpose_diameters_all_batches': list()}
+            self.database.deepflash2_configs['stats'] = self.compute_stats()
+        
+        if hasattr(self.database, 'segmented_file_lists') == False:
+            self.database.segmented_file_lists = {'binary_segmented_files': list(),
+                                                  'instance_segmented_files': list()}
+            
         if file_ids == None:
             self.file_ids = self.database.file_infos['file_id']
         else:
@@ -154,25 +173,41 @@ class Deepflash2BinaryAndInstanceSegmentationStrategy(SegmentationStrategy):
             
         temp_copies_dir = self.database.deepflash2_dir + 'temp_copies_of_prepro_images/'
         for file_id in self.file_ids:
-            os.mkdir(temp_copies_dir)
             
             files_to_segment = [filename for filename in os.listdir(self.database.preprocessed_images_dir) if filename.startswith(file_id)]
-            for file in files_to_segment:
-                filepath_source = self.database.preprocessed_images_dir + file
-                shutil.copy(filepath_source, temp_copies_dir)
-        
-            df2_binary_seg = Deepflash2BinarySegmentation(self.database)
-            self.database = df2_binary_seg.run_segmentations()
-
-            df2_instance_seg = Deepflash2InstanceSegmentation(self.database)
-            self.database = df2_instance_seg.run_segmentations()
+            files_to_segment = [filename for filename in files_to_segment if filename not in self.database.segmented_file_lists['instance_segmented_files']]
             
-            # Clear all temp data before starting with next file_id
-            df2_instance_seg.clear_temp_data()
-            self.database.deepflash2_configs['df_ens'] = None
-            shutil.rmtree(temp_copies_dir)
+            if len(files_to_segment) > 0:
+                os.mkdir(temp_copies_dir)
+                
+                for file in files_to_segment:
+                    filepath_source = self.database.preprocessed_images_dir + file
+                    shutil.copy(filepath_source, temp_copies_dir)
+
+                df2_binary_seg = Deepflash2BinarySegmentation(self.database)
+                self.database = df2_binary_seg.run_segmentations()
+                self.database.save_all()
+
+                df2_instance_seg = Deepflash2InstanceSegmentation(self.database)
+                self.database = df2_instance_seg.run_segmentations()
+                self.database.save_all()
+
+                # Move all files to correct project subdirs:
+                filepath_binary_masks = self.database.deepflash2_dir + 'masks/'
+                for binary_mask_file in os.listdir(filepath_binary_masks):
+                    filepath_source = filepath_binary_masks + binary_mask_file
+                    shutil.move(filepath_source, self.database.binary_segmentations_dir)
+
+                filepath_instance_masks = self.database.deepflash2_dir + 'cellpose_masks/'
+                for instance_mask_file in os.listdir(filepath_instance_masks):
+                    filepath_source = filepath_instance_masks + instance_mask_file
+                    shutil.move(filepath_source, self.database.instance_segmentations_dir)
+
+                # Clear all temp data before starting with next file_id
+                df2_instance_seg.clear_temp_data()
+                self.database.deepflash2_configs['df_ens'] = None
+                shutil.rmtree(temp_copies_dir)
         
-        # Has to take care that the files end up in the correct directories! -> binary_segmentations & instance_segmentations, respectively
         return self.database
         
     def compute_stats(self) -> Tuple:
