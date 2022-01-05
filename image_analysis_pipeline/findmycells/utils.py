@@ -26,4 +26,3 @@ def convert_12_to_8_bit_rgb_image(rgb_image):
     converted_image = (rgb_image / 4095 * 255).round(0).astype('uint8')
     
     return converted_image
-

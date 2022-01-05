@@ -14,7 +14,7 @@ class Database():
     subject, and so on. For the moment, however, it is quite static and expects 
     a fixed structure in the project root directory:
     
-    root_dir:
+    project_root_dir:
        |__ 00_microscopy_images:
        |        |__ group1:
        |        |      |__ subject_a:
@@ -97,7 +97,19 @@ class Database():
         self.create_file_infos()
         
     def extract_user_input(self, user_input: dict):
-        self.root_dir = user_input['project_root_dir']
+        for key, value in user_input.items():
+            if hasattr(self, key) == False:
+                setattr(self, key, value)
+        
+        if hasattr(self, 'preprocessing_configs'):
+            for key in self.preprocessing_configs:
+                self.preprocessing_configs[key]['ProcessingStrategy'] = self.preprocessing_configs[key]['ProcessingMethod'].processsing_strategy
+                self.preprocessing_configs[key]['method_category'] = self.preprocessing_configs[key]['ProcessingMethod'].method_category
+                self.preprocessing_configs[key]['method_specifier'] = self.preprocessing_configs[key]['ProcessingMethod'].method_info             
+        
+        # previous version:
+        """
+        self.project_root_dir = user_input['project_root_dir']
         if 'low_memory' in user_input.keys():
             self.low_memory = user_input['low_memory']
         if 'preprocessing_configs' in user_input.keys():
@@ -108,37 +120,38 @@ class Database():
                 self.preprocessing_configs[key]['method_specifier'] = self.preprocessing_configs[key]['ProcessingMethod'].method_info  
         if 'segmentation_strategy' in user_input.keys():
             self.segmentation_strategy = user_input['segmentation_strategy']
+        """
 
     def construct_main_subdirectories(self):
         # At first, ensure that all seven main subdirectories are present - if not: create the missing ones
         # Instead of searching for specific keywords, the respective directories should be chosen by the user via the GUI
-        subdirectories = os.listdir(self.root_dir)
+        subdirectories = os.listdir(self.project_root_dir)
         
         # Mandatory directories (images, rois, and df2 models are required):
-        self.microscopy_image_dir = self.root_dir + [elem for elem in subdirectories if 'microscopy' in elem][0] + '/'
-        self.rois_to_analyze_dir = self.root_dir + [elem for elem in subdirectories if 'rois' in elem][0] + '/'
-        self.deepflash2_dir = self.root_dir + [elem for elem in subdirectories if 'deepflash2' in elem][0] + '/'
+        self.microscopy_image_dir = self.project_root_dir + [elem for elem in subdirectories if 'microscopy' in elem][0] + '/'
+        self.rois_to_analyze_dir = self.project_root_dir + [elem for elem in subdirectories if 'rois' in elem][0] + '/'
+        self.deepflash2_dir = self.project_root_dir + [elem for elem in subdirectories if 'deepflash2' in elem][0] + '/'
         self.create_deepflash2_subdirectories()
         
         # Remaining directories that are currently not required to exist when the database object is created:
-        try: self.preprocessed_images_dir = self.root_dir + [elem for elem in subdirectories if 'preprocessed' in elem][0] + '/' 
+        try: self.preprocessed_images_dir = self.project_root_dir + [elem for elem in subdirectories if 'preprocessed' in elem][0] + '/' 
         except:
-            self.preprocessed_images_dir = self.root_dir + '03_preprocessed_images/'
+            self.preprocessed_images_dir = self.project_root_dir + '03_preprocessed_images/'
             os.mkdir(self.preprocessed_images_dir)                  
         
-        try: self.binary_segmentations_dir = self.root_dir + [elem for elem in subdirectories if 'binary' in elem][0] + '/' 
+        try: self.binary_segmentations_dir = self.project_root_dir + [elem for elem in subdirectories if 'binary' in elem][0] + '/' 
         except:
-            self.binary_segmentations_dir = self.root_dir + '04_binary_segmentations/'
+            self.binary_segmentations_dir = self.project_root_dir + '04_binary_segmentations/'
             os.mkdir(self.binary_segmentations_dir)  
         
-        try: self.instance_segmentations_dir = self.root_dir + [elem for elem in subdirectories if 'instance' in elem][0] + '/'
+        try: self.instance_segmentations_dir = self.project_root_dir + [elem for elem in subdirectories if 'instance' in elem][0] + '/'
         except:
-            self.instance_segmentations_dir = self.root_dir + '05_instance_segmentations/'
+            self.instance_segmentations_dir = self.project_root_dir + '05_instance_segmentations/'
             os.mkdir(self.instance_segmentations_dir)
  
-        try: self.results_dir = self.root_dir + [elem for elem in subdirectories if 'results' in elem][0] + '/'
+        try: self.results_dir = self.project_root_dir + [elem for elem in subdirectories if 'results' in elem][0] + '/'
         except:
-            self.results_dir = self.root_dir + '06_results/'
+            self.results_dir = self.project_root_dir + '06_results/'
             os.mkdir(self.results_dir)
 
     

@@ -3,10 +3,17 @@ import os
 from .database import Database
 from .preprocessing import Preprocessor
 from .segmentation import Segmentor
+from .quantifications import Quantifier
+
+"""
+
+Longterm: should the other "main" classes like "preprocessor" or "segmentor" be integrated here in main.py?
+
+"""
 
 class Project:
     def __init__(self, user_input: dict):
-        self.root_dir = user_input['project_root_dir']
+        self.project_root_dir = user_input['project_root_dir']
         self.database = Database(user_input)
         
     def save_status(self):
@@ -29,8 +36,16 @@ class Project:
         segmentor = Segmentor(self.database, file_ids)
         self.database = segmentor.run_all()
     
-    def run_quantificatons(self):
-        pass
+    def run_quantificatons(self, file_ids = None):
+        if 'quantification_completed' not in self.database.file_infos.keys():
+            self.database.add_new_key_to_file_infos('quantification_completed')
+        if file_ids == None:
+            all_file_ids = self.database.file_infos['file_id']
+            quantification_satus = self.database.file_infos['quantification_completed']
+            file_ids = [elem[0] for elem in zip(all_file_ids, quantification_satus) if elem[1] == False or elem[1] == None]
+        quantifier = Quantifier(self.database, file_ids)
+        self.database = quantifier.run_all()
+        
         
         
       

@@ -25,6 +25,7 @@ Currently remaining issues:
     This allows to regularly clear all temp files and only consumes some GBs of disk space. The cellpose diameter, however, is calculated on base of all
     masks (binary segmentations) that are present - and for the first batch, these are only the masks of all single planes of file_id 0000.
     
+2.  Should make proper use of classes, like in preprocessing.py and quantifications.py. Probably one level less required here, though.
 """
 
 
