@@ -124,6 +124,7 @@ class ReconstructCellsIn3DFrom2DInstanceLabels(QuantificationPreprocessingStrate
         self.zstack_with_final_label_ids = self.set_new_label_ids(zstack_with_old_label_ids = self.zstack_original_label_ids, 
                                                                   new_ids_assignment = self.final_ids)
         setattr(self.quantification_obj, 'zstack_with_final_label_ids', self.zstack_with_final_label_ids)
+        setattr(self.quantification_obj, 'final_ids', self.final_ids)
         
         multi_matches_traceback = self.get_rois_with_multiple_matches(results = self.results)
         if hasattr(self.database, 'multi_matches_traceback') == False:
@@ -335,10 +336,92 @@ class QuantificationStrategy(ABC):
 class CountCellsInWholeStructure(QuantificationStrategy):
     
     def quantify(self, quantification_obj: QuantificationObject, database: Database) -> Database:
-        # quantify cells in the entire image region of interest (could also be multiple)
+        quantification_obj.final_ids = self.add_relative_positions_to_final_assignment(final_ids = quantification_obj.final_ids,
+                                                                                       rois_of_areas_to_quantify = database.rois_as_shapely_polygons[quantification_obj.file_id],
+                                                                                       zstack = quantification_obj.zstack_with_final_label_ids)
+        zstacks_for_quantification = self.get_zstacks_for_quantification(final_ids = quantification_obj.final_ids, 
+                                                                         zstack_without_exclusions = quantification_obj.zstack_with_final_label_ids)
+        zstacks_for_quantification = self.get_n_connected_components_in_zstacks(zstacks_for_quantification = zstacks_for_quantification)
+        
+        for roi_id in zstacks_for_quantification.keys():
+            zstacks_for_quantification[roi_id].pop('zstack')
+            
+        if hasattr(database, 'quantification_results') == False:
+            setattr(database, 'quantification_results', dict())
+            
+        database.quantification_results[quantification_obj.final_ids] = zstacks_for_quantification
+        
         return database  
+    
+    
+    def get_relative_position(self, roi_to_check: Polygon, reference: Polygon) -> str:
+        if roi_to_check.within(reference):
+            rel_position = 'within'
+        elif roi_to_check.intersects(reference):
+            rel_position = 'intersects'
+        elif roi_to_check.touches(reference):
+            rel_position = 'touches'
+        else:
+            rel_position = 'no_overlap'
+        return rel_position    
+    
+    
+    def add_relative_positions_to_final_assignment(self, final_ids: Dict, rois_of_areas_to_quantify: Dict, zstack: np.ndarray) -> Dict:
 
+        roi_ids = rois_of_areas_to_quantify.keys()
 
+        for roi_id in roi_ids:
+            print('starting to compute relative positions')
+            roi_area_to_quantify = rois_of_areas_to_quantify[roi_id]
+
+            for plane_index in range(zstack.shape[0]):
+                label_ids = np.unique(zstack[plane_index])
+                label_ids = np.delete(label_ids, [0])
+
+                for label_id in label_ids:
+                    roi = get_polygon_from_instance_segmentation(single_plane = zstack[plane_index], label_id = label_id)
+                    relative_position = self.get_relative_position(roi, roi_area_to_quantify)
+
+                    if 'relative_positions_per_roi_id' not in final_ids[label_id].keys():
+                        final_ids[label_id]['relative_positions_per_roi_id'] = dict()
+                        for roi_id_to_add in roi_ids:
+                            final_ids[label_id]['relative_positions_per_roi_id'][roi_id_to_add] = {'plane_index': list(),
+                                                                                                   'relative_position': list()}
+
+                    final_ids[label_id]['relative_positions_per_roi_id'][roi_id]['plane_index'].append(plane_index)
+                    final_ids[label_id]['relative_positions_per_roi_id'][roi_id]['relative_position'].append(relative_position)
+
+        return final_ids
+
+    
+    def get_zstacks_for_quantification(self, final_ids: Dict, zstack_without_exclusions: np.ndarray) -> Dict:
+
+        roi_ids = final_ids[list(final_ids.keys())[0]]['relative_positions_per_roi_id'].keys()
+        zstacks_for_quantification = dict()
+
+        for roi_id in roi_ids:
+            zstacks_for_quantification[roi_id] = {'zstack': None,
+                                                  'inclusion_criteria_position': ['within', 'intersects'],
+                                                  'inclusion_criteria_min_z_extension': 2,
+                                                  'number_connected_components': None}
+
+            zstacks_for_quantification[roi_id]['zstack'] = zstack_without_exclusions.copy()
+            for label_id in final_ids.keys():
+                relative_positions = final_ids[label_id]['relative_positions_per_roi_id'][roi_id]['relative_position']
+                inclusion_per_position = all([elem in zstacks_for_quantification[roi_id]['inclusion_criteria_position'] for elem in relative_positions])
+                inclusion_per_min_z_extension = len(relative_positions) >= zstacks_for_quantification[roi_id]['inclusion_criteria_min_z_extension']
+                if inclusion_per_position == False or inclusion_per_min_z_extension == False:
+                    zstacks_for_quantification[roi_id]['zstack'][np.where(zstacks_for_quantification[roi_id]['zstack'] == label_id)] = 0
+
+        return zstacks_for_quantification
+
+    
+    def get_n_connected_components_in_zstacks(self, zstacks_for_quantification: Dict) -> Dict:
+        for roi_id in zstacks_for_quantification.keys():
+            _, zstacks_for_quantification[roi_id]['number_connected_components'] = cc3d.connected_components(zstacks_for_quantification[roi_id]['zstack'], return_N=True)
+        return zstacks_for_quantification
+
+    
 class EstimateFromGridMethod(QuantificationStrategy):
     
     def quantify(self, quantification_obj: QuantificationObject, database: Database) -> Database:
@@ -357,8 +440,6 @@ class Quantifier:
         self.quantification_preprocessing_strategies = self.database.quantification_configs['quantification_preprocessing_strategies']
         self.quantification_strategy = self.database.quantification_configs['quantification_strategy']
         
-        
-        # Assign something like quantification_configs?
         
     def run_all(self) -> Database:
         
