@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import os
 import numpy as np
 from PIL import Image
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 from .database import Database
 from .microscopyimages import CZIZStack

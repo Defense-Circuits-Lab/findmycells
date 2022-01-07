@@ -2,14 +2,16 @@ from abc import ABC, abstractmethod
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.image import imread
 from PIL import Image
 from skimage import measure
+from skimage.io import imsave, imread
 from shapely.geometry import Polygon
 import cc3d
 
 from typing import Dict, List, Tuple, Optional
 
+from .database import Database
+from .utils import load_zstack_as_array_from_single_planes, unpad_x_y_dims_in_2d_array, unpad_x_y_dims_in_3d_array, get_polygon_from_instance_segmentation
 
 """
 
@@ -24,49 +26,11 @@ What we need here:
 
 """
 
-# Functions of general use for quantification classes:
-def load_zstack_as_array_from_single_planes(path, file_id, minx=None, maxx=None, miny=None, maxy=None):
-    types = list(set([type(minx), type(maxx), type(miny), type(maxy)]))    
-    if any([minx, maxx, miny, maxy]):
-        if (len(types) == 1) & (types[0] == int):
-            cropping = True
-        else:
-            raise TypeError("'minx', 'maxx', 'miny', and 'maxy' all have to be integers - or None if no cropping has to be done")
-    else:
-        cropping = False
-    filenames = [filename for filename in os.listdir(path) if filename.startswith(file_id)]
-    cropped_zstack = list()
-    for single_plane_filename in filenames:
-        tmp_image = imread(path + single_plane_filename)
-        if cropping:
-            tmp_image = tmp_image[minx:maxx, miny:maxy]
-        cropped_zstack.append(tmp_image.copy())
-        del tmp_image
-    return np.asarray(cropped_zstack) 
-
-
-def unpad_x_y_dims_in_2d_array(padded_2d_array, pad_width):
-    return padded_2d_array[pad_width:padded_2d_array.shape[0]-pad_width, pad_width:padded_2d_array.shape[1]-pad_width]
-    
-    
-def unpad_x_y_dims_in_3d_array(padded_3d_array, pad_width):
-    return padded_3d_array[:, pad_width:padded_3d_array.shape[1]-pad_width, pad_width:padded_3d_array.shape[2]-pad_width]
-
-
-def get_polygon_from_instance_segmentation(single_plane: np.ndarray, label_id: int) -> Polygon:
-    x_dim, y_dim = single_plane.shape
-    tmp_array = np.zeros((x_dim, y_dim), dtype='uint8')
-    tmp_array[np.where(single_plane == label_id)] = 1
-    tmp_contours = measure.find_contours(tmp_array, level = 0)[0]
-    return Polygon(tmp_contours)
-
-
-
 
 class QuantificationObject:
     # 2D alternative still to come..
     
-    def __inif__(self, file_id: int, database: Database):
+    def __init__(self, file_id: int, database: Database):
         self.file_id = file_id
         self.database = database
         if self.database.quantification_configs['segmentations_to_use'] == 'binary':
@@ -108,46 +72,48 @@ class ReconstructCellsIn3DFrom2DInstanceLabels(QuantificationPreprocessingStrate
 
     def preprocess(self, quantification_obj: QuantificationObject, database: Database) -> Tuple[QuantificationObject, Database]:
         
-        self.quantification_obj = quantification_obj
-        self.database = database
-        self.zstack_original_label_ids = np.pad(self.quantification_obj.zstack_original_label_ids, 
-                                                pad_width = self.pad_width, 
-                                                mode = 'constant', 
-                                                constant_values = 0)
-        self.zstack_original_label_ids = self.zstack_original_label_ids[self.pad_width : self.zstack_original_label_ids.shape[0] - self.pad_width]
-        self.results = self.get_plane_to_plane_roi_matching_results(zstack = self.zstack_original_label_ids)
-        for plane_id in range(self.zstack_original_label_ids.shape[0]):
-            for label_id in self.results[plane_id].keys():
-                self.results[plane_id][label_id] = self.find_best_matches(self.results[plane_id][label_id])
-        self.final_ids, self.results = self.get_final_id_assignments(results = self.results, lowest_final_label_id = self.lowest_final_label_id)
-        self.zstack_original_label_ids = unpad_x_y_dims_in_3d_array(self.zstack_original_label_ids, self.pad_width)
-        self.zstack_with_final_label_ids = self.set_new_label_ids(zstack_with_old_label_ids = self.zstack_original_label_ids, 
-                                                                  new_ids_assignment = self.final_ids)
-        setattr(self.quantification_obj, 'zstack_with_final_label_ids', self.zstack_with_final_label_ids)
-        setattr(self.quantification_obj, 'final_ids', self.final_ids)
+        zstack_original_label_ids = np.pad(quantification_obj.zstack_original_label_ids, 
+                                            pad_width = self.pad_width, 
+                                            mode = 'constant', 
+                                            constant_values = 0)
+        zstack_original_label_ids = zstack_original_label_ids[self.pad_width : zstack_original_label_ids.shape[0] - self.pad_width]
+        results = self.get_plane_to_plane_roi_matching_results(zstack = zstack_original_label_ids)
+        for plane_id in range(zstack_original_label_ids.shape[0]):
+            for label_id in results[plane_id].keys():
+                results[plane_id][label_id] = self.find_best_matches(results[plane_id][label_id])
+        final_ids, results = self.get_final_id_assignments(results = results, lowest_final_label_id = self.lowest_final_label_id)
+        zstack_original_label_ids = unpad_x_y_dims_in_3d_array(zstack_original_label_ids, self.pad_width)
+        zstack_with_final_label_ids = self.set_new_label_ids(zstack_with_old_label_ids = zstack_original_label_ids, 
+                                                                  new_ids_assignment = final_ids)
+        setattr(quantification_obj, 'zstack_with_final_label_ids', zstack_with_final_label_ids)
+        setattr(quantification_obj, 'final_ids', final_ids)
         
-        multi_matches_traceback = self.get_rois_with_multiple_matches(results = self.results)
-        if hasattr(self.database, 'multi_matches_traceback') == False:
-            setattr(self.database, 'multi_matches_traceback', dict())
-        self.database.multi_matches_traceback[self.quantification_obj.file_id] = multi_matches_traceback
+        for plane_index in range(zstack_with_final_label_ids.shape[0]):
+            filepath = f'{database.inspection_dir}{quantification_obj.file_id}_{str(plane_index).zfill(3)}_final_label_ids.png'
+            imsave(filepath, zstack_with_final_label_ids[plane_index], check_contrast=False)        
         
-        return self.quantification_obj, self.database
+        multi_matches_traceback = self.get_rois_with_multiple_matches(results)
+        if hasattr(database, 'multi_matches_traceback') == False:
+            setattr(database, 'multi_matches_traceback', dict())
+        database.multi_matches_traceback[quantification_obj.file_id] = multi_matches_traceback
+                
+        return quantification_obj, database
 
     
     def roi_matching(self, original_roi: Polygon, roi_to_compare: Polygon, label_id_roi_to_compare: int, results: Dict, plane_indicator: str) -> Dict:
 
-            iou = original_roi.intersection(roi_to_compare).area / original_roi.union(roi_to_compare).area
-            proportion = original_roi.intersection(roi_to_compare).area / original_roi.area
+        iou = original_roi.intersection(roi_to_compare).area / original_roi.union(roi_to_compare).area
+        proportion = original_roi.intersection(roi_to_compare).area / original_roi.area
 
-            if original_roi.within(roi_to_compare) or roi_to_compare.within(original_roi): within = True
-            else: within = False
+        if original_roi.within(roi_to_compare) or roi_to_compare.within(original_roi): within = True
+        else: within = False
 
-            results[f'matching_ids_{plane_indicator}_plane'].append(label_id_roi_to_compare)
-            results[f'full_overlap_{plane_indicator}_plane'].append(within)
-            results[f'overlapping_area_{plane_indicator}_plane'].append(proportion)
-            results[f'IoUs_{plane_indicator}_plane'].append(iou)
+        results[f'matching_ids_{plane_indicator}_plane'].append(label_id_roi_to_compare)
+        results[f'full_overlap_{plane_indicator}_plane'].append(within)
+        results[f'overlapping_area_{plane_indicator}_plane'].append(proportion)
+        results[f'IoUs_{plane_indicator}_plane'].append(iou)
 
-            return results
+        return results
     
     
     def get_plane_to_plane_roi_matching_results(self, zstack, verbose=True) -> Dict:
@@ -310,16 +276,20 @@ class ReconstructCellsIn3DFrom2DInstanceLabels(QuantificationPreprocessingStrate
         return zstack_with_new_label_ids
     
     
-    def get_rois_with_multiple_matches(self, results: Dict) -> List:
+    def get_rois_with_multiple_matches(self, results: Dict) -> Dict:
 
-        multi_matches_traceback = list()
+        multi_matches_traceback = {'final_label_id': list(),
+                                   'original_instance_label_id': list(),
+                                   'plane_index': list()}
 
-        for plane_idx in results.keys():
-            for label_id in results[plane_idx].keys():
-                condition_a = len(results[plane_idx][label_id]['matching_ids_next_plane']) > 1
-                condition_b = len(results[plane_idx][label_id]['matching_ids_previous_plane']) > 1
+        for plane_index in results.keys():
+            for label_id in results[plane_index].keys():
+                condition_a = len(results[plane_index][label_id]['matching_ids_next_plane']) > 1
+                condition_b = len(results[plane_index][label_id]['matching_ids_previous_plane']) > 1
                 if condition_a or condition_b:
-                    multi_matches_traceback.append((plane_idx, label_id))
+                    multi_matches_traceback['final_label_id'].append(results[plane_index][label_id]['final_label_id'])
+                    multi_matches_traceback['original_instance_label_id'].append(label_id)
+                    multi_matches_traceback['plane_index'].append(plane_index)
 
         return multi_matches_traceback
     
@@ -349,7 +319,7 @@ class CountCellsInWholeStructure(QuantificationStrategy):
         if hasattr(database, 'quantification_results') == False:
             setattr(database, 'quantification_results', dict())
             
-        database.quantification_results[quantification_obj.final_ids] = zstacks_for_quantification
+        database.quantification_results[quantification_obj.file_id] = zstacks_for_quantification
         
         return database  
     
@@ -434,24 +404,34 @@ class EstimateFromGridMethod(QuantificationStrategy):
 
 class Quantifier:
     
-    def __init__(self, database: Database, file_ids):
+    def __init__(self, database: Database, file_ids: List[str]):
         self.database = database
         self.file_ids = file_ids
+        self.file_info_dicts = self.get_file_info_dicts()
         self.quantification_preprocessing_strategies = self.database.quantification_configs['quantification_preprocessing_strategies']
         self.quantification_strategy = self.database.quantification_configs['quantification_strategy']
+    
+    
+    def get_file_info_dicts(self) -> Dict:
+        file_info_dicts = dict() 
+        for file_id in self.file_ids:
+            file_info_dicts[file_id] = self.database.get_file_infos(file_id)
+        
+        return file_info_dicts
         
         
     def run_all(self) -> Database:
         
         for file_id in self.file_ids:
-            quantification_obj = QuantificationObject(file_id, self.database)
-            
-            for quant_prepro_strat in self.quantification_preprocessing_strategies:
-                quantification_obj, self.database = quant_prepro_strat.preprocesses(quantification_obj, self.database)
-                        
-            self.database = self.quantification_strategy.quantify(quantification_obj, self.database)
-            
-            del quantification_obj
+            if self.file_info_dicts[file_id]['quantification_completed'] != True:
+                quantification_obj = QuantificationObject(file_id, self.database)
+
+                for quant_prepro_strat in self.quantification_preprocessing_strategies:
+                    quantification_obj, self.database = quant_prepro_strat.preprocess(quantification_obj, self.database)
+
+                self.database = self.quantification_strategy.quantify(quantification_obj, self.database)
+                self.database.update_file_infos(file_id, 'quantification_completed', True)
+                del quantification_obj
             
         return self.database
         

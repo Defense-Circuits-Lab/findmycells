@@ -148,10 +148,15 @@ class Database():
         except:
             self.instance_segmentations_dir = self.project_root_dir + '05_instance_segmentations/'
             os.mkdir(self.instance_segmentations_dir)
+            
+        try: self.inspection_dir = self.project_root_dir + [elem for elem in subdirectories if 'inspection' in elem][0] + '/'
+        except:
+            self.inspection_dir = self.project_root_dir + '06_inspection/'
+            os.mkdir(self.inspection_dir)
  
         try: self.results_dir = self.project_root_dir + [elem for elem in subdirectories if 'results' in elem][0] + '/'
         except:
-            self.results_dir = self.project_root_dir + '06_results/'
+            self.results_dir = self.project_root_dir + '07_results/'
             os.mkdir(self.results_dir)
 
     
@@ -268,15 +273,9 @@ class Database():
         
     
     def save_all(self):
-        """
-        If not specified otherwise, all data will be stored in pickle files.
-        When output_type is set to ".csv", a pandas DataFrame will be created
-        from the file_infos dictionary and saved as csv-file. 
-        This does not apply for the imported rois, nor the project configs. 
-        """
         self.save_file_infos()
         self.save_project_configs()
-        self.save_imported_rois()    
+    
     
     def save_file_infos(self):
         filepath = f'{self.results_dir}{datetime.now().strftime("%Y_%m_%d")}_findmycells_project_summary.p'
@@ -285,47 +284,22 @@ class Database():
             
         
     def save_project_configs(self):
-        project_configs = dict()
-        for key, value in self.__dict__.items():
-            if type(value) == str:
-                project_configs[key] = value
-        if hasattr(self, 'preprocessing_configs'):
-            project_configs['preprocessing_configs'] = self.preprocessing_configs
-        if hasattr(self, 'segmentation_strategy'):
-            project_configs['segmentation_strategy'] = self.segmentation_strategy
-        if hasattr(self, 'segmented_file_lists'):
-            project_configs['segmented_file_lists'] = self.segmented_file_lists
-        if hasattr(self, 'deepflash2_configs'):
-            project_configs['deepflash2_configs'] = self.deepflash2_configs
+        project_configs = self.__dict__.copy()
+        if 'file_infos' in project_configs.keys():
+            project_configs.pop('file_infos')
         
         filepath = f'{self.results_dir}{datetime.now().strftime("%Y_%m_%d")}_findmycells_project_configs.p'        
         with open(filepath, 'wb') as io:
             pickle.dump(project_configs, io)
-                             
-    
-    def save_imported_rois(self):
-        if hasattr(self, 'rois_as_shapely_polygons'):
-            filepath = f'{self.results_dir}{datetime.now().strftime("%Y_%m_%d")}_findmycells_imported_rois.p'
-            with open(filepath, 'wb') as io:
-                pickle.dump(self.rois_as_shapely_polygons, io)
-        else:
-            pass
     
     
     def load_all(self):
         result_files = [fname for fname in os.listdir(self.results_dir) if fname.endswith('.p')]
-        
+        result_files.sort(reverse = True)
         if len(result_files) < 2:
             raise FileNotFoundError(f"Couldn´t find the required files in {self.results_dir}")
         
         else:
-            try:
-                imported_rois_filename = [fname for fname in result_files if fname.endswith('imported_rois.p')][0]
-                with open(self.results_dir + imported_rois_filename, 'rb') as io:
-                    self.rois_as_shapely_polygons = pickle.load(io)
-            except:
-                pass
-            
             project_summary_filename = [fname for fname in result_files if fname.endswith('project_summary.p')][0]
             with open(self.results_dir + project_summary_filename, 'rb') as io:
                 self.file_infos = pickle.load(io)
@@ -338,6 +312,15 @@ class Database():
                 if hasattr(self, key) == False:
                     setattr(self, key, value)        
         
+        
+            # No longer needed, only kept in for compatibility with initial projects
+            if hasattr(self, 'rois_as_shapely_polygons') == False:
+                try:
+                    imported_rois_filename = [fname for fname in result_files if fname.endswith('imported_rois.p')][0]
+                    with open(self.results_dir + imported_rois_filename, 'rb') as io:
+                        self.rois_as_shapely_polygons = pickle.load(io)
+                except:
+                    pass
     
     
     

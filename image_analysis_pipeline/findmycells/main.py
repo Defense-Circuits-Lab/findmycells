@@ -4,6 +4,9 @@ from .database import Database
 from .preprocessing import Preprocessor
 from .segmentation import Segmentor
 from .quantifications import Quantifier
+from .inspection import InspectionStrategy
+
+from typing import List, Dict, Tuple, Optional
 
 """
 
@@ -12,17 +15,17 @@ Longterm: should the other "main" classes like "preprocessor" or "segmentor" be 
 """
 
 class Project:
-    def __init__(self, user_input: dict):
+    def __init__(self, user_input: Dict):
         self.project_root_dir = user_input['project_root_dir']
         self.database = Database(user_input)
         
-    def save_status(self):
+    def save_status(self) -> None:
         self.database.save_all()
     
-    def load_status(self):
+    def load_status(self) -> None:
         self.database.load_all()
     
-    def preprocess(self, file_ids = None):
+    def preprocess(self, file_ids: Optional[List]=None) -> None:
         if 'preprocessing_completed' not in self.database.file_infos.keys():
             self.database.add_new_key_to_file_infos('preprocessing_completed')
         if file_ids == None:
@@ -32,11 +35,12 @@ class Project:
         preprocessor = Preprocessor(file_ids, self.database)
         self.database = preprocessor.run_individually()
     
-    def run_segmentation(self, file_ids = None):
+    def run_segmentation(self, file_ids: Optional[List]=None) -> None:
+        # Add 'segmentation_completed' column to file_infos --> in Segmentor
         segmentor = Segmentor(self.database, file_ids)
         self.database = segmentor.run_all()
 
-    def run_quantificatons(self, file_ids = None):
+    def run_quantificatons(self, file_ids: Optional[List]=None) -> None:
         if 'quantification_completed' not in self.database.file_infos.keys():
             self.database.add_new_key_to_file_infos('quantification_completed')
         if file_ids == None:
@@ -45,6 +49,9 @@ class Project:
             file_ids = [elem[0] for elem in zip(all_file_ids, quantification_satus) if elem[1] == False or elem[1] == None]
         quantifier = Quantifier(self.database, file_ids)
         self.database = quantifier.run_all()
+        
+    def run_inspection(self, file_id: str, inspection_strategy: InspectionStrategy):
+        inspection_strategy.run(self.database, file_id)
         
         
       
