@@ -136,7 +136,7 @@ class Database():
         # Remaining directories that are currently not required to exist when the database object is created:
         try: self.preprocessed_images_dir = self.project_root_dir + [elem for elem in subdirectories if 'preprocessed' in elem][0] + '/' 
         except:
-            self.preprocessed_images_dir = self.project_root_dir + '03_preprocessed_images/'
+            self.preprocessed_images_dir = self.project_root_dir + '02_preprocessed_images/'
             os.mkdir(self.preprocessed_images_dir)                  
         
         try: self.binary_segmentations_dir = self.project_root_dir + [elem for elem in subdirectories if 'binary' in elem][0] + '/' 
@@ -275,6 +275,7 @@ class Database():
     def save_all(self):
         self.save_file_infos()
         self.save_project_configs()
+        # For sofie: add the call of the corresponding method here
     
     
     def save_file_infos(self):
