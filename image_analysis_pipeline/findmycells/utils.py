@@ -4,8 +4,11 @@ from skimage.io import imread
 from skimage import measure
 from shapely.geometry import Polygon
 import matplotlib.pyplot as plt
-
 from typing import List, Tuple, Dict
+
+
+def listdir_nohidden(path):
+    return [f for f in os.listdir(path) if f.startswith('.') == False]
 
 
 def crop_stitching_artefacts(rgb_image):

@@ -1,11 +1,5 @@
 import os
-
 from .database import Database
-from .preprocessing import Preprocessor
-from .segmentation import Segmentor
-from .quantifications import Quantifier
-from .inspection import InspectionStrategy
-
 from typing import List, Dict, Tuple, Optional
 
 """
@@ -26,6 +20,8 @@ class Project:
         self.database.load_all()
     
     def preprocess(self, file_ids: Optional[List]=None) -> None:
+        from .preprocessing import Preprocessor
+        
         if 'preprocessing_completed' not in self.database.file_infos.keys():
             self.database.add_new_key_to_file_infos('preprocessing_completed')
         if file_ids == None:
@@ -36,11 +32,14 @@ class Project:
         self.database = preprocessor.run_individually()
     
     def run_segmentation(self, file_ids: Optional[List]=None) -> None:
-        # Add 'segmentation_completed' column to file_infos --> in Segmentor
+        from .segmentation import Segmentor
+
         segmentor = Segmentor(self.database, file_ids)
         self.database = segmentor.run_all()
 
     def run_quantificatons(self, file_ids: Optional[List]=None) -> None:
+        from .quantifications import Quantifier
+        
         if 'quantification_completed' not in self.database.file_infos.keys():
             self.database.add_new_key_to_file_infos('quantification_completed')
         if file_ids == None:
@@ -50,7 +49,9 @@ class Project:
         quantifier = Quantifier(self.database, file_ids)
         self.database = quantifier.run_all()
         
-    def run_inspection(self, file_id: str, inspection_strategy: InspectionStrategy):
+    def run_inspection(self, file_id: str, inspection_strategy):
+        from .inspection import InspectionStrategy
+        
         inspection_strategy.run(self.database, file_id)
         
         
