@@ -274,9 +274,13 @@ class Database():
         
     
     def save_all(self):
+        self.save_csv
         self.save_file_infos()
         self.save_project_configs()
-        # For sofie: add the call of the corresponding method here
+    
+    def save_csv(self):
+        dataframe_try = pd.DataFrame(self)
+dataframe_try.to_csv(os.path.join(test_project.database.results_dir,f'{datetime.now().strftime("%Y_%m_%d")}_Database_files_DF.csv'))
     
     
     def save_file_infos(self):
