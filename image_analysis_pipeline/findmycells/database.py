@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pickle
 from datetime import datetime
+from .utils import listdir_nohidden
 
 class Database():
     '''
@@ -125,7 +126,7 @@ class Database():
     def construct_main_subdirectories(self):
         # At first, ensure that all seven main subdirectories are present - if not: create the missing ones
         # Instead of searching for specific keywords, the respective directories should be chosen by the user via the GUI
-        subdirectories = os.listdir(self.project_root_dir)
+        subdirectories = listdir_nohidden(self.project_root_dir)
         
         # Mandatory directories (images, rois, and df2 models are required):
         self.microscopy_image_dir = self.project_root_dir + [elem for elem in subdirectories if 'microscopy' in elem][0] + '/'
@@ -136,7 +137,7 @@ class Database():
         # Remaining directories that are currently not required to exist when the database object is created:
         try: self.preprocessed_images_dir = self.project_root_dir + [elem for elem in subdirectories if 'preprocessed' in elem][0] + '/' 
         except:
-            self.preprocessed_images_dir = self.project_root_dir + '03_preprocessed_images/'
+            self.preprocessed_images_dir = self.project_root_dir + '02_preprocessed_images/'
             os.mkdir(self.preprocessed_images_dir)                  
         
         try: self.binary_segmentations_dir = self.project_root_dir + [elem for elem in subdirectories if 'binary' in elem][0] + '/' 
@@ -161,7 +162,7 @@ class Database():
 
     
     def create_deepflash2_subdirectories(self):
-        deepflash2_subdirectories = os.listdir(self.deepflash2_dir)
+        deepflash2_subdirectories = listdir_nohidden(self.deepflash2_dir)
         try: self.trained_models_dir = self.deepflash2_dir + [elem for elem in deepflash2_subdirectories if 'models' in elem][0] + '/'
         except:
             self.trained_models_dir = self.deepflash2_dir + 'trained_models/'
@@ -185,9 +186,9 @@ class Database():
                            'rois_filepath': list(),
                            'rois_filetype': list()}
         file_id = 0
-        for group in os.listdir(self.microscopy_image_dir):
-            for subject in os.listdir(self.microscopy_image_dir + group + '/'):
-                for filename in os.listdir(self.microscopy_image_dir + group + '/' + subject + '/'):
+        for group in listdir_nohidden(self.microscopy_image_dir):
+            for subject in listdir_nohidden(self.microscopy_image_dir + group + '/'):
+                for filename in listdir_nohidden(self.microscopy_image_dir + group + '/' + subject + '/'):
                     self.file_infos['file_id'].append(str(file_id).zfill(4))
                     original_file_id = filename[:filename.find('.')]
                     self.file_infos['original_file_id'].append(original_file_id)
@@ -196,7 +197,7 @@ class Database():
                     self.file_infos['microscopy_filepath'].append(f'{self.microscopy_image_dir}{group}/{subject}/{filename}')
                     self.file_infos['microscopy_filetype'].append(filename[filename.find('.'):])
                     try:
-                        roi_filename = [elem for elem in os.listdir(f'{self.rois_to_analyze_dir}{group}/{subject}/') if elem.startswith(original_file_id)][0]
+                        roi_filename = [elem for elem in listdir_nohidden(f'{self.rois_to_analyze_dir}{group}/{subject}/') if elem.startswith(original_file_id)][0]
                         self.file_infos['rois_present'].append(True)
                         self.file_infos['rois_filepath'].append(f'{self.rois_to_analyze_dir}{group}/{subject}/{roi_filename}')
                         self.file_infos['rois_filetype'].append(roi_filename[roi_filename.find('.'):])
@@ -275,6 +276,7 @@ class Database():
     def save_all(self):
         self.save_file_infos()
         self.save_project_configs()
+        # For sofie: add the call of the corresponding method here
     
     
     def save_file_infos(self):
@@ -294,7 +296,7 @@ class Database():
     
     
     def load_all(self):
-        result_files = [fname for fname in os.listdir(self.results_dir) if fname.endswith('.p')]
+        result_files = [fname for fname in listdir_nohidden(self.results_dir) if fname.endswith('.p')]
         result_files.sort(reverse = True)
         if len(result_files) < 2:
             raise FileNotFoundError(f"Couldn´t find the required files in {self.results_dir}")
