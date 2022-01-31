@@ -3,20 +3,20 @@ import os
 from skimage.io import imread
 from skimage import measure
 from shapely.geometry import Polygon
+import matplotlib.pyplot as plt
+from typing import List, Tuple, Dict
+
 
 def listdir_nohidden(path):
     return [f for f in os.listdir(path) if f.startswith('.') == False]
 
-def crop_stitching_artefacts(rgb_image):
 
+def crop_stitching_artefacts(rgb_image):
     rows_with_black_px, columns_with_black_px = np.where(np.all(rgb_image == 0, axis = -1))
     lower_row_idx, upper_row_idx = get_cropping_indices(rows_with_black_px)
     lower_col_idx, upper_col_idx = get_cropping_indices(columns_with_black_px)
-
     cropped_rgb_image = rgb_image[lower_row_idx:upper_row_idx, 
                                   lower_col_idx:upper_col_idx]
-    
-
     return cropped_rgb_image, lower_row_idx, lower_col_idx
 
 
@@ -25,13 +25,11 @@ def get_cropping_indices(a):
     indices_with_black_pixels = unique[np.where(counts > 100)]
     lower_cropping_index = indices_with_black_pixels[np.where(np.diff(indices_with_black_pixels) > 1)[0]][0] + 1
     upper_cropping_index = indices_with_black_pixels[np.where(np.diff(indices_with_black_pixels) > 1)[0] + 1][0]
-
     return lower_cropping_index, upper_cropping_index
 
 
 def convert_12_to_8_bit_rgb_image(rgb_image):
     converted_image = (rgb_image / 4095 * 255).round(0).astype('uint8')
-    
     return converted_image
 
 
@@ -69,3 +67,24 @@ def get_polygon_from_instance_segmentation(single_plane: np.ndarray, label_id: i
     tmp_array[np.where(single_plane == label_id)] = 1
     tmp_contours = measure.find_contours(tmp_array, level = 0)[0]
     return Polygon(tmp_contours)
+
+
+def get_cropping_box_arround_centroid(roi: Polygon, half_window_size: int) -> Tuple[int, int, int, int]:
+    centroid_x, centroid_y = round(roi.centroid.x), round(roi.centroid.y)
+    cminx, cmaxx = centroid_x - half_window_size, centroid_x + half_window_size
+    cminy, cmaxy = centroid_y - half_window_size, centroid_y + half_window_size
+    return cminx, cmaxx, cminy, cmaxy
+
+
+def get_color_code(label_ids: List, for_rgb: bool=False) -> Dict:
+    n_label_ids = len(label_ids)
+    colormixer = plt.cm.rainbow(np.linspace(0, 1, n_label_ids))
+    color_code = dict()
+    for idx in range(n_label_ids):
+        if for_rgb:
+            color_code[label_ids[idx]] = {'red': colormixer[idx][0],
+                                          'green': colormixer[idx][1],
+                                          'blue': colormixer[idx][2]}
+        else:
+            color_code[label_ids[idx]] = colormixer[idx]
+    return color_code

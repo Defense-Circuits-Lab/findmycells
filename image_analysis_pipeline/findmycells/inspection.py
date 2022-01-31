@@ -11,7 +11,7 @@ import cc3d
 from typing import Dict, List, Tuple, Optional, Union
 
 from .database import Database
-from .utils import load_zstack_as_array_from_single_planes, get_polygon_from_instance_segmentation
+from .utils import load_zstack_as_array_from_single_planes, get_polygon_from_instance_segmentation, get_cropping_box_arround_centroid, get_color_code
 
 
 class InspectionStrategy(ABC):
@@ -20,15 +20,10 @@ class InspectionStrategy(ABC):
     def run(self, database: Database, file_id: str) -> Union[plt.Axes, None]:
         # do something that might save a plot and/or return it for display
         pass
-       
-    
-class InspectReconstructedCells(InspectionStrategy):
 
-# the 'results' and the 'file_ids' dictionaries have to become attributes of the object
-# also the corresponding z-stacks (both unpadded again): 
-#   - the 'zstack_original_label_ids' with the original instance label ids (the one we are looking for)
-#   - the 'zstack_with_final_label_ids' with the final label ids
-# likewise, also the directory paths have to be accessible via the database (just as the current file_id)
+
+
+class InspectReconstructedCells2D(InspectionStrategy):
     
     def __init__(self, plane_id_of_interest: int, label_id_of_interest: int, zstack_with_label_id_of_interest: np.ndarray, save=False, show=True):
         self.plane_id_of_interest = plane_id_of_interest
@@ -36,33 +31,14 @@ class InspectReconstructedCells(InspectionStrategy):
         self.zstack_with_label_id_of_interest = zstack_with_label_id_of_interest
         self.save = save
         self.show = show
-    
-    
-    def get_cropping_box_arround_centroid(self, roi: Polygon, half_window_size: int) -> Tuple[int, int, int, int]:
-        centroid_x, centroid_y = round(roi.centroid.x), round(roi.centroid.y)
-        cminx, cmaxx = centroid_x - half_window_size, centroid_x + half_window_size
-        cminy, cmaxy = centroid_y - half_window_size, centroid_y + half_window_size
-        return cminx, cmaxx, cminy, cmaxy
-    
-    
-    def get_color_code(self, label_ids):
-        n_label_ids = len(label_ids)
-        colormixer = plt.cm.rainbow(np.linspace(0, 1, n_label_ids))
 
-        color_code = dict()
-        for idx in range(n_label_ids):
-            color_code[label_ids[idx]] = colormixer[idx]
-
-        return color_code   
-    
-    
     
     def get_plotting_info(self, zstack):
         label_ids = list(np.unique(zstack))
         if 0 in label_ids:
             label_ids.remove(0)
-        color_code = self.get_color_code(label_ids)
-
+        color_code = get_color_code(label_ids)
+        
         z_dim, x_dim, y_dim = zstack.shape
         plotting_info = dict()
         for plane_index in range(z_dim):
@@ -112,22 +88,21 @@ class InspectReconstructedCells(InspectionStrategy):
                 plt.title('connected components (color-coded)', fontsize=14, pad=15)
 
         if save:
-            filepath = f'{self.database.inspection_dir}{self.file_id}_label-{self.label_id_of_interest}_plane-{self.plane_id_of_interest}_inspected_area.png'
+            filepath = f'{self.database.inspection_dir}inspected_area_plots/{self.file_id}_{self.plane_id_of_interest}_{self.label_id_of_interest}_2D.png'
             plt.savefig(filepath, dpi=300)
-            print(f'The resulting plot was successfully saved to: {self.database.inspection_dir}')
+            print(f'The resulting plot was successfully saved to: {self.database.inspection_dir}inspected_area_plots/')
         if show:
             plt.show()
         else:
             plt.close()
 
     
-    
     def run(self, database: Database, file_id: str) -> Union[plt.Axes, None]:
         self.database = database
         self.file_id = file_id
         
         roi = get_polygon_from_instance_segmentation(self.zstack_with_label_id_of_interest[self.plane_id_of_interest], self.label_id_of_interest)
-        cminx, cmaxx, cminy, cmaxy = self.get_cropping_box_arround_centroid(roi, 200)
+        cminx, cmaxx, cminy, cmaxy = get_cropping_box_arround_centroid(roi, 200)
 
         cropped_new_zstack = self.zstack_with_label_id_of_interest.copy()
         cropped_new_zstack = cropped_new_zstack[:, cminx:cmaxx, cminy:cmaxy]
@@ -155,25 +130,101 @@ class InspectReconstructedCells(InspectionStrategy):
                                  plane_id_of_interest = self.plane_id_of_interest,
                                  save = self.save,
                                  show = self.show)
-        
-        
-class InspectReconstructedCellsBasedOnMultiMatchIDX(InspectionStrategy):
+
+
+
+class InspectReconstructedCells3D(InspectionStrategy):
     
-    def __init__(self, multi_match_index: int, save: bool=False, show: bool=True):
+    def __init__(self, plane_id_of_interest: int, label_id_of_interest: int, zstack_with_label_id_of_interest: np.ndarray, save: bool=False, show: bool=True):
+        self.plane_id_of_interest = plane_id_of_interest
+        self.label_id_of_interest = label_id_of_interest
+        self.zstack_with_label_id_of_interest = zstack_with_label_id_of_interest
+        self.save = save
+        self.show = show
+        
+
+    def get_rgb_color_code_for_3D(self, zstack: np.ndarray) -> Dict:
+        label_ids = list(np.unique(zstack))
+        if 0 in label_ids:
+            label_ids.remove(0)
+        color_code = get_color_code(label_ids, for_rgb=True)
+
+        red_colors = np.zeros(zstack.shape)
+        green_colors = np.zeros(zstack.shape)
+        blue_colors = np.zeros(zstack.shape)
+
+        for label_id in label_ids:
+            red_colors[np.where(zstack == label_id)] = color_code[label_id]['red']
+            green_colors[np.where(zstack == label_id)] = color_code[label_id]['green']
+            blue_colors[np.where(zstack == label_id)] = color_code[label_id]['blue']
+
+        rgb_color_code = np.zeros(zstack.shape + (3,))
+        rgb_color_code[..., 0] = red_colors
+        rgb_color_code[..., 1] = green_colors
+        rgb_color_code[..., 2] = blue_colors
+
+        return rgb_color_code
+
+
+    def plot_reconstructed_cells_in_3D(self, final_labels_zstack: np.ndarray, color_code: Dict, save: bool=False, show: bool=True):
+        fig = plt.figure(figsize=(15, 15), facecolor='white')
+        ax = fig.add_subplot(projection='3d')
+        ax.voxels(final_labels_zstack, facecolors=color_code)
+        ax.set(xlabel='single planes of z-stack', ylabel='x-dimension', zlabel='y-dimension')
+        if save:
+            filepath = f'{self.database.inspection_dir}inspected_area_plots/{self.file_id}_{self.label_id_of_interest}_3D.png'
+            plt.savefig(filepath, dpi=300)
+            print(f'The resulting plot was successfully saved to: {self.database.inspection_dir}inspected_area_plots/')
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
+
+    def run(self, database: Database, file_id: str):
+        self.database = database
+        self.file_id = file_id
+
+        roi = get_polygon_from_instance_segmentation(self.zstack_with_label_id_of_interest[self.plane_id_of_interest], self.label_id_of_interest)
+        cminx, cmaxx, cminy, cmaxy = get_cropping_box_arround_centroid(roi, 100)
+
+        cropped_new_zstack = self.zstack_with_label_id_of_interest.copy()
+        cropped_new_zstack = cropped_new_zstack[:, cminx:cmaxx, cminy:cmaxy]
+
+        rgb_color_code = self.get_rgb_color_code_for_3D(cropped_new_zstack)
+
+        self.plot_reconstructed_cells_in_3D(final_labels_zstack = cropped_new_zstack, 
+                                            color_code = rgb_color_code, 
+                                            save = self.save,
+                                            show = self.show)
+
+
+
+class InspectUsingMultiMatchIDX(InspectionStrategy):
+    
+    def __init__(self, multi_match_index: int, reconstruction_strategy: str='2D', save: bool=False, show: bool=True):
         self.multi_match_index = multi_match_index
         self.save = save
         self.show = show
+        self.reconstruction_strategy = reconstruction_strategy
     
     
-    def run(self, database: Database, file_id: str) -> Union[plt.Axes, None]:
+    def run(self, database: Database, file_id: str):
         
         zstack_with_final_label_ids = load_zstack_as_array_from_single_planes(path = database.inspection_dir, file_id = file_id)
-        
         multi_matches_traceback = database.multi_matches_traceback[file_id]
-        
-        helper_obj = InspectReconstructedCells(plane_id_of_interest = multi_matches_traceback['plane_index'][self.multi_match_index], 
-                                                label_id_of_interest = multi_matches_traceback['final_label_id'][self.multi_match_index], 
-                                                zstack_with_label_id_of_interest = zstack_with_final_label_ids,
-                                                save = self.save, 
-                                                show = self.show)
-        helper_obj.run(database, file_id)
+        if self.reconstruction_strategy == '2D':
+            reconstruction_obj = InspectReconstructedCells2D(plane_id_of_interest = multi_matches_traceback['plane_index'][self.multi_match_index], 
+                                                             label_id_of_interest = multi_matches_traceback['final_label_id'][self.multi_match_index], 
+                                                             zstack_with_label_id_of_interest = zstack_with_final_label_ids,
+                                                             save = self.save, 
+                                                             show = self.show)
+        elif self.reconstruction_strategy == '3D':
+            reconstruction_obj = InspectReconstructedCells3D(plane_id_of_interest = multi_matches_traceback['plane_index'][self.multi_match_index], 
+                                                             label_id_of_interest = multi_matches_traceback['final_label_id'][self.multi_match_index], 
+                                                             zstack_with_label_id_of_interest = zstack_with_final_label_ids,
+                                                             save = self.save, 
+                                                             show = self.show)
+        else:
+            raise InputError("reconstruction_strategy has be one of the following strings: ['2D', '3D']")
+        reconstruction_obj.run(database, file_id)
