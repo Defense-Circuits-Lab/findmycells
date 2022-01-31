@@ -4,6 +4,24 @@ import numpy as np
 import pickle
 from datetime import datetime
 from .utils import listdir_nohidden
+import pandas as pd
+
+RENAMING_DICT = {"file_id": "File ID", 
+                 "original_file_id": "Original File ID",               
+                 "group_id": "Group ID", 
+                 "subject_id": "Subject ID", 
+                 "microscopy_filepath": "Microscopy Filepath", 
+                 "microscopy_filetype": "Microscopy Filetype",
+                 "rois_present": "Rois Present", 
+                 "rois_filepath": "Rois Filepath",
+                 "rois_filetype": "Rois Filetype",
+                "preprocessing_completed": "Preprocessing Completed",
+                 "RGB": "RGB",
+                "total_image_planes": "Total Image Planes",
+                "cropping_method": "Cropping Method",
+                "cropping_row_indices": "Cropping Row Indices",
+                "cropping_column_indices": "Cropping Column Indices",
+                "quantification_completed": "Quantification Completed"}
 
 class Database():
     '''
@@ -274,13 +292,22 @@ class Database():
         
     
     def save_all(self):
-        self.save_csv
+        self.save_csv()
         self.save_file_infos()
         self.save_project_configs()
     
     def save_csv(self):
-        dataframe_try = pd.DataFrame(self)
-dataframe_try.to_csv(os.path.join(test_project.database.results_dir,f'{datetime.now().strftime("%Y_%m_%d")}_Database_files_DF.csv'))
+        df = pd.DataFrame(self.file_infos)
+        current_columns = list(df.columns)
+        new_columns = list()
+        for column_name in current_columns:
+            if column_name in RENAMING_DICT.keys():
+                new_columns.append(RENAMING_DICT[column_name])
+            else: 
+                print(f"Warning: {column_name} not yet specified in renaming dictionary")
+                new_columns.append(column_name)
+        df.columns=new_columns
+        df.to_csv(os.path.join(self.results_dir,f'{datetime.now().strftime("%Y_%m_%d")}_findmycells_overview_for_user.csv'))
     
     
     def save_file_infos(self):
