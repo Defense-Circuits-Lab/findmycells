@@ -356,7 +356,7 @@ class Database():
                 except:
                     pass
     
-    def remove_file_id_from_project(file_id: str):
+    def remove_file_id_from_project(self, file_id: str):
         index = self.file_infos['file_id'].index(file_id)
         original_file_id = self.file_infos['original_file_id'][index]
         
@@ -368,10 +368,8 @@ class Database():
             os.mkdir(self.removed_files_dir)
 
         for source_data_type in ['microscopy', 'rois']:
-            source_filepath = self.file_infos[f'{source_data_type}_filetype'][index]
-            filetype = self.file_infos[f'{source_data_type}_filetype'][index]
-            destination_filepath = self.removed_files_dir + original_file_id + filetype
-            shutil.move(source_filepath, destination_filepath)
+            source_filepath = self.file_infos[f'{source_data_type}_filepath'][index]
+            shutil.move(source_filepath, self.removed_files_dir)
             
         # Delete all files that were already generated from findmycells:
         for directory in [self.preprocessed_images_dir, 
@@ -388,7 +386,8 @@ class Database():
         for key in self.file_infos.keys():
             self.file_infos[key].pop(index)
         # Remove from rois_as_shapely_polygons:
-        self.rois_as_shapely_polygons.pop(file_id)
+        if file_id in self.rois_as_shapely_polygons.keys():
+            self.rois_as_shapely_polygons.pop(file_id)
     
     ######################################
     # Deprecated methods - can be deleted?
