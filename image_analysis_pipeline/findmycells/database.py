@@ -5,6 +5,7 @@ import pickle
 from datetime import datetime
 from .utils import listdir_nohidden
 import pandas as pd
+import shutil
 
 RENAMING_DICT = {"file_id": "File ID", 
                  "original_file_id": "Original File ID",               
@@ -355,7 +356,39 @@ class Database():
                 except:
                     pass
     
-    
+    def remove_file_id_from_project(file_id: str):
+        index = self.file_infos['file_id'].index(file_id)
+        original_file_id = self.file_infos['original_file_id'][index]
+        
+        # Move all source files, i.e. microscopy image file and roi file(s):
+        subdirectories = listdir_nohidden(self.project_root_dir)
+        try: self.removed_files_dir = self.project_root_dir + [elem for elem in subdirectories if 'removed_files' in elem][0] + '/'
+        except:
+            self.removed_files_dir = self.project_root_dir + '08_removed_files/'
+            os.mkdir(self.removed_files_dir)
+
+        for source_data_type in ['microscopy', 'rois']:
+            source_filepath = self.file_infos[f'{source_data_type}_filetype'][index]
+            filetype = self.file_infos[f'{source_data_type}_filetype'][index]
+            destination_filepath = self.removed_files_dir + original_file_id + filetype
+            shutil.move(source_filepath, destination_filepath)
+            
+        # Delete all files that were already generated from findmycells:
+        for directory in [self.preprocessed_images_dir, 
+                          self.binary_segmentations_dir, 
+                          self.instance_segmentations_dir, 
+                          self.inspection_dir]:
+            filenames = listdir_nohidden(directory)
+            if len(filenames) > 0:
+                for filename in filenames:
+                    if filename.startswith(file_id):
+                        os.remove(directory + filename)
+
+        # Remove from file_infos:
+        for key in self.file_infos.keys():
+            self.file_infos[key].pop(index)
+        # Remove from rois_as_shapely_polygons:
+        self.rois_as_shapely_polygons.pop(file_id)
     
     ######################################
     # Deprecated methods - can be deleted?
