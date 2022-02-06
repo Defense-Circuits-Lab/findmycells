@@ -4,6 +4,25 @@ import numpy as np
 import pickle
 from datetime import datetime
 from .utils import listdir_nohidden
+import pandas as pd
+import shutil
+
+RENAMING_DICT = {"file_id": "File ID", 
+                 "original_file_id": "Original File ID",               
+                 "group_id": "Group ID", 
+                 "subject_id": "Subject ID", 
+                 "microscopy_filepath": "Microscopy Filepath", 
+                 "microscopy_filetype": "Microscopy Filetype",
+                 "rois_present": "Rois Present", 
+                 "rois_filepath": "Rois Filepath",
+                 "rois_filetype": "Rois Filetype",
+                "preprocessing_completed": "Preprocessing Completed",
+                 "RGB": "RGB",
+                "total_image_planes": "Total Image Planes",
+                "cropping_method": "Cropping Method",
+                "cropping_row_indices": "Cropping Row Indices",
+                "cropping_column_indices": "Cropping Column Indices",
+                "quantification_completed": "Quantification Completed"}
 
 class Database():
     '''
@@ -274,9 +293,22 @@ class Database():
         
     
     def save_all(self):
+        self.save_csv()
         self.save_file_infos()
         self.save_project_configs()
-        # For sofie: add the call of the corresponding method here
+    
+    def save_csv(self):
+        df = pd.DataFrame(self.file_infos)
+        current_columns = list(df.columns)
+        new_columns = list()
+        for column_name in current_columns:
+            if column_name in RENAMING_DICT.keys():
+                new_columns.append(RENAMING_DICT[column_name])
+            else: 
+                print(f"Warning: {column_name} not yet specified in renaming dictionary")
+                new_columns.append(column_name)
+        df.columns=new_columns
+        df.to_csv(os.path.join(self.results_dir,f'{datetime.now().strftime("%Y_%m_%d")}_findmycells_overview_for_user.csv'))
     
     
     def save_file_infos(self):
@@ -324,7 +356,38 @@ class Database():
                 except:
                     pass
     
-    
+    def remove_file_id_from_project(self, file_id: str):
+        index = self.file_infos['file_id'].index(file_id)
+        original_file_id = self.file_infos['original_file_id'][index]
+        
+        # Move all source files, i.e. microscopy image file and roi file(s):
+        subdirectories = listdir_nohidden(self.project_root_dir)
+        try: self.removed_files_dir = self.project_root_dir + [elem for elem in subdirectories if 'removed_files' in elem][0] + '/'
+        except:
+            self.removed_files_dir = self.project_root_dir + '08_removed_files/'
+            os.mkdir(self.removed_files_dir)
+
+        for source_data_type in ['microscopy', 'rois']:
+            source_filepath = self.file_infos[f'{source_data_type}_filepath'][index]
+            shutil.move(source_filepath, self.removed_files_dir)
+            
+        # Delete all files that were already generated from findmycells:
+        for directory in [self.preprocessed_images_dir, 
+                          self.binary_segmentations_dir, 
+                          self.instance_segmentations_dir, 
+                          self.inspection_dir]:
+            filenames = listdir_nohidden(directory)
+            if len(filenames) > 0:
+                for filename in filenames:
+                    if filename.startswith(file_id):
+                        os.remove(directory + filename)
+
+        # Remove from file_infos:
+        for key in self.file_infos.keys():
+            self.file_infos[key].pop(index)
+        # Remove from rois_as_shapely_polygons:
+        if file_id in self.rois_as_shapely_polygons.keys():
+            self.rois_as_shapely_polygons.pop(file_id)
     
     ######################################
     # Deprecated methods - can be deleted?

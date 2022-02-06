@@ -167,8 +167,12 @@ class CropStitchingArtefacts(CroppingMethod):
     def get_cropping_indices(self, a):
         unique, counts = np.unique(a, return_counts=True)
         indices_with_black_pixels = unique[np.where(counts > 100)]
-        lower_cropping_index = indices_with_black_pixels[np.where(np.diff(indices_with_black_pixels) > 1)[0]][0] + 1
-        upper_cropping_index = indices_with_black_pixels[np.where(np.diff(indices_with_black_pixels) > 1)[0] + 1][0]
+        if indices_with_black_pixels.shape[0] > 0:
+            lower_cropping_index = indices_with_black_pixels[np.where(np.diff(indices_with_black_pixels) > 1)[0]][0] + 1
+            upper_cropping_index = indices_with_black_pixels[np.where(np.diff(indices_with_black_pixels) > 1)[0] + 1][0]
+        else:
+            lower_cropping_index = 0
+            upper_cropping_index = a.shape[0] - 1
         return lower_cropping_index, upper_cropping_index    
 
     

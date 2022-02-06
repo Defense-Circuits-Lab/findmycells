@@ -54,6 +54,9 @@ class Project:
         
         inspection_strategy.run(self.database, file_id)
         
+    def remove_file_id_from_project(self, file_id: str):
+        self.database.remove_file_id_from_project(file_id = file_id)
+        
         
       
         
