@@ -80,7 +80,7 @@ class ReconstructCellsIn3DFrom2DInstanceLabels(QuantificationPreprocessingStrate
         results = self.get_plane_to_plane_roi_matching_results(zstack = zstack_original_label_ids)
         for plane_id in range(zstack_original_label_ids.shape[0]):
             for label_id in results[plane_id].keys():
-                results[plane_id][label_id] = self.find_best_matches(results[plane_id][label_id])
+                results[plane_id][label_id] = self.find_best_matches(all_results = results, original_plane_id = plane_id, original_label_id = label_id)
         final_ids, results = self.get_final_id_assignments(results = results, lowest_final_label_id = self.lowest_final_label_id)
         zstack_original_label_ids = unpad_x_y_dims_in_3d_array(zstack_original_label_ids, self.pad_width)
         zstack_with_final_label_ids = self.set_new_label_ids(zstack_with_old_label_ids = zstack_original_label_ids, 
@@ -122,7 +122,7 @@ class ReconstructCellsIn3DFrom2DInstanceLabels(QuantificationPreprocessingStrate
 
         for plane_idx in range(z_dim):
             if verbose:
-                print(f'starting with plane {plane_idx}')
+                print(f'--matching ROIs across planes ({plane_idx}/{z_dim-1})')
             results[plane_idx] = dict()
 
             if plane_idx == 0:
@@ -166,7 +166,6 @@ class ReconstructCellsIn3DFrom2DInstanceLabels(QuantificationPreprocessingStrate
             
                 for plane_to_compare_info in [previous_plane_info, next_plane_info]:
                     if plane_to_compare_info[0] != None:
-                        labels_of_pixels_in_plane_to_compare = None # Reset results - still required??
                         plane_to_compare_idx, plane_indicator = plane_to_compare_info[0], plane_to_compare_info[1]
                         labels_of_pixels_in_plane_to_compare = zstack[plane_to_compare_idx][np.where(plane == label_id)]
                         labels_of_pixels_in_plane_to_compare = list(np.unique(labels_of_pixels_in_plane_to_compare))
@@ -185,29 +184,75 @@ class ReconstructCellsIn3DFrom2DInstanceLabels(QuantificationPreprocessingStrate
         return results    
 
 
-    def find_best_matches(self, results: Dict) -> Dict:
-
+    def find_best_matches(self, all_results: Dict, original_plane_id: int, original_label_id: int) -> Dict:
+        
+        results = all_results[original_plane_id][original_label_id].copy()
         for plane_indicator in ['previous', 'next']:
             if len(results[f'matching_ids_{plane_indicator}_plane']) > 0:
-                max_iou = max(results[f'IoUs_{plane_indicator}_plane'])
-                if max_iou >= 0.5: # Does this really make sense here? IoU could also be < 0.5 and within == False, but only because of some pixel? Max reciprocal overlap??
-                    index = results[f'IoUs_{plane_indicator}_plane'].index(max_iou)
-                elif any(results[f'full_overlap_{plane_indicator}_plane']):
-                    index = results[f'full_overlap_{plane_indicator}_plane'].index(True)
+                within = any(results[f'full_overlap_{plane_indicator}_plane'])
+                # First exit: our ROI is fully within another ROI, obviously making it our best match:
+                if within:
+                    best_match_index = results[f'full_overlap_{plane_indicator}_plane'].index(True)
                 else:
-                    index = None
-
-                if type(index) == int:
-                    best_matching_id = results[f'matching_ids_{plane_indicator}_plane'][index]
-                    iou = max_iou
-                    overlap = results[f'overlapping_area_{plane_indicator}_plane'][index]
+                    if plane_indicator == 'previous':
+                        reciprocal_plane_indicator = 'next'
+                        reciprocal_plane_id = original_plane_id - 1
+                    else:
+                        reciprocal_plane_indicator = 'previous'
+                        reciprocal_plane_id = original_plane_id + 1
+                    reciprocal_within_label_ids = list()
+                    reciprocal_label_ids_to_be_excluded = list()
+                    for reciprocal_label_id in results[f'matching_ids_{plane_indicator}_plane']:
+                        reciprocal_results = all_results[reciprocal_plane_id][reciprocal_label_id].copy()
+                        index_original_label_id = reciprocal_results[f'matching_ids_{reciprocal_plane_indicator}_plane'].index(original_label_id)
+                        if reciprocal_results[f'full_overlap_{reciprocal_plane_indicator}_plane'][index_original_label_id]:
+                            reciprocal_within_label_ids.append(reciprocal_label_id)
+                        elif any(reciprocal_results[f'full_overlap_{reciprocal_plane_indicator}_plane']):
+                            reciprocal_label_ids_to_be_excluded.append(reciprocal_label_id)
+                    # Second exit: (at least) one matching ROI is fully within our original ROI and, therefore, has to be considered as best match:
+                    if len(reciprocal_within_label_ids) == 1:
+                        best_match_index = results[f'matching_ids_{plane_indicator}_plane'].index(reciprocal_within_label_ids[0])
+                    elif len(reciprocal_within_label_ids) > 1:
+                        print(f'Multiple reciprocal withins for original_label_id: {original_label_id} in original_plane_id: {original_plane_id}')
+                        max_iou = -1
+                        best_reciprocal_within_label_id = None
+                        for reciprocal_label_id in reciprocal_within_label_ids:
+                            index_reciprocal_label_id = results[f'matching_ids_{plane_indicator}_plane'].index(reciprocal_label_id)
+                            tmp_matching_iou = results[f'IoUs_{plane_indicator}_plane'][index_reciprocal_label_id]
+                            if tmp_matching_iou > max_iou:
+                                best_reciprocal_within_label_id = reciprocal_label_id
+                                max_iou = tmp_matching_iou
+                        best_match_index = results[f'matching_ids_{plane_indicator}_plane'].index(best_reciprocal_within_label_id)
+                                
+                    else: # neither an original within, nor a reciprocal within - time to look for the highest IOU then:
+                        max_iou = max(results[f'IoUs_{plane_indicator}_plane'])
+                        max_iou_index = results[f'IoUs_{plane_indicator}_plane'].index(max_iou)
+                        reciprocal_label_id = results[f'matching_ids_{plane_indicator}_plane'][max_iou_index]
+                        # Third exit: The best matching ROI of our original ROI is fully within another ROI within the same plane as our original ROI --> no match!
+                        if reciprocal_label_id in reciprocal_label_ids_to_be_excluded:
+                            best_match_index = None
+                        else:
+                            reciprocal_results = all_results[reciprocal_plane_id][reciprocal_label_id].copy()
+                            reciprocal_max_iou = max(reciprocal_results[f'IoUs_{reciprocal_plane_indicator}_plane'])
+                            reciprocal_max_iou_index = reciprocal_results[f'IoUs_{reciprocal_plane_indicator}_plane'].index(reciprocal_max_iou)
+                            # Fourth exit: Our original ROI is also the best matching ROI for its´ own best matching ROI: 
+                            if original_label_id == reciprocal_results[f'matching_ids_{reciprocal_plane_indicator}_plane'][reciprocal_max_iou_index]:
+                                best_match_index = max_iou_index
+                            # Fifth and final exit: Our original ROI is not the best matching ROI of its´ own best match --> no match!
+                            else:
+                                best_match_index = None
+                    
+                if type(best_match_index) == int:
+                    best_match_label_id = results[f'matching_ids_{plane_indicator}_plane'][best_match_index]
+                    best_match_iou = results[f'IoUs_{plane_indicator}_plane'][best_match_index]
+                    best_match_overlap = results[f'overlapping_area_{plane_indicator}_plane'][best_match_index]
                 else: 
-                    best_matching_id, iou, overlap = None, None, None
+                    best_match_label_id, best_match_iou, best_match_overlap = None, None, None
 
-                results[f'best_match_{plane_indicator}_plane'] = best_matching_id
-                results[f'overlapping_area_best_match_{plane_indicator}_plane'] = overlap
-                results[f'IoU_best_match_{plane_indicator}_plane'] = iou
-
+                results[f'best_match_{plane_indicator}_plane'] = best_match_label_id
+                results[f'overlapping_area_best_match_{plane_indicator}_plane'] = best_match_overlap
+                results[f'IoU_best_match_{plane_indicator}_plane'] = best_match_iou
+        
         return results
     
 
@@ -306,6 +351,7 @@ class QuantificationStrategy(ABC):
 class CountCellsInWholeStructure(QuantificationStrategy):
     
     def quantify(self, quantification_obj: QuantificationObject, database: Database) -> Database:
+        print('--quantifying reconstructed cells in 3D within region of interest')
         quantification_obj.final_ids = self.add_relative_positions_to_final_assignment(final_ids = quantification_obj.final_ids,
                                                                                        rois_of_areas_to_quantify = database.rois_as_shapely_polygons[quantification_obj.file_id],
                                                                                        zstack = quantification_obj.zstack_with_final_label_ids)
@@ -341,7 +387,6 @@ class CountCellsInWholeStructure(QuantificationStrategy):
         roi_ids = rois_of_areas_to_quantify.keys()
 
         for roi_id in roi_ids:
-            print('starting to compute relative positions')
             roi_area_to_quantify = rois_of_areas_to_quantify[roi_id]
 
             for plane_index in range(zstack.shape[0]):
@@ -424,6 +469,7 @@ class Quantifier:
         
         for file_id in self.file_ids:
             if self.file_info_dicts[file_id]['quantification_completed'] != True:
+                print(f'Quantification of file ID: {file_id} ({self.file_ids.index(file_id)}/{len(self.file_ids)})')  
                 quantification_obj = QuantificationObject(file_id, self.database)
 
                 for quant_prepro_strat in self.quantification_preprocessing_strategies:
