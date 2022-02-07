@@ -7,22 +7,22 @@ from .utils import listdir_nohidden
 import pandas as pd
 import shutil
 
-RENAMING_DICT = {"file_id": "File ID", 
-                 "original_file_id": "Original File ID",               
-                 "group_id": "Group ID", 
-                 "subject_id": "Subject ID", 
-                 "microscopy_filepath": "Microscopy Filepath", 
-                 "microscopy_filetype": "Microscopy Filetype",
-                 "rois_present": "Rois Present", 
-                 "rois_filepath": "Rois Filepath",
-                 "rois_filetype": "Rois Filetype",
-                "preprocessing_completed": "Preprocessing Completed",
-                 "RGB": "RGB",
-                "total_image_planes": "Total Image Planes",
-                "cropping_method": "Cropping Method",
-                "cropping_row_indices": "Cropping Row Indices",
-                "cropping_column_indices": "Cropping Column Indices",
-                "quantification_completed": "Quantification Completed"}
+RENAMING_DICT = {'file_id': 'File ID', 
+                 'original_file_id': 'Original File ID',               
+                 'group_id': 'Group ID', 
+                 'subject_id': 'Subject ID', 
+                 'microscopy_filepath': 'Microscopy Filepath', 
+                 'microscopy_filetype': 'Microscopy Filetype',
+                 'rois_present': 'Rois Present', 
+                 'rois_filepath': 'Rois Filepath',
+                 'rois_filetype': 'Rois Filetype',
+                 'preprocessing_completed': 'Preprocessing Completed',
+                 'RGB': 'RGB',
+                 'total_image_planes': 'Total Image Planes',
+                 'cropping_method': 'Cropping Method',
+                 'cropping_row_indices': 'Cropping Row Indices',
+                 'cropping_column_indices': 'Cropping Column Indices',
+                 'quantification_completed': 'Quantification Completed'}
 
 class Database():
     '''
@@ -113,8 +113,15 @@ class Database():
     
     def __init__(self, user_input_via_gui: dict):
         self.extract_user_input(user_input_via_gui)
-        self.construct_main_subdirectories()
-        self.create_file_infos()
+        if hasattr(self, 'only_duplication') == False:
+            self.construct_main_subdirectories()
+            self.create_file_infos()
+        elif self.only_duplication == False:
+            self.construct_main_subdirectories()
+            self.create_file_infos()
+        else:
+            self.construct_main_subdirectories()
+            self.load_all()
         
     def extract_user_input(self, user_input: dict):
         for key, value in user_input.items():
@@ -147,17 +154,21 @@ class Database():
         # Instead of searching for specific keywords, the respective directories should be chosen by the user via the GUI
         subdirectories = listdir_nohidden(self.project_root_dir)
         
-        # Mandatory directories (images, rois, and df2 models are required):
+        # Mandatory directories (only images and rois are required):
         self.microscopy_image_dir = self.project_root_dir + [elem for elem in subdirectories if 'microscopy' in elem][0] + '/'
         self.rois_to_analyze_dir = self.project_root_dir + [elem for elem in subdirectories if 'rois' in elem][0] + '/'
-        self.deepflash2_dir = self.project_root_dir + [elem for elem in subdirectories if 'deepflash2' in elem][0] + '/'
-        self.create_deepflash2_subdirectories()
         
         # Remaining directories that are currently not required to exist when the database object is created:
         try: self.preprocessed_images_dir = self.project_root_dir + [elem for elem in subdirectories if 'preprocessed' in elem][0] + '/' 
         except:
             self.preprocessed_images_dir = self.project_root_dir + '02_preprocessed_images/'
-            os.mkdir(self.preprocessed_images_dir)                  
+            os.mkdir(self.preprocessed_images_dir) 
+
+        try: self.deepflash2_dir = self.project_root_dir + [elem for elem in subdirectories if 'deepflash2' in elem][0] + '/'
+        except:
+            self.deepflash2_dir = self.project_root_dir + '03_deepflash2/'
+            os.mkdir(self.deepflash2_dir)         
+        self.create_deepflash2_subdirectories()
         
         try: self.binary_segmentations_dir = self.project_root_dir + [elem for elem in subdirectories if 'binary' in elem][0] + '/' 
         except:
@@ -168,6 +179,13 @@ class Database():
         except:
             self.instance_segmentations_dir = self.project_root_dir + '05_instance_segmentations/'
             os.mkdir(self.instance_segmentations_dir)
+            
+        try: self.inspection_dir = self.project_root_dir + [elem for elem in subdirectories if 'inspection' in elem][0] + '/'
+        except:
+            self.inspection_dir = self.project_root_dir + '06_inspection/'
+            os.mkdir(self.inspection_dir)
+        if os.path.isdir(self.inspection_dir + 'inspected_area_plots/') == False:
+            os.mkdir(self.inspection_dir + 'inspected_area_plots/')
             
         try: self.inspection_dir = self.project_root_dir + [elem for elem in subdirectories if 'inspection' in elem][0] + '/'
         except:
@@ -321,7 +339,9 @@ class Database():
         project_configs = self.__dict__.copy()
         if 'file_infos' in project_configs.keys():
             project_configs.pop('file_infos')
-        
+        if 'only_duplication' in project_configs.keys():
+            project_configs.pop('only_duplication')  
+            
         filepath = f'{self.results_dir}{datetime.now().strftime("%Y_%m_%d")}_findmycells_project_configs.p'        
         with open(filepath, 'wb') as io:
             pickle.dump(project_configs, io)
@@ -345,7 +365,6 @@ class Database():
             for key, value in project_configs.items():
                 if hasattr(self, key) == False:
                     setattr(self, key, value)        
-        
         
             # No longer needed, only kept in for compatibility with initial projects
             if hasattr(self, 'rois_as_shapely_polygons') == False:
