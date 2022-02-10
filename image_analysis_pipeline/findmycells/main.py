@@ -37,15 +37,15 @@ class Project:
         segmentor = Segmentor(self.database, file_ids)
         self.database = segmentor.run_all()
 
-    def run_quantificatons(self, file_ids: Optional[List]=None) -> None:
+    def run_quantifications(self, file_ids: Optional[List]=None) -> None:
         from .quantifications import Quantifier
         
         if 'quantification_completed' not in self.database.file_infos.keys():
             self.database.add_new_key_to_file_infos('quantification_completed')
         if file_ids == None:
             all_file_ids = self.database.file_infos['file_id']
-            quantification_satus = self.database.file_infos['quantification_completed']
-            file_ids = [elem[0] for elem in zip(all_file_ids, quantification_satus) if elem[1] == False or elem[1] == None]
+            quantification_status = self.database.file_infos['quantification_completed']
+            file_ids = [elem[0] for elem in zip(all_file_ids, quantification_status) if elem[1] == False or elem[1] == None]
         quantifier = Quantifier(self.database, file_ids)
         self.database = quantifier.run_all()
         

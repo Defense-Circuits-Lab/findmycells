@@ -87,13 +87,28 @@ class CroppingAsPreprocessingStrategy(PreprocessingStrategy):
         cropping_strategy = prepro_method_obj
         updates['cropping_method'] = cropping_strategy.method_info
         
-        cropped_row_indices = list()
-        cropped_column_indices = list()
+        for plane_idx in range(preproobj.microscopy_image.total_planes):
+            plane_id = str(plane_idx).zfill(3)
+            image_plane = preproobj.microscopy_image.as_array[plane_idx].copy()
+            cropped_image = cropping_strategy.crop_image(image_plane)        
+            if plane_idx == 0:
+                min_lower_row_cropping_idx, max_upper_row_cropping_idx = cropping_strategy.lower_row_idx, cropping_strategy.upper_row_idx
+                min_lower_col_cropping_idx, max_upper_col_cropping_idx = cropping_strategy.lower_col_idx, cropping_strategy.upper_col_idx
+            else:
+                if cropping_strategy.lower_row_idx > min_lower_row_cropping_idx:
+                    min_lower_row_cropping_idx = cropping_strategy.lower_row_idx
+                if cropping_strategy.upper_row_idx < max_upper_row_cropping_idx:
+                    max_upper_row_cropping_idx = cropping_strategy.upper_row_idx
+                if cropping_strategy.lower_col_idx > min_lower_col_cropping_idx:
+                    min_lower_col_cropping_idx = cropping_strategy.lower_col_idx
+                if cropping_strategy.upper_col_idx < max_upper_col_cropping_idx:
+                    max_upper_col_cropping_idx = cropping_strategy.upper_col_idx
+        
         preprocessed_image_planes = list()
         for plane_idx in range(preproobj.microscopy_image.total_planes):
             plane_id = str(plane_idx).zfill(3)
             image_plane = preproobj.microscopy_image.as_array[plane_idx].copy() 
-            cropped_image = cropping_strategy.crop_image(image_plane)
+            cropped_image = image_plane[min_lower_row_cropping_idx:max_upper_row_cropping_idx, min_lower_col_cropping_idx:max_upper_col_cropping_idx]
             # The following steps [1: type conversion (X-bit to 8-bit) and 2: saving] should become own PreprocessingStrategies
             # cropped images should be stored in preproobj as "preprocessed_image" attribute
             # This would enable further PreprocessingStrategies to continue from their
@@ -102,20 +117,19 @@ class CroppingAsPreprocessingStrategy(PreprocessingStrategy):
             image_filepath_out = f'{database.preprocessed_images_dir}{file_id}-{plane_id}.png'
             cropped_image.save(image_filepath_out)
             preprocessed_image_planes.append(image_plane.copy())
-            cropped_row_indices.append((cropping_strategy.lower_row_idx, cropping_strategy.upper_row_idx))
-            cropped_column_indices.append((cropping_strategy.lower_col_idx, cropping_strategy.upper_col_idx))
             del image_plane, cropped_image
             print(f'done with plane {plane_id}')
-        
+
         # make sure cropping indices were identical for each image plane:
-        if (len(set(cropped_row_indices)) == 1) & (len(set(cropped_column_indices)) == 1):
-            cropping_strategy.adjust_rois(preproobj.roi_file)
-            preproobj.roi_file.from_array_to_shapely_polygon()
-            updates['cropping_row_indices'] = (cropping_strategy.lower_row_idx, cropping_strategy.upper_row_idx)
-            updates['cropping_column_indices'] = (cropping_strategy.lower_col_idx, cropping_strategy.upper_col_idx)
-            database.import_roi_polygons(preproobj.roi_file)
-        else:
-            raise ValueError(f'Cropping indices were not matching across all image planes for file_id: {file_id}')
+        cropping_strategy.lower_row_idx = min_lower_row_cropping_idx
+        cropping_strategy.upper_row_idx = max_upper_row_cropping_idx
+        cropping_strategy.lower_col_idx = min_lower_col_cropping_idx
+        cropping_strategy.upper_col_idx = max_upper_col_cropping_idx
+        cropping_strategy.adjust_rois(preproobj.roi_file)
+        preproobj.roi_file.from_array_to_shapely_polygon()
+        updates['cropping_row_indices'] = (cropping_strategy.lower_row_idx, cropping_strategy.upper_row_idx)
+        updates['cropping_column_indices'] = (cropping_strategy.lower_col_idx, cropping_strategy.upper_col_idx)
+        database.import_roi_polygons(preproobj.roi_file)
         
         # update preprocessingobject and database when everything is finished:
         preproobj.preprocessed_image = np.asarray(preprocessed_image_planes)
@@ -167,13 +181,21 @@ class CropStitchingArtefacts(CroppingMethod):
     def get_cropping_indices(self, a):
         unique, counts = np.unique(a, return_counts=True)
         indices_with_black_pixels = unique[np.where(counts > 100)]
-        if indices_with_black_pixels.shape[0] > 0:
-            lower_cropping_index = indices_with_black_pixels[np.where(np.diff(indices_with_black_pixels) > 1)[0]][0] + 1
-            upper_cropping_index = indices_with_black_pixels[np.where(np.diff(indices_with_black_pixels) > 1)[0] + 1][0]
+        if indices_with_black_pixels.shape[0] > 0: #changed
+            if np.where(np.diff(indices_with_black_pixels) > 1)[0].shape[0] > 0:
+                lower_cropping_index = indices_with_black_pixels[np.where(np.diff(indices_with_black_pixels) > 1)[0]][0] + 1
+                upper_cropping_index = indices_with_black_pixels[np.where(np.diff(indices_with_black_pixels) > 1)[0] + 1][0]
+            else:
+                if indices_with_black_pixels[0] == 0:
+                    lower_cropping_index = indices_with_black_pixels[-1]
+                    upper_cropping_index = a.shape[0] - 1
+                else:
+                    lower_cropping_index = 0
+                    upper_cropping_index = indices_with_black_pixels[0]
         else:
             lower_cropping_index = 0
             upper_cropping_index = a.shape[0] - 1
-        return lower_cropping_index, upper_cropping_index    
+        return lower_cropping_index, upper_cropping_index     
 
     
 class Preprocessor:
