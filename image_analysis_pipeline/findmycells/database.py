@@ -191,6 +191,7 @@ class Database():
         except:
             self.inspection_dir = self.project_root_dir + '06_inspection/'
             os.mkdir(self.inspection_dir)
+        self.create_inspection_subdirectories()
  
         try: self.results_dir = self.project_root_dir + [elem for elem in subdirectories if 'results' in elem][0] + '/'
         except:
@@ -209,7 +210,25 @@ class Database():
         except:
             self.deepflash2_temp_dir = self.deepflash2_dir + 'temp/'
             os.mkdir(self.deepflash2_temp_dir) 
-        
+
+    
+    def create_inspection_subdirectories(self):
+        inspection_subdirectories = listdir_nohidden(self.inspection_dir)
+        try: self.inspected_area_plots_dir = self.inspection_dir + [elem for elem in inspection_subdirectories if 'inspected_area' in elem][0] + '/'
+        except:
+            self.inspected_area_plots_dir = self.inspection_dir + 'inspected_area_plots/'
+            os.mkdir(self.inspected_area_plots_dir)
+            
+        try: self.inspection_final_label_planes_dir = self.inspection_dir + [elem for elem in inspection_subdirectories if 'final_label_ids' in elem][0] + '/'
+        except:
+            self.inspection_final_label_planes_dir = self.inspection_dir + 'planes_with_final_label_ids/'
+            os.mkdir(self.inspection_final_label_planes_dir) 
+
+        try: self.inspection_planes_for_quantification = self.inspection_dir + [elem for elem in inspection_subdirectories if 'for_quantification' in elem][0] + '/'
+        except:
+            self.inspection_planes_for_quantification = self.inspection_dir + 'planes_for_quantification/'
+            os.mkdir(self.inspection_planes_for_quantification)             
+    
     
     def create_file_infos(self):
         # Initial information will be retrieved from the microscopy_image_dir
