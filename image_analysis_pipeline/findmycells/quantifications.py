@@ -12,6 +12,7 @@ from typing import Dict, List, Tuple, Optional
 
 from .database import Database
 from .utils import load_zstack_as_array_from_single_planes, unpad_x_y_dims_in_2d_array, unpad_x_y_dims_in_3d_array, get_polygon_from_instance_segmentation
+from .utils import get_rgb_color_code_for_3D
 
 """
 
@@ -89,7 +90,7 @@ class ReconstructCellsIn3DFrom2DInstanceLabels(QuantificationPreprocessingStrate
         setattr(quantification_obj, 'final_ids', final_ids)
         
         for plane_index in range(zstack_with_final_label_ids.shape[0]):
-            filepath = f'{database.inspection_dir}{quantification_obj.file_id}_{str(plane_index).zfill(3)}_final_label_ids.png'
+            filepath = f'{database.inspection_final_label_planes_dir}{quantification_obj.file_id}_{str(plane_index).zfill(3)}_final_label_ids.png'
             imsave(filepath, zstack_with_final_label_ids[plane_index], check_contrast=False)        
         
         multi_matches_traceback = self.get_rois_with_multiple_matches(results)
@@ -388,22 +389,29 @@ class CountCellsInWholeStructure(QuantificationStrategy):
     
     def quantify(self, quantification_obj: QuantificationObject, database: Database) -> Database:
         print('--quantifying reconstructed cells in 3D within region of interest')
+        self.database = database
         quantification_obj.final_ids = self.add_relative_positions_to_final_assignment(final_ids = quantification_obj.final_ids,
-                                                                                       rois_of_areas_to_quantify = database.rois_as_shapely_polygons[quantification_obj.file_id],
+                                                                                       rois_of_areas_to_quantify = self.database.rois_as_shapely_polygons[quantification_obj.file_id],
                                                                                        zstack = quantification_obj.zstack_with_final_label_ids)
         zstacks_for_quantification = self.get_zstacks_for_quantification(final_ids = quantification_obj.final_ids, 
                                                                          zstack_without_exclusions = quantification_obj.zstack_with_final_label_ids)
+        
+        for roi_id in zstacks_for_quantification.keys():
+            for plane_id in range(zstacks_for_quantification[roi_id]['zstack'].shape[0]):
+                filepath = f'{self.database.inspection_planes_for_quantification}{quantification_obj.file_id}_roi-{roi_id}_quantified_plane_{str(plane_id).zfill(4)}.tif'
+                imsave(filepath, zstacks_for_quantification[roi_id]['zstack'][plane_id], check_contrast = False)        
+        
         zstacks_for_quantification = self.get_n_connected_components_in_zstacks(zstacks_for_quantification = zstacks_for_quantification)
         
         for roi_id in zstacks_for_quantification.keys():
             zstacks_for_quantification[roi_id].pop('zstack')
             
-        if hasattr(database, 'quantification_results') == False:
-            setattr(database, 'quantification_results', dict())
+        if hasattr(self.database, 'quantification_results') == False:
+            setattr(self.database, 'quantification_results', dict())
             
-        database.quantification_results[quantification_obj.file_id] = zstacks_for_quantification
+        self.database.quantification_results[quantification_obj.file_id] = zstacks_for_quantification
         
-        return database  
+        return self.database  
     
     
     def get_relative_position(self, roi_to_check: Polygon, reference: Polygon) -> str:

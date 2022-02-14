@@ -11,7 +11,8 @@ import cc3d
 from typing import Dict, List, Tuple, Optional, Union
 
 from .database import Database
-from .utils import load_zstack_as_array_from_single_planes, get_polygon_from_instance_segmentation, get_cropping_box_arround_centroid, get_color_code
+from .utils import load_zstack_as_array_from_single_planes, get_polygon_from_instance_segmentation, get_cropping_box_arround_centroid
+from .utils import get_color_code, get_rgb_color_code_for_3D
 
 
 class InspectionStrategy(ABC):
@@ -61,6 +62,7 @@ class InspectReconstructedCells2D(InspectionStrategy):
         gs = fig.add_gridspec(z_dim, 3)
 
         for plane_index in range(z_dim):
+            print(plane_index)
             fig.add_subplot(gs[plane_index, 0])
             plt.imshow(preprocessed_zstack[plane_index])
             plt.ylabel(f'plane_{plane_index}', fontsize=14)
@@ -88,9 +90,9 @@ class InspectReconstructedCells2D(InspectionStrategy):
                 plt.title('connected components (color-coded)', fontsize=14, pad=15)
 
         if save:
-            filepath = f'{self.database.inspection_dir}inspected_area_plots/{self.file_id}_{self.plane_id_of_interest}_{self.label_id_of_interest}_2D.png'
+            filepath = f'{self.database.inspected_area_plots_dir}{self.file_id}_{self.plane_id_of_interest}_{self.label_id_of_interest}_2D.png'
             plt.savefig(filepath, dpi=300)
-            print(f'The resulting plot was successfully saved to: {self.database.inspection_dir}inspected_area_plots/')
+            print(f'The resulting plot was successfully saved to: {self.database.inspected_area_plots_dir}')
         if show:
             plt.show()
         else:
@@ -108,7 +110,7 @@ class InspectReconstructedCells2D(InspectionStrategy):
         cropped_new_zstack = cropped_new_zstack[:, cminx:cmaxx, cminy:cmaxy]
 
         plotting_info = self.get_plotting_info(cropped_new_zstack)
-
+        print(cminx, cmaxx, cminy, cmaxy)
         cropped_preprocessed_zstack = load_zstack_as_array_from_single_planes(path = database.preprocessed_images_dir, 
                                                                               file_id = file_id, 
                                                                               minx = cminx, 
@@ -141,29 +143,6 @@ class InspectReconstructedCells3D(InspectionStrategy):
         self.zstack_with_label_id_of_interest = zstack_with_label_id_of_interest
         self.save = save
         self.show = show
-        
-
-    def get_rgb_color_code_for_3D(self, zstack: np.ndarray) -> Dict:
-        label_ids = list(np.unique(zstack))
-        if 0 in label_ids:
-            label_ids.remove(0)
-        color_code = get_color_code(label_ids, for_rgb=True)
-
-        red_colors = np.zeros(zstack.shape)
-        green_colors = np.zeros(zstack.shape)
-        blue_colors = np.zeros(zstack.shape)
-
-        for label_id in label_ids:
-            red_colors[np.where(zstack == label_id)] = color_code[label_id]['red']
-            green_colors[np.where(zstack == label_id)] = color_code[label_id]['green']
-            blue_colors[np.where(zstack == label_id)] = color_code[label_id]['blue']
-
-        rgb_color_code = np.zeros(zstack.shape + (3,))
-        rgb_color_code[..., 0] = red_colors
-        rgb_color_code[..., 1] = green_colors
-        rgb_color_code[..., 2] = blue_colors
-
-        return rgb_color_code
 
 
     def plot_reconstructed_cells_in_3D(self, final_labels_zstack: np.ndarray, color_code: Dict, save: bool=False, show: bool=True):
@@ -172,9 +151,9 @@ class InspectReconstructedCells3D(InspectionStrategy):
         ax.voxels(final_labels_zstack, facecolors=color_code)
         ax.set(xlabel='single planes of z-stack', ylabel='x-dimension', zlabel='y-dimension')
         if save:
-            filepath = f'{self.database.inspection_dir}inspected_area_plots/{self.file_id}_{self.label_id_of_interest}_3D.png'
+            filepath = f'{self.database.inspected_area_plots_dir}{self.file_id}_{self.label_id_of_interest}_3D.png'
             plt.savefig(filepath, dpi=300)
-            print(f'The resulting plot was successfully saved to: {self.database.inspection_dir}inspected_area_plots/')
+            print(f'The resulting plot was successfully saved to: {self.database.inspected_area_plots_dir}')
         if show:
             plt.show()
         else:
@@ -191,7 +170,7 @@ class InspectReconstructedCells3D(InspectionStrategy):
         cropped_new_zstack = self.zstack_with_label_id_of_interest.copy()
         cropped_new_zstack = cropped_new_zstack[:, cminx:cmaxx, cminy:cmaxy]
 
-        rgb_color_code = self.get_rgb_color_code_for_3D(cropped_new_zstack)
+        rgb_color_code = get_rgb_color_code_for_3D(zstack = cropped_new_zstack)
 
         self.plot_reconstructed_cells_in_3D(final_labels_zstack = cropped_new_zstack, 
                                             color_code = rgb_color_code, 
@@ -211,7 +190,7 @@ class InspectUsingMultiMatchIDX(InspectionStrategy):
     
     def run(self, database: Database, file_id: str):
         
-        zstack_with_final_label_ids = load_zstack_as_array_from_single_planes(path = database.inspection_dir, file_id = file_id)
+        zstack_with_final_label_ids = load_zstack_as_array_from_single_planes(path = database.inspection_final_label_planes_dir, file_id = file_id)
         multi_matches_traceback = database.multi_matches_traceback[file_id]
         if self.reconstruction_strategy == '2D':
             reconstruction_obj = InspectReconstructedCells2D(plane_id_of_interest = multi_matches_traceback['plane_index'][self.multi_match_index], 

@@ -88,3 +88,26 @@ def get_color_code(label_ids: List, for_rgb: bool=False) -> Dict:
         else:
             color_code[label_ids[idx]] = colormixer[idx]
     return color_code
+
+
+def get_rgb_color_code_for_3D(zstack: np.ndarray) -> Dict:
+    label_ids = list(np.unique(zstack))
+    if 0 in label_ids:
+        label_ids.remove(0)
+    color_code = get_color_code(label_ids, for_rgb=True)
+
+    red_colors = np.zeros(zstack.shape)
+    green_colors = np.zeros(zstack.shape)
+    blue_colors = np.zeros(zstack.shape)
+
+    for label_id in label_ids:
+        red_colors[np.where(zstack == label_id)] = color_code[label_id]['red']
+        green_colors[np.where(zstack == label_id)] = color_code[label_id]['green']
+        blue_colors[np.where(zstack == label_id)] = color_code[label_id]['blue']
+
+    rgb_color_code = np.zeros(zstack.shape + (3,))
+    rgb_color_code[..., 0] = red_colors
+    rgb_color_code[..., 1] = green_colors
+    rgb_color_code[..., 2] = blue_colors
+
+    return rgb_color_code
