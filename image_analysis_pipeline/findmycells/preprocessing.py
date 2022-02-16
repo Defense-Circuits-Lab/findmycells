@@ -4,12 +4,153 @@ from abc import ABC, abstractmethod
 import os
 import numpy as np
 from PIL import Image
+from shapely.geometry import Polygon
 from typing import List, Tuple, Dict
 
 from .database import Database
-from .microscopyimages import CZIZStack
+from .microscopyimages import MicroscopyImageLoader
 from .rois import ImageJROIs, ROIs
 from .utils import convert_12_to_8_bit_rgb_image
+
+
+"""
+Next steps:
+ - load ROIs (or create one for with shape of the image)
+ - make adaptations to database:
+   - use Path objects to enable continous integration
+   - create sorted list of all preprocessing steps (i.e. preprocessing strategies)
+ - adapt main
+ - function that saves preprocessed images
+
+ - Minimal preprocessing steps are:
+    - save the "unprocessed" microscopy images to the preprocessed_dir
+    - load the unprocessed ROIs into the database (create ROI with shape of image if whole image is to be analyzed)
+"""
+
+class PreprocessingObject:
+    
+    def __init__(self, database: Database, file_id: str):
+        self.database = database
+        self.file_id = file_id
+        self.file_info = self.database.get_file_infos(identifier = self.file_id)
+        self.preprocessing_strategies = self.database.preprocessing_strategies
+        self.preprocessed_image = self.load_microscopy_image()
+        self.total_planes = self.preprocessed_image.shape[0]
+        self.preprocessed_rois_to_quantify = self.load_rois()
+
+    def load_microscopy_image(self) -> np.ndarray:
+        microscopy_image_loader = MicroscopyImageLoader(filepath = self.file_info['microscopy_filepath'],
+                                                        filetype = self.file_info['microscopy_filetype'])
+        return microscopy_image_loader.as_array()
+    
+    def load_rois(self) -> Dict[Polygon]:
+        # returns corresponding nested dictionary from database
+        pass
+    
+    def run_all_preprocessing_steps(self):
+        
+        for preprocessing_strategy in self.preprocessing_strategies:
+            self = preprocessing_strategy.run(preprocessing_object = self)
+        # save individually or as zstack (or saving as preprocessing step?)
+
+            
+class PreprocessingStrategy(ABC):
+    
+    @abstractmethod
+    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
+        return preprocessing_object
+
+
+class CropStitchingArtefactsRGB(PreprocessingStrategy):
+    
+    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
+        cropping_indices = self.determine_cropping_indices_for_entire_zstack(preprocessing_object = preprocessing_object)
+        preprocessing_object.preprocessed_image = self.crop_rgb_zstack(zstack = preprocessing_object.preprocessed_image,
+                                                                   cropping_indices = cropping_indices)
+        preprocessing_object.preprocessed_rois = self.adjust_rois(rois = preprocessing_object.preprocessed_rois,
+                                                                  cropping_indices = cropping_indices)
+        preprocessing_object.database = self.update_database(database = preprocessing_object.database, 
+                                                             cropping_indices = cropping_indices)
+        return preprocessing_object
+        
+    def get_cropping_indices(self, a, min_black_px_stretch: int=100):
+        unique, counts = np.unique(a, return_counts=True)
+        indices_with_black_pixels = unique[np.where(counts >= min_black_px_stretch)]
+        if indices_with_black_pixels.shape[0] > 0: 
+            if np.where(np.diff(indices_with_black_pixels) > 1)[0].shape[0] > 0:
+                lower_cropping_index = indices_with_black_pixels[np.where(np.diff(indices_with_black_pixels) > 1)[0]][0] + 1
+                upper_cropping_index = indices_with_black_pixels[np.where(np.diff(indices_with_black_pixels) > 1)[0] + 1][0]
+            else:
+                if indices_with_black_pixels[0] == 0:
+                    lower_cropping_index = indices_with_black_pixels[-1]
+                    upper_cropping_index = a.shape[0] - 1
+                else:
+                    lower_cropping_index = 0
+                    upper_cropping_index = indices_with_black_pixels[0]
+        else:
+            lower_cropping_index = 0
+            upper_cropping_index = a.shape[0] - 1
+        return lower_cropping_index, upper_cropping_index 
+                                                  
+    def determine_cropping_indices_for_entire_zstack(self, preprocessing_object: PreprocessingObject): -> Dict:
+        for plane_index in range(preprocessing_object.database.XXXX): # total planes
+            rgb_image_plane = preprocessing_object.preprocessed_image[plane_index]
+            rows_with_black_px, columns_with_black_px = np.where(np.all(rgb_image_plane == 0, axis = -1))
+            lower_row_idx, upper_row_idx = self.get_cropping_indices(rows_with_black_px)
+            lower_col_idx, upper_col_idx = self.get_cropping_indices(columns_with_black_px)  
+            if plane_index == 0:
+                min_lower_row_cropping_idx, max_upper_row_cropping_idx = lower_row_idx, upper_row_idx
+                min_lower_col_cropping_idx, max_upper_col_cropping_idx = lower_col_idx, upper_col_idx
+            else:
+                if lower_row_idx > min_lower_row_cropping_idx:
+                    min_lower_row_cropping_idx = lower_row_idx
+                if upper_row_idx < max_upper_row_cropping_idx:
+                    max_upper_row_cropping_idx = upper_row_idx
+                if lower_col_idx > min_lower_col_cropping_idx:
+                    min_lower_col_cropping_idx = lower_col_idx
+                if upper_col_idx < max_upper_col_cropping_idx:
+                    max_upper_col_cropping_idx = upper_col_idx  
+        cropping_indices = {'lower_row_cropping_idx': min_lower_row_cropping_idx,
+                            'upper_row_cropping_idx': max_upper_row_cropping_idx,
+                            'lower_col_cropping_idx': min_lower_col_cropping_idx,
+                            'upper_col_cropping_idx': max_upper_col_cropping_idx}
+        return cropping_indices
+    
+    def crop_rgb_zstack(zstack: np.ndarray, cropping_indices: Dict) -> np.ndarray:
+        min_row_idx = cropping_indices['lower_row_cropping_idx']
+        max_row_idx = cropping_indices['upper_row_cropping_idx']
+        min_col_idx = cropping_indices['lower_col_cropping_idx']
+        max_col_idx = cropping_indices['upper_col_cropping_idx']
+        return zstack[:, min_row_idx:max_row_idx, min_col_idx:max_col_idx, :]
+                                                           
+    def adjust_rois(self, roi_object: ROIs):
+        # has to be adapted to work with shapely Polygon
+        for roi_id in roi_object.roi_coordinates.keys():
+            roi_object.roi_coordinates[roi_id][0] -= self.lower_row_idx
+            roi_object.roi_coordinates[roi_id][1] -= self.lower_col_idx
+            
+    def update_database(self, database: Database, cropping_indices: Dict) -> Database:
+        pass
+                                                           
+                                                           
+class ConvertFrom12To8BitRGB(PreprocessingStrategy):
+    
+    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
+        for plane_index in range(preprocessing_object.database.XXXX): # total planes
+            preprocessing_object.preprocessed_image[plane_idx] = self.convert_rgb_image(rgb_image = preprocessing_object.preprocessed_image[plane_index])
+        return preprocessing_object
+    
+    def convert_rgb_image(self, rgb_image: np.ndarray) -> np.ndarray:
+        converted_image = (rgb_image / 4095 * 255).round(0).astype('uint8')
+        return converted_image
+        
+        
+
+
+
+
+
+# Old version starts here:
 
 """
 
@@ -31,6 +172,7 @@ How this is structured:
     - serves as interface for main
 
 """
+
 class PreprocessingObject:
     
     def __init__(self, file_info: dict):
