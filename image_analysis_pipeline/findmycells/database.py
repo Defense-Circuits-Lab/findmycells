@@ -123,14 +123,23 @@ class Database():
                     self.file_infos['microscopy_filetype'].append(filename[filename.find('.'):])
                     
                     matching_roi_filenames = [elem for elem in listdir_nohidden(self.rois_to_analyze_dir.joinpath(group,subject)) if elem.startswith(original_file_id)]
-                    roi_filepaths, rois_filetypes = list(), list()
-                    for roi_filename in matching_roi_filenames:
-                        roi_filepaths.append(self.rois_to_analyze_dir.joinpath(group, subject, roi_filename))
-                        rois_filetypes.append(roi_filename[roi_filename.find('.'):])
-                    self.file_infos['rois_present'].append(len(matching_roi_filenames))
-                    self.file_infos['rois_filepath'].append(roi_filepaths)
-                    self.file_infos['rois_filetype'].append(rois_filetypes)
-
+                    if len(matching_roi_filenames) == 0:
+                        self.file_infos['rois_present'].append(False)
+                        self.file_infos['rois_filepath'].append('not_available')
+                        self.file_infos['rois_filetype'].append('not_available')                      
+                    elif len(matching_roi_filenames) == 1:
+                        roi_filename = matching_roi_filenames[0]
+                        self.file_infos['rois_present'].append(True)
+                        self.file_infos['rois_filepath'].append(self.rois_to_analyze_dir.joinpath(group, subject, roi_filename))
+                        self.file_infos['rois_filetype'].append(roi_filename[roi_filename.find('.'):])
+                    else:
+                        message_line_0 = 'It seems like you provided more than a single ROI file in:\n'
+                        message_line_1 = f'{self.rois_to_analyze_dir.joinpath(group,subject)}\n'
+                        message_line_2 = 'If you want to quantify image features within multiple ROIs per image, please use RoiSets created with ImageJ as described here:\n'
+                        message_line_3 = 'Documentation not live yet - please contact: segebarth_d@ukw.de for more information.'
+                        error_message = message_line_0 + message_line_1 + message_line_2 + message_line_3
+                        raise ValueError(error_message)
+                    
                     file_id += 1
                 
                     
@@ -182,6 +191,18 @@ class Database():
     def update_file_infos(self, file_id: str, key: str, value):    
         self.file_infos[key][self.file_infos['file_id'].index(file_id)] = value
         
+    
+    def get_file_ids_to_process(self, process_tracker_key: str, overwrite: bool) -> List:
+        if process_tracker_key not in self.file_infos.keys():
+            self.add_new_key_to_file_infos(process_tracker_key)
+        all_file_ids = self.file_infos['file_id']
+        if overwrite:
+            file_ids = all_file_ids
+        else:
+            preprocessing_info = self.file_infos[process_tracker_key]
+            file_ids = [elem[0] for elem in zip(all_file_ids, preprocessing_info) if elem[1] == False or elem[1] == None]
+        return file_ids
+    
     
     def save_all(self):
         self.save_csv()
@@ -279,7 +300,10 @@ class Database():
         if file_id in self.rois_as_shapely_polygons.keys():
             self.rois_as_shapely_polygons.pop(file_id)
             
-            
+    def import_rois_dict(self, file_id: str, rois_dict: Dict):
+        if hasattr(self, 'area_rois_for_quantification') == False:
+            self.area_rois_for_quantification = dict()
+        self.area_rois_for_quantification[file_id] = rois_dict
             
 
     # needs to be adapted / removed

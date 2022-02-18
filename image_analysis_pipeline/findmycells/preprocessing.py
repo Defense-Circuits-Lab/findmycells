@@ -9,7 +9,7 @@ from typing import List, Tuple, Dict
 
 from .database import Database
 from .microscopyimages import MicroscopyImageLoader
-from .rois import ImageJROIs, ROIs
+from .rois import ROILoader
 from .utils import convert_12_to_8_bit_rgb_image
 
 
@@ -36,22 +36,48 @@ class PreprocessingObject:
         self.preprocessing_strategies = self.database.preprocessing_strategies
         self.preprocessed_image = self.load_microscopy_image()
         self.total_planes = self.preprocessed_image.shape[0]
-        self.preprocessed_rois_to_quantify = self.load_rois()
+        if self.preprocessed_image.shape[3] == 3:
+            self.is_rgb = True
+        else:
+            self.is_rgb = False
+        self.preprocessed_rois = self.load_rois()
 
+        
     def load_microscopy_image(self) -> np.ndarray:
         microscopy_image_loader = MicroscopyImageLoader(filepath = self.file_info['microscopy_filepath'],
                                                         filetype = self.file_info['microscopy_filetype'])
         return microscopy_image_loader.as_array()
     
-    def load_rois(self) -> Dict[Polygon]:
-        # returns corresponding nested dictionary from database
-        pass
+    
+    def load_rois(self) -> Dict:
+        if self.file_info['rois_present'] ==  False:
+            message_line0 = 'As of now, it is not supported to not provide a ROI file for each image.\n'
+            message_line1 = 'If you would like to quantify the image features in the entire image, please provide a ROI that covers the entire image.\n'
+            message_line2 = 'Warning: However, please be aware that this feature was not fully tested yet and will probably cause problems,\n'
+            message_line3 = 'specifically if any cropping is used as preprocessing method.'
+            error_message = message_line0 + message_line1 + message_line2 + message_line3
+            raise NotImplementedError(error_message)
+        elif self.file_info['rois_present']:
+            roi_loader = ROILoader(filepath = self.file_info['rois_filepath'],
+                                   filetype = self.file_info['rois_filetype'])
+        return roi_loader.as_dict()
+    
     
     def run_all_preprocessing_steps(self):
-        
         for preprocessing_strategy in self.preprocessing_strategies:
             self = preprocessing_strategy.run(preprocessing_object = self)
-        # save individually or as zstack (or saving as preprocessing step?)
+    
+    
+    def save_preprocessed_images_on_disk(self):
+        for plane_index in self.total_planes:
+            if self.is_rgb:
+                image = Image.fromarray(self.preprocessed_image[plane_index], 'RGB')
+            image_filepath_out = self.database.preprocessed_images_dir.joinpath(f'{self.file_id}-{plane_index}.png')
+            image.save(image_filepath_out)
+    
+    
+    def save_preprocessed_rois_in_database(self):
+        self.database.import_rois_dict(file_id = self.file_id, rois_dict = self.preprocessed_rois)
 
             
 class PreprocessingStrategy(ABC):
@@ -66,8 +92,8 @@ class CropStitchingArtefactsRGB(PreprocessingStrategy):
     def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
         cropping_indices = self.determine_cropping_indices_for_entire_zstack(preprocessing_object = preprocessing_object)
         preprocessing_object.preprocessed_image = self.crop_rgb_zstack(zstack = preprocessing_object.preprocessed_image,
-                                                                   cropping_indices = cropping_indices)
-        preprocessing_object.preprocessed_rois = self.adjust_rois(rois = preprocessing_object.preprocessed_rois,
+                                                                       cropping_indices = cropping_indices)
+        preprocessing_object.preprocessed_rois = self.adjust_rois(rois_dict = preprocessing_object.preprocessed_rois,
                                                                   cropping_indices = cropping_indices)
         preprocessing_object.database = self.update_database(database = preprocessing_object.database, 
                                                              cropping_indices = cropping_indices)
@@ -93,7 +119,7 @@ class CropStitchingArtefactsRGB(PreprocessingStrategy):
         return lower_cropping_index, upper_cropping_index 
                                                   
     def determine_cropping_indices_for_entire_zstack(self, preprocessing_object: PreprocessingObject): -> Dict:
-        for plane_index in range(preprocessing_object.database.XXXX): # total planes
+        for plane_index in range(preprocessing_object.total_planes):
             rgb_image_plane = preprocessing_object.preprocessed_image[plane_index]
             rows_with_black_px, columns_with_black_px = np.where(np.all(rgb_image_plane == 0, axis = -1))
             lower_row_idx, upper_row_idx = self.get_cropping_indices(rows_with_black_px)
@@ -123,12 +149,16 @@ class CropStitchingArtefactsRGB(PreprocessingStrategy):
         max_col_idx = cropping_indices['upper_col_cropping_idx']
         return zstack[:, min_row_idx:max_row_idx, min_col_idx:max_col_idx, :]
                                                            
-    def adjust_rois(self, roi_object: ROIs):
-        # has to be adapted to work with shapely Polygon
-        for roi_id in roi_object.roi_coordinates.keys():
-            roi_object.roi_coordinates[roi_id][0] -= self.lower_row_idx
-            roi_object.roi_coordinates[roi_id][1] -= self.lower_col_idx
+    def adjust_rois(self, rois_dict: Dict, cropping_indices: Dict):
+        lower_row_idx = cropping_indices['lower_row_cropping_idx']
+        lower_col_idx = cropping_indices['lower_col_cropping_idx']
+        for plane_identifier in rois_dict.keys():
+            for roi_id in rois_dict[plane_identifier].keys():
+                adjusted_row_coords = [coordinates[0] - lower_row_idx for coordinates in rois_dict[plane_identifier][roi_id].boundary.coords[:]]
+                adjusted_col_coords = [coordinates[1] - lower_col_idx for coordinates in rois_dict[plane_identifier][roi_id].boundary.coords[:]]
+                rois_dict[plane_identifier][roi_id] = Polygon(np.asarray(list(zip(adjusted_row_coords, adjusted_col_coords))))
             
+    
     def update_database(self, database: Database, cropping_indices: Dict) -> Database:
         pass
                                                            

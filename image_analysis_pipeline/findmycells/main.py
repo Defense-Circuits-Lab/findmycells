@@ -19,15 +19,21 @@ class Project:
     def load_status(self) -> None:
         self.database.load_all()
     
-    def preprocess(self, file_ids: Optional[List]=None) -> None:
+    def preprocess(self, file_ids: Optional[List]=None, overwrite: bool=False) -> None:
         from .preprocessing import Preprocessor
         
-        if 'preprocessing_completed' not in self.database.file_infos.keys():
-            self.database.add_new_key_to_file_infos('preprocessing_completed')
         if file_ids == None:
-            all_file_ids = self.database.file_infos['file_id']
-            preprocessing_infos = self.database.file_infos['preprocessing_completed']
-            file_ids = [elem[0] for elem in zip(all_file_ids, preprocessing_infos) if elem[1] == False or elem[1] == None]
+            file_ids = self.database.get_file_ids_to_process(process_tracker_key = 'preprocessing_completed', overwrite = overwrite)
+        
+        for file_id in file_ids:
+            preprocessing_object = PreprocessingObject(database = self.database, file_id = file_id)
+            preprocessing_object.run_all_preprocessing_steps()
+            preprocessing_object.save_preprocessed_images_on_disk()
+            preprocessing_object.save_preprocessed_rois_in_database()
+            #update database about the progress
+            del preprocessing_object
+
+                
         preprocessor = Preprocessor(file_ids, self.database)
         self.database = preprocessor.run_individually()
     
@@ -56,6 +62,7 @@ class Project:
         
     def remove_file_id_from_project(self, file_id: str):
         self.database.remove_file_id_from_project(file_id = file_id)
+
         
         
       
