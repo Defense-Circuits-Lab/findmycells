@@ -3,9 +3,10 @@
 from abc import ABC, abstractmethod
 import os
 import numpy as np
-from PIL import Image
+from skimage.io import imsave
 from shapely.geometry import Polygon
 from typing import List, Tuple, Dict
+from skimage.io import imsave
 
 from .database import Database
 from .microscopyimages import MicroscopyImageLoader
@@ -33,7 +34,6 @@ class PreprocessingObject:
         self.database = database
         self.file_id = file_id
         self.file_info = self.database.get_file_infos(identifier = self.file_id)
-        self.preprocessing_strategies = self.database.preprocessing_strategies
         self.preprocessed_image = self.load_microscopy_image()
         self.total_planes = self.preprocessed_image.shape[0]
         if self.preprocessed_image.shape[3] == 3:
@@ -64,41 +64,57 @@ class PreprocessingObject:
     
     
     def run_all_preprocessing_steps(self):
-        for preprocessing_strategy in self.preprocessing_strategies:
-            self = preprocessing_strategy.run(preprocessing_object = self)
+        for preprocessing_strategy in self.database.preprocessing_strategies:
+            self = preprocessing_strategy().run(preprocessing_object = self, step = self.database.preprocessing_strategies.index(preprocessing_strategy))
     
     
     def save_preprocessed_images_on_disk(self):
-        for plane_index in self.total_planes:
-            if self.is_rgb:
-                image = Image.fromarray(self.preprocessed_image[plane_index], 'RGB')
-            image_filepath_out = self.database.preprocessed_images_dir.joinpath(f'{self.file_id}-{plane_index}.png')
-            image.save(image_filepath_out)
-    
+        for plane_index in range(self.total_planes):
+            image = self.preprocessed_image[plane_index].astype('uint8')
+            filepath_out = self.database.preprocessed_images_dir.joinpath(f'{self.file_id}-{str(plane_index).zfill(3)}.png')
+            imsave(filepath_out, image)
+
     
     def save_preprocessed_rois_in_database(self):
         self.database.import_rois_dict(file_id = self.file_id, rois_dict = self.preprocessed_rois)
+        
+    
+    def update_database(self):
+        updates = dict()
+        updates['RGB'] = self.is_rgb
+        updates['total_planes'] = self.total_planes
+        updates['preprocessing_completed'] = True
+        self.database.update_file_infos(file_id = self.file_id, updates = updates)
 
             
+
 class PreprocessingStrategy(ABC):
     
     @abstractmethod
-    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
+    def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
+        # do preprocessing
+        preprocessing_object.database = self.update_database(database = preprocessing_object.database, file_id = preprocessing_object.file_id, step = step)
         return preprocessing_object
+    
+    @abstractmethod
+    def update_database(self, database: Database, file_id: str, step: int) -> Database:
+        updates = dict()
+        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'PreprocessingStrategyName'
+        # Add additional information if neccessary
+        database.update_file_infos(file_id = file_id, updates = updates)
+        return database
 
 
 class CropStitchingArtefactsRGB(PreprocessingStrategy):
     
-    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
-        cropping_indices = self.determine_cropping_indices_for_entire_zstack(preprocessing_object = preprocessing_object)
-        preprocessing_object.preprocessed_image = self.crop_rgb_zstack(zstack = preprocessing_object.preprocessed_image,
-                                                                       cropping_indices = cropping_indices)
-        preprocessing_object.preprocessed_rois = self.adjust_rois(rois_dict = preprocessing_object.preprocessed_rois,
-                                                                  cropping_indices = cropping_indices)
-        preprocessing_object.database = self.update_database(database = preprocessing_object.database, 
-                                                             cropping_indices = cropping_indices)
+    def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
+        self.cropping_indices = self.determine_cropping_indices_for_entire_zstack(preprocessing_object = preprocessing_object)
+        preprocessing_object.preprocessed_image = self.crop_rgb_zstack(zstack = preprocessing_object.preprocessed_image)
+        preprocessing_object.preprocessed_rois = self.adjust_rois(rois_dict = preprocessing_object.preprocessed_rois)
+        preprocessing_object.database = self.update_database(database = preprocessing_object.database, file_id = preprocessing_object.file_id, step = step)
         return preprocessing_object
         
+    
     def get_cropping_indices(self, a, min_black_px_stretch: int=100):
         unique, counts = np.unique(a, return_counts=True)
         indices_with_black_pixels = unique[np.where(counts >= min_black_px_stretch)]
@@ -118,7 +134,8 @@ class CropStitchingArtefactsRGB(PreprocessingStrategy):
             upper_cropping_index = a.shape[0] - 1
         return lower_cropping_index, upper_cropping_index 
                                                   
-    def determine_cropping_indices_for_entire_zstack(self, preprocessing_object: PreprocessingObject): -> Dict:
+    
+    def determine_cropping_indices_for_entire_zstack(self, preprocessing_object: PreprocessingObject) -> Dict:
         for plane_index in range(preprocessing_object.total_planes):
             rgb_image_plane = preprocessing_object.preprocessed_image[plane_index]
             rows_with_black_px, columns_with_black_px = np.where(np.all(rgb_image_plane == 0, axis = -1))
@@ -142,38 +159,53 @@ class CropStitchingArtefactsRGB(PreprocessingStrategy):
                             'upper_col_cropping_idx': max_upper_col_cropping_idx}
         return cropping_indices
     
-    def crop_rgb_zstack(zstack: np.ndarray, cropping_indices: Dict) -> np.ndarray:
-        min_row_idx = cropping_indices['lower_row_cropping_idx']
-        max_row_idx = cropping_indices['upper_row_cropping_idx']
-        min_col_idx = cropping_indices['lower_col_cropping_idx']
-        max_col_idx = cropping_indices['upper_col_cropping_idx']
+    
+    def crop_rgb_zstack(self, zstack: np.ndarray) -> np.ndarray:
+        min_row_idx = self.cropping_indices['lower_row_cropping_idx']
+        max_row_idx = self.cropping_indices['upper_row_cropping_idx']
+        min_col_idx = self.cropping_indices['lower_col_cropping_idx']
+        max_col_idx = self.cropping_indices['upper_col_cropping_idx']
         return zstack[:, min_row_idx:max_row_idx, min_col_idx:max_col_idx, :]
                                                            
-    def adjust_rois(self, rois_dict: Dict, cropping_indices: Dict):
-        lower_row_idx = cropping_indices['lower_row_cropping_idx']
-        lower_col_idx = cropping_indices['lower_col_cropping_idx']
+    
+    def adjust_rois(self, rois_dict: Dict) -> Dict:
+        lower_row_idx = self.cropping_indices['lower_row_cropping_idx']
+        lower_col_idx = self.cropping_indices['lower_col_cropping_idx']
         for plane_identifier in rois_dict.keys():
             for roi_id in rois_dict[plane_identifier].keys():
                 adjusted_row_coords = [coordinates[0] - lower_row_idx for coordinates in rois_dict[plane_identifier][roi_id].boundary.coords[:]]
                 adjusted_col_coords = [coordinates[1] - lower_col_idx for coordinates in rois_dict[plane_identifier][roi_id].boundary.coords[:]]
                 rois_dict[plane_identifier][roi_id] = Polygon(np.asarray(list(zip(adjusted_row_coords, adjusted_col_coords))))
-            
+        return rois_dict
     
-    def update_database(self, database: Database, cropping_indices: Dict) -> Database:
-        pass
+    def update_database(self, database: Database, file_id: str, step: int) -> Database:
+        updates = dict()
+        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'CropStitchingArtefactsRGB'
+        updates['cropping_row_indices'] = (self.cropping_indices['lower_row_cropping_idx'], self.cropping_indices['upper_row_cropping_idx'])
+        updates['cropping_column_indices'] = (self.cropping_indices['lower_col_cropping_idx'], self.cropping_indices['upper_col_cropping_idx'])       
+        database.update_file_infos(file_id = file_id, updates = updates)
+        return database
+        
+        
                                                            
                                                            
 class ConvertFrom12To8BitRGB(PreprocessingStrategy):
     
-    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
-        for plane_index in range(preprocessing_object.database.XXXX): # total planes
-            preprocessing_object.preprocessed_image[plane_idx] = self.convert_rgb_image(rgb_image = preprocessing_object.preprocessed_image[plane_index])
+    def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
+        for plane_index in range(preprocessing_object.total_planes):
+            preprocessing_object.preprocessed_image[plane_index] = self.convert_rgb_image(rgb_image = preprocessing_object.preprocessed_image[plane_index])
+        preprocessing_object.database = self.update_database(database = preprocessing_object.database, file_id = preprocessing_object.file_id, step = step)
         return preprocessing_object
     
     def convert_rgb_image(self, rgb_image: np.ndarray) -> np.ndarray:
         converted_image = (rgb_image / 4095 * 255).round(0).astype('uint8')
         return converted_image
-        
+
+    def update_database(self, database: Database, file_id: str, step: int) -> Database:
+        updates = dict()
+        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'ConvertFrom12To8BitRGB'    
+        database.update_file_infos(file_id = file_id, updates = updates)
+        return database
         
 
 
@@ -202,7 +234,7 @@ How this is structured:
     - serves as interface for main
 
 """
-
+"""
 class PreprocessingObject:
     
     def __init__(self, file_info: dict):
@@ -371,13 +403,7 @@ class CropStitchingArtefacts(CroppingMethod):
 
     
 class Preprocessor:
-    """
-    This class collects all preprocessing steps 
-    (each step is an object of type: PreprocessingStrategy)
-    and serves as interface with main
-    
-    will probably be part of the core
-    """
+
 
     def __init__(self, file_ids, database: Database):
         self.database = database
@@ -403,11 +429,7 @@ class Preprocessor:
      
 
     def run_individually(self) -> Database:
-        """
-        iterate through files
-        perform all preprocessing steps on each file
-        before continuing with the next file
-        """
+
         for file_info in self.file_info_dicts:
             if file_info['preprocessing_completed'] != True:
                 prepro_obj = PreprocessingObject(file_info)
@@ -417,3 +439,4 @@ class Preprocessor:
                 del prepro_obj
         
         return self.database
+"""

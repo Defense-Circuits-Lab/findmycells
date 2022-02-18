@@ -25,7 +25,7 @@ class MicroscopyImageReader(ABC):
 class CZIReader(MicroscopyImageReader):
     
     def read(self, filepath: Path) -> np.ndarray:
-        return czifile.imread(filepath.as_osix())[0, 0, 0]       
+        return czifile.imread(filepath.as_posix())[0, 0, 0]       
 
     
 
@@ -45,11 +45,12 @@ class MicroscopyImageLoader:
             raise ValueError(full_message)
         return reader
     
-    def as_array(self):        i
+    def as_array(self):
         return self.reader.read(filepath = self.filepath)
 
 
 # old code starts here:
+"""
 class RGBZStack(ABC): #dependency inversion!
     
     def __init__(self, filepath: Path):
@@ -61,7 +62,6 @@ class RGBZStack(ABC): #dependency inversion!
     
     @abstractmethod
     def read(self) -> np.ndarray:
-        """ create self.as_array with structure: [plane, rows, columns, rgb] """
         pass
         
         
@@ -70,3 +70,4 @@ class CZIZStack(RGBZStack):
     
     def read(self):
         return czifile.imread(self.filepath)[0, 0, 0]
+"""

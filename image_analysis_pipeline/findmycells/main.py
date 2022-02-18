@@ -20,22 +20,17 @@ class Project:
         self.database.load_all()
     
     def preprocess(self, file_ids: Optional[List]=None, overwrite: bool=False) -> None:
-        from .preprocessing import Preprocessor
-        
-        if file_ids == None:
-            file_ids = self.database.get_file_ids_to_process(process_tracker_key = 'preprocessing_completed', overwrite = overwrite)
-        
+        from .preprocessing import PreprocessingObject
+
+        file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'preprocessing_completed', overwrite = overwrite)
         for file_id in file_ids:
             preprocessing_object = PreprocessingObject(database = self.database, file_id = file_id)
             preprocessing_object.run_all_preprocessing_steps()
             preprocessing_object.save_preprocessed_images_on_disk()
             preprocessing_object.save_preprocessed_rois_in_database()
-            #update database about the progress
+            preprocessing_object.update_database()
             del preprocessing_object
 
-                
-        preprocessor = Preprocessor(file_ids, self.database)
-        self.database = preprocessor.run_individually()
     
     def run_segmentation(self, file_ids: Optional[List]=None) -> None:
         from .segmentation import Segmentor

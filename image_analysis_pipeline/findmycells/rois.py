@@ -3,6 +3,8 @@ import os
 import numpy as np
 from shapely.geometry import Polygon
 import roifile
+from pathlib import Path
+from typing import Dict
 
 
 class ROIReader(ABC):
@@ -76,7 +78,7 @@ class ROILoader:
 
 
 # old code version starts here:
-
+"""
 class ROIs(ABC): #dependency inversion!
     
     def __init__(self, filepath):
@@ -87,7 +89,6 @@ class ROIs(ABC): #dependency inversion!
     
     @abstractmethod
     def load_roi_coordinates(self):
-        """ create self.roi_coordinates as dict with structure: {roi_id: [row_coords, column_coords]} """
         pass
             
     def from_array_to_shapely_polygon(self):
@@ -109,3 +110,4 @@ class ImageJROIs(ROIs):
         for roi_id in range(total_rois):
             row_coords, column_coords = roi_file.coordinates()[:, 1], roi_file.coordinates()[:, 0]
             self.roi_coordinates[str(roi_id).zfill(3)] = [row_coords, column_coords]
+"""

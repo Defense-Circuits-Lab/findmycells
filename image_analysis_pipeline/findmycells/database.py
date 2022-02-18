@@ -7,6 +7,7 @@ from datetime import datetime
 from .utils import listdir_nohidden
 import pandas as pd
 import shutil
+from typing import List, Dict, Optional
 
 # Global variables required for the Database:
 MAIN_SUBDIR_ATTRIBUTES = {'preprocessed_images_dir': {'foldername': '02_preprocessed_images', 'key_substring': 'preprocessed'},
@@ -66,13 +67,13 @@ class Database():
         for key, value in user_input.items():
             if hasattr(self, key) == False:
                 setattr(self, key, value)
-        
+        """
         if hasattr(self, 'preprocessing_configs'):
             for key in self.preprocessing_configs:
                 self.preprocessing_configs[key]['ProcessingStrategy'] = self.preprocessing_configs[key]['ProcessingMethod'].processsing_strategy
                 self.preprocessing_configs[key]['method_category'] = self.preprocessing_configs[key]['ProcessingMethod'].method_category
                 self.preprocessing_configs[key]['method_specifier'] = self.preprocessing_configs[key]['ProcessingMethod'].method_info             
-
+        """
 
     def construct_main_subdirectories(self):
         subdirectories = listdir_nohidden(self.project_root_dir)
@@ -188,20 +189,28 @@ class Database():
                     raise ValueError("The list of values that you provided does not match the length of file_infos['file_ids']!")
             
 
-    def update_file_infos(self, file_id: str, key: str, value):    
-        self.file_infos[key][self.file_infos['file_id'].index(file_id)] = value
-        
+    def update_file_infos(self, file_id: str, updates: Dict): 
+        index = self.file_infos['file_id'].index(file_id)
+        for key, value in updates.items():
+            if key not in self.file_infos.keys():
+                self.add_new_key_to_file_infos(key)
+            self.file_infos[key][index] = value
+
     
-    def get_file_ids_to_process(self, process_tracker_key: str, overwrite: bool) -> List:
+    def get_file_ids_to_process(self, input_file_ids: Optional[List], process_tracker_key: str, overwrite: bool) -> List:
         if process_tracker_key not in self.file_infos.keys():
             self.add_new_key_to_file_infos(process_tracker_key)
-        all_file_ids = self.file_infos['file_id']
+        if input_file_ids == None:
+            input_file_ids = self.file_infos['file_id']
         if overwrite:
-            file_ids = all_file_ids
+            output_file_ids = input_file_ids
         else:
-            preprocessing_info = self.file_infos[process_tracker_key]
-            file_ids = [elem[0] for elem in zip(all_file_ids, preprocessing_info) if elem[1] == False or elem[1] == None]
-        return file_ids
+            preprocessing_info = list()
+            for file_id in input_file_ids:
+                index = self.file_infos['file_id'].index(file_id)
+                preprocessing_info.append(self.file_infos[process_tracker_key][index])
+            output_file_ids = [elem[0] for elem in zip(input_file_ids, preprocessing_info) if elem[1] == False or elem[1] == None]
+        return output_file_ids
     
     
     def save_all(self):
@@ -305,7 +314,7 @@ class Database():
             self.area_rois_for_quantification = dict()
         self.area_rois_for_quantification[file_id] = rois_dict
             
-
+"""
     # needs to be adapted / removed
     def import_roi_polygons(self, rois_object):
         if hasattr(self, 'rois_as_shapely_polygons') == False:
@@ -318,3 +327,4 @@ class Database():
         for roi_id in rois_object.as_polygons.keys():
             # potential conflict when different rois are used for the individual planes. Update keys e.g. to roi_id_000 and/or plane_id_000 and/or all_planes
             self.rois_as_shapely_polygons[file_id][roi_id] = rois_object.as_polygons[roi_id]
+"""
