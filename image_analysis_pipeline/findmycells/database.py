@@ -67,13 +67,7 @@ class Database():
         for key, value in user_input.items():
             if hasattr(self, key) == False:
                 setattr(self, key, value)
-        """
-        if hasattr(self, 'preprocessing_configs'):
-            for key in self.preprocessing_configs:
-                self.preprocessing_configs[key]['ProcessingStrategy'] = self.preprocessing_configs[key]['ProcessingMethod'].processsing_strategy
-                self.preprocessing_configs[key]['method_category'] = self.preprocessing_configs[key]['ProcessingMethod'].method_category
-                self.preprocessing_configs[key]['method_specifier'] = self.preprocessing_configs[key]['ProcessingMethod'].method_info             
-        """
+
 
     def construct_main_subdirectories(self):
         subdirectories = listdir_nohidden(self.project_root_dir)
@@ -163,25 +157,21 @@ class Database():
         return file_infos
     
     
-    def add_new_key_to_file_infos(self, key, values = None):
+    def add_new_key_to_file_infos(self, key: str, values: Optional[List]=None, preferred_empty_value: Optional[bool, str]=None):
         """
         Allows us to add a new key-value-pair to the file_infos dict
-        If values is not passed, a list full of "None" that matches the length of file_ids will be created
+        If values is not passed, a list full of 'preferred_empty_value' that matches the length of file_ids will be created
         If values is passed, it has to be a list of the length of file_id
         """
         if key in self.file_infos.keys():
             raise ValueError("The key you are trying to add is already in file_infos.")
-        
         else:
             length = len(self.file_infos['file_id'])
-
             if values == None:
-                values = [None] * length
+                values = [preferred_empty_value] * length
                 self.file_infos[key] = values
-
             elif type(values) != list:
-                raise TypeError("values has to be a list that matches the length of file_infos['file_ids']")
-
+                raise TypeError("'values' has to be 'None' or a list that matches the length of file_infos['file_ids']")
             else:
                 if len(values) == length:
                     self.file_infos[key] = values                
@@ -189,11 +179,11 @@ class Database():
                     raise ValueError("The list of values that you provided does not match the length of file_infos['file_ids']!")
             
 
-    def update_file_infos(self, file_id: str, updates: Dict): 
+    def update_file_infos(self, file_id: str, updates: Dict, preferred_empty_value: Optional[bool, str]=None): 
         index = self.file_infos['file_id'].index(file_id)
         for key, value in updates.items():
             if key not in self.file_infos.keys():
-                self.add_new_key_to_file_infos(key)
+                self.add_new_key_to_file_infos(key, preferred_empty_value = preferred_empty_value)
             self.file_infos[key][index] = value
 
     
@@ -274,13 +264,10 @@ class Database():
     def remove_file_id_from_project(self, file_id: str):
         index = self.file_infos['file_id'].index(file_id)
         original_file_id = self.file_infos['original_file_id'][index]
-        
         # Move all source files, i.e. microscopy image file and roi file(s):
         subdirectories = listdir_nohidden(self.project_root_dir)
-        
         self.check_and_create_remaining_directories(root_dir = self.project_root_dir,
                                                     subdirectory_attributes = {'removed_files_dir': {'foldername': '08_removed_files', 'key_substring': 'removed_files'}})
-        
         for source_data_type in ['microscopy', 'rois']:
             source_filepath = self.file_infos[f'{source_data_type}_filepath'][index]
             if type(source_filepath) == list:
@@ -288,7 +275,6 @@ class Database():
                     shutil.move(filepath.as_posix(), self.removed_files_dir.as_posix())
             else:
                 shutil.move(source_filepath.as_posix(), self.removed_files_dir.as_posix())
-            
         # Delete all files that were already generated from findmycells:
         for directory in [self.preprocessed_images_dir, 
                           self.binary_segmentations_dir, 
@@ -297,34 +283,18 @@ class Database():
                           self.inspection_final_label_planes_dir,
                           self.inspection_planes_for_quantification]:
             filenames = listdir_nohidden(directory)
-            if len(filenames) > 0:
-                for filename in filenames:
-                    if filename.startswith(file_id):
-                        os.remove(directory.joinpath(filename).as_posix())
-
+            for filename in filenames:
+                if filename.startswith(file_id):
+                    os.remove(directory.joinpath(filename).as_posix())
         # Remove from file_infos:
         for key in self.file_infos.keys():
             self.file_infos[key].pop(index)
-        # Remove from rois_as_shapely_polygons:
-        if file_id in self.rois_as_shapely_polygons.keys():
-            self.rois_as_shapely_polygons.pop(file_id)
-            
+        # Remove from area_rois_for_quantification:
+        if file_id in self.area_rois_for_quantification.keys():
+            self.area_rois_for_quantification.pop(file_id)
+         
+        
     def import_rois_dict(self, file_id: str, rois_dict: Dict):
         if hasattr(self, 'area_rois_for_quantification') == False:
             self.area_rois_for_quantification = dict()
         self.area_rois_for_quantification[file_id] = rois_dict
-            
-"""
-    # needs to be adapted / removed
-    def import_roi_polygons(self, rois_object):
-        if hasattr(self, 'rois_as_shapely_polygons') == False:
-            self.rois_as_shapely_polygons = dict()
-            
-        original_file_id = rois_object.filepath[rois_object.filepath.rfind('/') + 1 : rois_object.filepath.rfind('.')]
-        file_id = self.file_infos['file_id'][self.file_infos['original_file_id'].index(original_file_id)]
-        
-        self.rois_as_shapely_polygons[file_id] = dict()
-        for roi_id in rois_object.as_polygons.keys():
-            # potential conflict when different rois are used for the individual planes. Update keys e.g. to roi_id_000 and/or plane_id_000 and/or all_planes
-            self.rois_as_shapely_polygons[file_id][roi_id] = rois_object.as_polygons[roi_id]
-"""

@@ -35,6 +35,11 @@ class Project:
     def run_segmentation(self, file_ids: Optional[List]=None) -> None:
         from .segmentation import Segmentor
 
+        if all(self.database.file_infos['preprocessing_completed']) == False:
+            raise TypeError('Not all files have been preprocessed yet! This has to be finished before deepflash2 can be used.')        
+        
+        # Random batches, where batch size depends on available disk space
+        
         segmentor = Segmentor(self.database, file_ids)
         self.database = segmentor.run_all()
 

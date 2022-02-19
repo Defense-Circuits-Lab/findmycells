@@ -28,8 +28,183 @@ Currently remaining issues:
 2.  Should make proper use of classes, like in preprocessing.py and quantifications.py. Probably one level less required here, though.
 """
 
+class SegmentationObject:
+    
+    def __init__(self, database: Database, file_ids: List[str]):
+        self.database = database
+        self.file_ids = file_ids
+        if 'batch_id' in database.file_infos.keys():
+            self.batch_id = max(database.file_infos['batch_id']) + 1
+        else:
+            self.batch_id = 0
 
 
+    def run_all_segmentation_steps(self):
+        for segmentation_strategy in self.database.segmentation_strategies:
+            self = segmentation_strategy().run(segmentation_object = self, step = self.database.segmentation_strategies.index(segmentation_strategy))
+        
+    
+    def update_database(self):
+        for file_id in self.file_ids:
+            self.database.update_file_infos(file_id = file_id, updates = {'batch_id': self.batch_id}, preferred_empty_value = False)
+            self.database.update_file_infos(file_id = file_id, updates = {'segmentation_completed': True})                   
+        
+
+class SegmentationStrategy(ABC):
+    
+    @abstractmethod
+    def run(self, segmentation_object: SegmentationObject, step: int) -> SegmentationObject:
+        # do preprocessing
+        segmentation_object.database = self.update_database(database = segmentation_object.database, file_id = segmentation_object.file_ids, step = step)
+        return segmentation_object
+    
+    @abstractmethod
+    def update_database(self, database: Database, file_ids: List[str], step: int) -> Database:
+        for file_id in file_ids:
+            updates = dict()
+            updates[f'segmentation_step_{str(step).zfill(2)}'] = 'SegmentationStrategyName'
+            # Add additional information if neccessary
+            database.update_file_infos(file_id = file_id, updates = updates)
+        return database
+
+
+class Deepflash2BinaryAndInstance(SegmentationStrategy):
+    
+    def run(self, segmentation_object: SegmentationObject, step: int) -> SegmentationObject:
+        if hasattr(segmentation_object.database, 'segmentation_tool_configs') == False:
+            segmentation_object.database = self.initialize_deepflash2_as_segmentation_tool(database = segmentation_object.database)
+        self.copy_all_files_of_current_batch_to_temp_dir(database = segmentation_object.database, batch_file_ids = segmentation_object.file_ids)
+        segmentation_object.database = self.run_binary_segmentations(database = segmentation_object.database)
+        segmentation_object.database = self.run_instance_segmentations(database = segmentation_object.database)
+        self.move_files(database = segmentation_object.database, batch_file_ids = segmentation_object.file_ids)
+        self.delete_temporary_files_and_dirs(database = segmentation_object.database, batch_file_ids = segmentation_object.file_ids)
+        segmentation_object.database = self.update_database(database = segmentation_object.database, batch_file_ids = segmentation_object.file_ids, step = step)
+        return segmentation_object
+    
+    
+    def initialize_deepflash2_as_segmentation_tool(self, database: Database) -> Database:
+        database.segmentation_tool_configs = dict()
+        database.segmentation_tool_configs['n_models'] = len([elem for elem in listdir_nohidden(database.trained_models_dir) if elem.endswith('.pth')])
+        database.segmentation_tool_configs['ensemble_path'] = database.trained_models_dir
+        database.segmentation_tool_configs['stats'] = self.compute_stats(database = database)
+        return database
+        
+        
+    def compute_stats(self, database: Database) -> Tuple:
+        expected_file_count = sum(database.file_infos['total_planes'])
+        actual_file_count = len([image for image in listdir_nohidden(database.preprocessed_images_dir) if image.endswith('.png')])
+        if actual_file_count != expected_file_count:
+            raise ValueError('Actual and expected counts of preprocessed images don´t match.')
+        ensemble_learner = EnsembleLearner(image_dir = database.preprocessed_images_dir.as_posix(), 
+                                           ensemble_path = database.segmentation_tool_configs['ensemble_path'])
+        stats = ensemble_learner.stats
+        del ensemble_learner
+        return stats
+    
+    
+    def copy_all_files_of_current_batch_to_temp_dir(self, database: Database, batch_file_ids: List[str]):
+        temp_copies_path = database.segmentation_tool_dir.joinpath('temp_copies_of_preprocessed_images')
+        for file_id in batch_file_ids:
+            files_to_segment = [filename for filename in listdir_nohidden(database.preprocessed_images_dir) if filename.startswith(file_id)]
+            if len(files_to_segment) > 0:
+                temp_copies_path.mkdir()
+                for filename in files_to_segment:
+                    filepath_source = database.preprocessed_images_dir.joinpath(filename)
+                    shutil.copy(filepath_source.as_posix(), temp_copies_path.as_posix())
+    
+    
+    def run_binary_segmentations(self, database: Database) -> Database:
+        image_dir = database.segmentation_tool_dir.joinpath('temp_copies_of_preprocessed_images').as_posix()
+        ensemble_learner = EnsembleLearner(image_dir = image_dir,
+                                           ensemble_path = database.segmentation_tool_configs['ensemble_path'],
+                                           stats = database.segmentation_tool_configs['stats'])
+        ensemble_learner.get_ensemble_results(ensemble_learner.files, 
+                                              zarr_store = database.segmentation_tool_temp_dir,
+                                              export_dir = database.segmentation_tool_dir,
+                                              use_tta = True)
+        if 'df_ens' not in database.segmentation_tool_configs.keys():
+            database.segmentation_tool_configs['df_ens'] = ensemble_learner.df_ens.copy()
+        else:
+            database.segmentation_tool_configs['df_ens'] = pd.concat([database.segmentation_tool_configs['df_ens'], ensemble_learner.df_ens.copy()])
+        del ensemble_learner
+        return database
+        
+    
+    def run_instance_segmentations(self, database: Database) -> Database:
+        cellpose_diameter = self.get_cellpose_diameter(binary_masks_dir = database.segmentation_tool_dir.joinpath('masks'))
+        if 'cellpose_diameter_first_batch' not in database.segmentation_tool_configs.keys():
+            database.segmentation_tool_configs['cellpose_diameter_first_batch'] = cellpose_diameter
+        database.segmentation_tool_configs['cellpose_diameters_all_batches'].append(cellpose_diameter)
+
+        image_dir = database.segmentation_tool_dir.joinpath('temp_copies_of_preprocessed_images').as_posix()
+        empty_cache()
+        for row_id in range(database.segmentation_tool_configs['df_ens'].shape[0]):
+            ensemble_learner = EnsembleLearner(image_dir = image_dir,
+                                               ensemble_path = database.segmentation_tool_configs['ensemble_path'],
+                                               stats = database.segmentation_tool_configs['stats'])
+            df_single_row = database.segmentation_tool_configs['df_ens'].iloc[row_id].to_frame().T.reset_index(drop=True).copy()
+            ensemble_learner.df_ens = df_single_row
+            ensemble_learner.cellpose_diameter = database.segmentation_tool_configs['cellpose_diameter_first_batch']
+            ensemble_learner.get_cellpose_results(export_dir = database.segmentation_tool_dir)
+            del ensemble_learner
+            empty_cache()
+        return database
+        
+        
+    def get_cellpose_diameter(self, binary_masks_dir: Path) -> float: 
+        mask_paths = [binary_masks_dir.joinpath(elem) for elem in listdir_nohidden(binary_masks_dir)]
+        masks_as_arrays = []
+        for mask_as_image in mask_paths:
+            with Image.open(mask_as_image) as image:
+                masks_as_arrays.append(np.array(image))
+        cellpose_diameter = get_diameters(masks_as_arrays)
+        return cellpose_diameter        
+
+    
+    def move_files(self, database: Database, batch_file_ids: List[str]):
+        binary_masks_path = database.segmentation_tool_dir.joinpath('masks')
+        for binary_mask_filename in listdir_nohidden(binary_masks_path):
+            filepath_source = binary_masks_path.joinpath(binary_mask_filename)
+            shutil.move(filepath_source.as_posix(), database.binary_segmentations_dir.as_posix())
+        instance_masks_path = database.segmentation_tool_dir.joinpath('cellpose_masks')
+        for instance_mask_filename in listdir_nohidden(instance_masks_path):
+            filepath_source = instance_masks_path.joinpath(instance_mask_filename)
+            shutil.move(filepath_source.as_posix(), database.instance_segmentations_dir.as_posix())
+            
+    
+    def delete_temporary_files_and_dirs(self, database: Database):
+        if hasattr(database, 'low_memory'):
+            # This will probably only work with Linux as OS
+            if database.low_memory:
+                temp_zarr_subdirs = [elem for elem in os.listdir('/tmp/') if 'zarr' in elem]
+                if len(temp_zarr_subdirs) > 0:
+                    for subdirectory in temp_zarr_subdirs:
+                        shutil.rmtree(f'/tmp/{subdirectory}/')
+        shutil.rmtree(database.segmentation_tool_temp_dir.as_posix())       
+        shutil.rmtree(database.segmentation_tool_dir.joinpath('temp_copies_of_preprocessed_images').as_posix())
+        # Reset of df_ens is done in self.update_database() as it resembles an update of the database object
+             
+
+    def update_database(self, database: Database, file_ids: List[str], step: int) -> Database:
+        for file_id in file_ids:
+            updates = dict()
+            updates[f'segmentation_step_{str(step).zfill(2)}'] = 'Deepflash2BinaryAndInstance'
+            updates['binary_segmentations_done'] = True
+            updates['instance_segmentations_done'] = True
+            database.update_file_infos(file_id = file_id, updates = updates)
+        database.segmentation_tool_configs['df_ens'] = None
+        return database
+   
+    
+    
+
+
+
+
+
+
+
+# old code version starts here:
 class SegmentationMethod(ABC):
     
     @abstractmethod
