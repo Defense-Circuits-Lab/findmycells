@@ -21,7 +21,6 @@ class Project:
     
     def preprocess(self, file_ids: Optional[List]=None, overwrite: bool=False) -> None:
         from .preprocessing import PreprocessingObject
-
         file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'preprocessing_completed', overwrite = overwrite)
         for file_id in file_ids:
             preprocessing_object = PreprocessingObject(database = self.database, file_id = file_id)
@@ -32,16 +31,24 @@ class Project:
             del preprocessing_object
 
     
-    def run_segmentation(self, file_ids: Optional[List]=None) -> None:
-        from .segmentation import Segmentor
-
+    def segment(self, file_ids: Optional[List]=None, batch_size: Optional[int]=None, overwrite: bool=False) -> None:
         if all(self.database.file_infos['preprocessing_completed']) == False:
             raise TypeError('Not all files have been preprocessed yet! This has to be finished before deepflash2 can be used.')        
-        
-        # Random batches, where batch size depends on available disk space
-        
+        from .segmentation import SegmentationObject
+        file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'segmentation_completed', overwrite = overwrite)
+        # Create batches of randomly sampled file_ids, where batch size depends on available disk space
+        if batch_size == None:
+            batch_size = 3
+        file_ids_per_batch = self.database.get_batches_of_file_ids(input_file_ids = file_ids, batch_size = batch_size)
+        for batch_file_ids in file_ids_per_batch:
+            segmentation_object = SegmentationObject(database = self.database, file_ids = batch_file_ids)
+            segmentation_object.run_all_segmentation_steps()
+            segmentation_object.update_database()
+            del segmentation_object
+        """
         segmentor = Segmentor(self.database, file_ids)
         self.database = segmentor.run_all()
+        """
 
     def run_quantifications(self, file_ids: Optional[List]=None) -> None:
         from .quantifications import Quantifier

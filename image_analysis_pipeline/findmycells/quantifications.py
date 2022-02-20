@@ -14,6 +14,15 @@ from .database import Database
 from .utils import load_zstack_as_array_from_single_planes, unpad_x_y_dims_in_2d_array, unpad_x_y_dims_in_3d_array, get_polygon_from_instance_segmentation
 from .utils import get_rgb_color_code_for_3D
 
+
+
+
+
+
+
+
+
+# old code version starts here:
 """
 
 What we need here:
@@ -26,7 +35,6 @@ What we need here:
         - Either way: implementation of specific rules for quantification, like exclude / include depending on which borders are touched 
 
 """
-
 
 class QuantificationObject:
     # 2D alternative still to come..

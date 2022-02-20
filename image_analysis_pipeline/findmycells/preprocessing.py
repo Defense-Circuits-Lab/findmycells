@@ -30,7 +30,7 @@ Next steps:
 
 class PreprocessingObject:
     
-    def __init__(self, database: Database, file_id: str):
+    def __init__(self, database: Database, file_id: str) -> None:
         self.database = database
         self.file_id = file_id
         self.file_info = self.database.get_file_infos(identifier = self.file_id)
@@ -63,24 +63,25 @@ class PreprocessingObject:
         return roi_loader.as_dict()
     
     
-    def run_all_preprocessing_steps(self):
+    def run_all_preprocessing_steps(self) -> None:
         for preprocessing_strategy in self.database.preprocessing_strategies:
             self = preprocessing_strategy().run(preprocessing_object = self, step = self.database.preprocessing_strategies.index(preprocessing_strategy))
     
     
-    def save_preprocessed_images_on_disk(self):
+    def save_preprocessed_images_on_disk(self) -> None:
         for plane_index in range(self.total_planes):
             image = self.preprocessed_image[plane_index].astype('uint8')
             filepath_out = self.database.preprocessed_images_dir.joinpath(f'{self.file_id}-{str(plane_index).zfill(3)}.png')
             imsave(filepath_out, image)
 
     
-    def save_preprocessed_rois_in_database(self):
+    def save_preprocessed_rois_in_database(self) -> None:
         self.database.import_rois_dict(file_id = self.file_id, rois_dict = self.preprocessed_rois)
         
     
-    def update_database(self):
+    def update_database(self) -> None:
         updates = dict()
+        # RGB and total_planes should be updated at this stage again to make sure that they represent the actual preprocessed image!
         updates['RGB'] = self.is_rgb
         updates['total_planes'] = self.total_planes
         updates['preprocessing_completed'] = True
@@ -116,7 +117,7 @@ class CropStitchingArtefactsRGB(PreprocessingStrategy):
         return preprocessing_object
         
     
-    def get_cropping_indices(self, a, min_black_px_stretch: int=100):
+    def get_cropping_indices(self, a, min_black_px_stretch: int=100) -> Tuple[int, int]:
         unique, counts = np.unique(a, return_counts=True)
         indices_with_black_pixels = unique[np.where(counts >= min_black_px_stretch)]
         if indices_with_black_pixels.shape[0] > 0: 
@@ -205,5 +206,80 @@ class ConvertFrom12To8BitRGB(PreprocessingStrategy):
     def update_database(self, database: Database, file_id: str, step: int) -> Database:
         updates = dict()
         updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'ConvertFrom12To8BitRGB'    
+        database.update_file_infos(file_id = file_id, updates = updates)
+        return database
+    
+
+class MaximumIntensityProjection(PreprocessingStrategy):
+    
+
+    def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
+        preprocessing_object.preprocessed_image = self.run_maximum_projection_on_zstack(zstack = preprocessing_object.preprocessed_image)
+        preprocessing_object.preprocessed_rois = self.adjust_rois(rois_dict = preprocessing_object.preprocessed_rois)
+        preprocessing_object.database = self.update_database(database = preprocessing_object.database, file_id = preprocessing_object.file_id, step = step)
+        return preprocessing_object
+    
+    
+    def run_maximum_projection_on_zstack(self, zstack: np.ndarray) -> np.ndarray:
+        # make sure that input shape matches expected shape
+        return np.max(zstack, axis=0)
+    
+    
+    def adjust_rois(self, rois_dict: Dict) -> Dict:
+        # Structure of rois_dict nested dicts: 1st lvl = plane_id, 2nd lvl = roi_id
+        if 'all_planes' not in rois_dict.keys():
+            message_line_0 = 'For findmycells to be able to perform a MaximumIntensityProjection as preprocessing step,\n'
+            message_line_1 = 'all ROIs that specify the areas for quantification must apply to all planes of the microscopy image stack.'
+            message_line_2 = 'Suggested solution not yet specified - please contact segebarth_d@ukw.de for more information.'
+            error_message = message_line_0 + message_line_1 + message_line_2
+            raise ValueError(error_message)
+        for key in rois_dict.keys():
+            if key != 'all_planes':
+                rois_dict.pop(key)
+        return rois_dict
+    
+    
+    def update_database(self, database: Database, file_id: str, step: int) -> Database:
+        updates = dict()
+        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'MaximumIntensityProjection'
+        # Add additional information if neccessary
+        database.update_file_infos(file_id = file_id, updates = updates)
+        return database
+    
+
+    
+class AdjustBrightnessAndContrast(PreprocessingStrategy):
+    
+
+    def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
+        preprocessing_object.preprocessed_image = self.adjust_brightness(database = preprocessing_object.database, image = preprocessing_object.preprocessed_image)
+        preprocessing_object.preprocessed_image = self.adjust_contrast(database = preprocessing_object.database, image = preprocessing_object.preprocessed_image)
+        preprocessing_object.database = self.update_database(database = preprocessing_object.database, file_id = preprocessing_object.file_id, step = step)
+        return preprocessing_object
+    
+    
+    def run_maximum_projection_on_zstack(self, zstack: np.ndarray) -> np.ndarray:
+        # make sure that input shape matches expected shape
+        return np.max(zstack, axis=0)
+    
+    
+    def adjust_rois(self, rois_dict: Dict) -> Dict:
+        # Structure of rois_dict nested dicts: 1st lvl = plane_id, 2nd lvl = roi_id
+        if 'all_planes' not in rois_dict.keys():
+            message_line_0 = 'For findmycells to be able to perform a MaximumIntensityProjection as preprocessing step,\n'
+            message_line_1 = 'all ROIs that specify the areas for quantification must apply to all planes of the microscopy image stack.'
+            message_line_2 = 'Suggested solution not yet specified - please contact segebarth_d@ukw.de for more information.'
+            error_message = message_line_0 + message_line_1 + message_line_2
+            raise ValueError(error_message)
+        for key in rois_dict.keys():
+            if key != 'all_planes':
+                rois_dict.pop(key)
+        return rois_dict
+    
+    
+    def update_database(self, database: Database, file_id: str, step: int) -> Database:
+        updates = dict()
+        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'MaximumIntensityProjection'
+        # Add additional information if neccessary
         database.update_file_infos(file_id = file_id, updates = updates)
         return database
