@@ -35,11 +35,6 @@ class PreprocessingObject:
         self.file_id = file_id
         self.file_info = self.database.get_file_infos(identifier = self.file_id)
         self.preprocessed_image = self.load_microscopy_image()
-        self.total_planes = self.preprocessed_image.shape[0]
-        if self.preprocessed_image.shape[3] == 3:
-            self.is_rgb = True
-        else:
-            self.is_rgb = False
         self.preprocessed_rois = self.load_rois()
 
         
@@ -69,7 +64,7 @@ class PreprocessingObject:
     
     
     def save_preprocessed_images_on_disk(self) -> None:
-        for plane_index in range(self.total_planes):
+        for plane_index in range(self.preprocessed_image.shape[0]):
             image = self.preprocessed_image[plane_index].astype('uint8')
             filepath_out = self.database.preprocessed_images_dir.joinpath(f'{self.file_id}-{str(plane_index).zfill(3)}.png')
             imsave(filepath_out, image)
@@ -81,9 +76,11 @@ class PreprocessingObject:
     
     def update_database(self) -> None:
         updates = dict()
-        # RGB and total_planes should be updated at this stage again to make sure that they represent the actual preprocessed image!
-        updates['RGB'] = self.is_rgb
-        updates['total_planes'] = self.total_planes
+        if self.preprocessed_image.shape[3] == 3:
+            updates['RGB'] = True
+        else:
+            updates['RGB'] = False
+        updates['total_planes'] = self.preprocessed_image.shape[0]
         updates['preprocessing_completed'] = True
         self.database.update_file_infos(file_id = self.file_id, updates = updates)
 
@@ -138,7 +135,7 @@ class CropStitchingArtefactsRGB(PreprocessingStrategy):
                                                   
     
     def determine_cropping_indices_for_entire_zstack(self, preprocessing_object: PreprocessingObject) -> Dict:
-        for plane_index in range(preprocessing_object.total_planes):
+        for plane_index in range(preprocessing_object.preprocessed_image.shape[0]):
             rgb_image_plane = preprocessing_object.preprocessed_image[plane_index]
             rows_with_black_px, columns_with_black_px = np.where(np.all(rgb_image_plane == 0, axis = -1))
             lower_row_idx, upper_row_idx = self.get_cropping_indices(rows_with_black_px)
@@ -187,31 +184,122 @@ class CropStitchingArtefactsRGB(PreprocessingStrategy):
         updates['cropping_column_indices'] = (self.cropping_indices['lower_col_cropping_idx'], self.cropping_indices['upper_col_cropping_idx'])       
         database.update_file_infos(file_id = file_id, updates = updates)
         return database
-        
-        
-                                                           
-                                                           
-class ConvertFrom12To8BitRGB(PreprocessingStrategy):
+    
+
+class CropToROIsBoundingBox(PreprocessingStrategy):
     
     def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
-        for plane_index in range(preprocessing_object.total_planes):
-            preprocessing_object.preprocessed_image[plane_index] = self.convert_rgb_image(rgb_image = preprocessing_object.preprocessed_image[plane_index])
+        self.cropping_indices = self.determine_bounding_box(preprocessing_object = preprocessing_object, pad_size = 100)
+        preprocessing_object.preprocessed_image = self.crop_rgb_zstack(zstack = preprocessing_object.preprocessed_image)
+        preprocessing_object.preprocessed_rois = self.adjust_rois(rois_dict = preprocessing_object.preprocessed_rois)
+        preprocessing_object.database = self.update_database(database = preprocessing_object.database, file_id = preprocessing_object.file_id, step = step)
+        return preprocessing_object
+                                                  
+    
+    def determine_bounding_box(self, preprocessing_object: PreprocessingObject, pad_size: int=100) -> Dict:
+        rois_dict = preprocessing_object.preprocessed_rois.copy()
+        max_row_idx = preprocessing_object.preprocessed_image.shape[1]
+        max_col_idx = preprocessing_object.preprocessed_image.shape[2]
+        min_lower_row_cropping_idx, min_lower_col_cropping_idx, max_upper_row_cropping_idx, max_upper_col_cropping_idx = None, None, None, None
+        for plane_id in rois_dict.keys():
+            for roi_id in rois_dict[plane_id].keys():
+                lower_row_idx, lower_col_idx, upper_row_idx, upper_col_idx =  rois_dict[plane_id][roi_id].bounds
+                if min_lower_row_cropping_idx == None:
+                    min_lower_row_cropping_idx, max_upper_row_cropping_idx = lower_row_idx, upper_row_idx
+                    min_lower_col_cropping_idx, max_upper_col_cropping_idx = lower_col_idx, upper_col_idx
+                else:
+                    if lower_row_idx < min_lower_row_cropping_idx:
+                        min_lower_row_cropping_idx = lower_row_idx
+                    if upper_row_idx > max_upper_row_cropping_idx:
+                        max_upper_row_cropping_idx = upper_row_idx
+                    if lower_col_idx < min_lower_col_cropping_idx:
+                        min_lower_col_cropping_idx = lower_col_idx
+                    if upper_col_idx > max_upper_col_cropping_idx:
+                        max_upper_col_cropping_idx = upper_col_idx
+        if min_lower_row_cropping_idx - pad_size <= 0:
+            min_lower_row_cropping_idx = 0
+        else:
+            min_lower_row_cropping_idx -= pad_size
+        if min_lower_col_cropping_idx - pad_size <= 0:
+            min_lower_col_cropping_idx = 0
+        else:
+            min_lower_col_cropping_idx -= pad_size
+        
+        if max_upper_row_cropping_idx + pad_size >= max_row_idx:
+            max_upper_row_cropping_idx = max_row_idx
+        else:
+            max_upper_row_cropping_idx += pad_size
+        if max_upper_col_cropping_idx + pad_size >= max_col_idx:
+            max_upper_col_cropping_idx = max_col_idx
+        else:
+            max_upper_col_cropping_idx += pad_size        
+    
+        cropping_indices = {'lower_row_cropping_idx': int(min_lower_row_cropping_idx),
+                            'upper_row_cropping_idx': int(max_upper_row_cropping_idx),
+                            'lower_col_cropping_idx': int(min_lower_col_cropping_idx),
+                            'upper_col_cropping_idx': int(max_upper_col_cropping_idx)}
+        return cropping_indices
+    
+    
+    def crop_rgb_zstack(self, zstack: np.ndarray) -> np.ndarray:
+        min_row_idx = self.cropping_indices['lower_row_cropping_idx']
+        max_row_idx = self.cropping_indices['upper_row_cropping_idx']
+        min_col_idx = self.cropping_indices['lower_col_cropping_idx']
+        max_col_idx = self.cropping_indices['upper_col_cropping_idx']
+        return zstack[:, min_row_idx:max_row_idx, min_col_idx:max_col_idx, :]
+                                                           
+    
+    def adjust_rois(self, rois_dict: Dict) -> Dict:
+        lower_row_idx = self.cropping_indices['lower_row_cropping_idx']
+        lower_col_idx = self.cropping_indices['lower_col_cropping_idx']
+        for plane_identifier in rois_dict.keys():
+            for roi_id in rois_dict[plane_identifier].keys():
+                adjusted_row_coords = [coordinates[0] - lower_row_idx for coordinates in rois_dict[plane_identifier][roi_id].boundary.coords[:]]
+                adjusted_col_coords = [coordinates[1] - lower_col_idx for coordinates in rois_dict[plane_identifier][roi_id].boundary.coords[:]]
+                rois_dict[plane_identifier][roi_id] = Polygon(np.asarray(list(zip(adjusted_row_coords, adjusted_col_coords))))
+        return rois_dict
+
+    
+    def update_database(self, database: Database, file_id: str, step: int) -> Database:
+        updates = dict()
+        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'CropToROIsBoundingBox'
+        updates['cropping_row_indices'] = (self.cropping_indices['lower_row_cropping_idx'], self.cropping_indices['upper_row_cropping_idx'])
+        updates['cropping_column_indices'] = (self.cropping_indices['lower_col_cropping_idx'], self.cropping_indices['upper_col_cropping_idx'])       
+        database.update_file_infos(file_id = file_id, updates = updates)
+        return database
+
+
+
+class ConvertTo8Bit(PreprocessingStrategy):
+    
+    def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
+        preprocessing_object.preprocessed_image = self.convert_to_8bit(zstack = preprocessing_object.preprocessed_image)
         preprocessing_object.database = self.update_database(database = preprocessing_object.database, file_id = preprocessing_object.file_id, step = step)
         return preprocessing_object
     
-    def convert_rgb_image(self, rgb_image: np.ndarray) -> np.ndarray:
-        converted_image = (rgb_image / 4095 * 255).round(0).astype('uint8')
-        return converted_image
+    def convert_to_8bit(self, zstack: np.ndarray) -> np.ndarray:
+        max_value = zstack.max()
+        if max_value <= 255:
+            pass
+        elif max_value <= 4095:
+            for plane_index in range(zstack.shape[0]):
+                zstack[plane_index] = (zstack[plane_index] / 4095 * 255).round(0)
+        elif max_value <= 65535:
+            for plane_index in range(zstack.shape[0]):
+                zstack[plane_index] = (zstack[plane_index] / 4095 * 255).round(0)
+        if zstack.dtype.name != 'uint8':
+            zstack.astype('uint8')
+        return zstack
+    
 
     def update_database(self, database: Database, file_id: str, step: int) -> Database:
         updates = dict()
-        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'ConvertFrom12To8BitRGB'    
+        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'ConvertTo8Bit'    
         database.update_file_infos(file_id = file_id, updates = updates)
         return database
     
 
 class MaximumIntensityProjection(PreprocessingStrategy):
-    
 
     def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
         preprocessing_object.preprocessed_image = self.run_maximum_projection_on_zstack(zstack = preprocessing_object.preprocessed_image)
@@ -221,8 +309,8 @@ class MaximumIntensityProjection(PreprocessingStrategy):
     
     
     def run_maximum_projection_on_zstack(self, zstack: np.ndarray) -> np.ndarray:
-        # make sure that input shape matches expected shape
-        return np.max(zstack, axis=0)
+        max_projection = np.max(zstack, axis=0)
+        return max_projection[np.newaxis, :]
     
     
     def adjust_rois(self, rois_dict: Dict) -> Dict:
@@ -242,6 +330,42 @@ class MaximumIntensityProjection(PreprocessingStrategy):
     def update_database(self, database: Database, file_id: str, step: int) -> Database:
         updates = dict()
         updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'MaximumIntensityProjection'
+        # Add additional information if neccessary
+        database.update_file_infos(file_id = file_id, updates = updates)
+        return database
+    
+
+class MinimumIntensityProjection(PreprocessingStrategy):
+
+    def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
+        preprocessing_object.preprocessed_image = self.run_minimum_projection_on_zstack(zstack = preprocessing_object.preprocessed_image)
+        preprocessing_object.preprocessed_rois = self.adjust_rois(rois_dict = preprocessing_object.preprocessed_rois)
+        preprocessing_object.database = self.update_database(database = preprocessing_object.database, file_id = preprocessing_object.file_id, step = step)
+        return preprocessing_object
+    
+    
+    def run_minimum_projection_on_zstack(self, zstack: np.ndarray) -> np.ndarray:
+        min_projection = np.min(zstack, axis=0)
+        return min_projection[np.newaxis, :]
+    
+    
+    def adjust_rois(self, rois_dict: Dict) -> Dict:
+        # Structure of rois_dict nested dicts: 1st lvl = plane_id, 2nd lvl = roi_id
+        if 'all_planes' not in rois_dict.keys():
+            message_line_0 = 'For findmycells to be able to perform a MaximumIntensityProjection as preprocessing step,\n'
+            message_line_1 = 'all ROIs that specify the areas for quantification must apply to all planes of the microscopy image stack.'
+            message_line_2 = 'Suggested solution not yet specified - please contact segebarth_d@ukw.de for more information.'
+            error_message = message_line_0 + message_line_1 + message_line_2
+            raise ValueError(error_message)
+        for key in rois_dict.keys():
+            if key != 'all_planes':
+                rois_dict.pop(key)
+        return rois_dict
+    
+    
+    def update_database(self, database: Database, file_id: str, step: int) -> Database:
+        updates = dict()
+        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'MinimumIntensityProjection'
         # Add additional information if neccessary
         database.update_file_infos(file_id = file_id, updates = updates)
         return database

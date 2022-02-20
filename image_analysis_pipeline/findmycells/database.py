@@ -15,7 +15,7 @@ MAIN_SUBDIR_ATTRIBUTES = {'preprocessed_images_dir': {'foldername': '02_preproce
                           'segmentation_tool_dir': {'foldername': '03a_segmentation_tool', 'key_substring': 'tool'},
                           'semantic_segmentations_dir': {'foldername': '03b_semantic_segmentations', 'key_substring': 'semantic'},
                           'instance_segmentations_dir': {'foldername': '03c_instance_segmentations', 'key_substring': 'instance'},
-                          'segmentations_used_for_quantifications_dir': {'foldername': '04_segmentations_used_for_quantification', 'key_substring': 'quantification'},
+                          'quantified_segmentations_dir': {'foldername': '04_quantified_segmentations', 'key_substring': 'quantified'},
                           'results_dir': {'foldername': '05_results', 'key_substring': 'results'},
                           'inspection_dir': {'foldername': '06_inspection', 'key_substring': 'inspection'}}
 
