@@ -45,10 +45,7 @@ class Project:
             segmentation_object.run_all_segmentation_steps()
             segmentation_object.update_database()
             del segmentation_object
-        """
-        segmentor = Segmentor(self.database, file_ids)
-        self.database = segmentor.run_all()
-        """
+
 
     def run_quantifications(self, file_ids: Optional[List]=None) -> None:
         from .quantifications import Quantifier

@@ -221,7 +221,46 @@ class Database():
             file_ids_per_batch.append(sampled_file_ids)
             for file_id in sampled_file_ids:
                 input_file_ids.remove(file_id)
-        return file_ids_per_batch    
+        return file_ids_per_batch
+    
+    
+    def import_rois_dict(self, file_id: str, rois_dict: Dict) -> None:
+        if hasattr(self, 'area_rois_for_quantification') == False:
+            self.area_rois_for_quantification = dict()
+        self.area_rois_for_quantification[file_id] = rois_dict
+        
+
+    def remove_file_id_from_project(self, file_id: str) -> None:
+        index = self.file_infos['file_id'].index(file_id)
+        original_file_id = self.file_infos['original_file_id'][index]
+        # Move all source files, i.e. microscopy image file and roi file(s):
+        subdirectories = listdir_nohidden(self.project_root_dir)
+        self.check_and_create_remaining_directories(root_dir = self.project_root_dir,
+                                                    subdirectory_attributes = {'removed_files_dir': {'foldername': '08_removed_files', 'key_substring': 'removed_files'}})
+        for source_data_type in ['microscopy', 'rois']:
+            source_filepath = self.file_infos[f'{source_data_type}_filepath'][index]
+            if type(source_filepath) == list:
+                for filepath in source_filepath:
+                    shutil.move(filepath.as_posix(), self.removed_files_dir.as_posix())
+            else:
+                shutil.move(source_filepath.as_posix(), self.removed_files_dir.as_posix())
+        # Delete all files that were already generated from findmycells:
+        for directory in [self.preprocessed_images_dir, 
+                          self.semantic_segmentations_dir, 
+                          self.instance_segmentations_dir, 
+                          self.inspected_area_plots_dir,
+                          self.inspection_final_label_planes_dir,
+                          self.inspection_planes_for_quantification]:
+            filenames = listdir_nohidden(directory)
+            for filename in filenames:
+                if filename.startswith(file_id):
+                    os.remove(directory.joinpath(filename).as_posix())
+        # Remove from file_infos:
+        for key in self.file_infos.keys():
+            self.file_infos[key].pop(index)
+        # Remove from area_rois_for_quantification:
+        if file_id in self.area_rois_for_quantification.keys():
+            self.area_rois_for_quantification.pop(file_id)
     
     
     def save_all(self) -> None:
@@ -280,42 +319,3 @@ class Database():
             for key, value in project_configs.items():
                 if hasattr(self, key) == False:
                     setattr(self, key, value)
-
-    
-    def remove_file_id_from_project(self, file_id: str) -> None:
-        index = self.file_infos['file_id'].index(file_id)
-        original_file_id = self.file_infos['original_file_id'][index]
-        # Move all source files, i.e. microscopy image file and roi file(s):
-        subdirectories = listdir_nohidden(self.project_root_dir)
-        self.check_and_create_remaining_directories(root_dir = self.project_root_dir,
-                                                    subdirectory_attributes = {'removed_files_dir': {'foldername': '08_removed_files', 'key_substring': 'removed_files'}})
-        for source_data_type in ['microscopy', 'rois']:
-            source_filepath = self.file_infos[f'{source_data_type}_filepath'][index]
-            if type(source_filepath) == list:
-                for filepath in source_filepath:
-                    shutil.move(filepath.as_posix(), self.removed_files_dir.as_posix())
-            else:
-                shutil.move(source_filepath.as_posix(), self.removed_files_dir.as_posix())
-        # Delete all files that were already generated from findmycells:
-        for directory in [self.preprocessed_images_dir, 
-                          self.semantic_segmentations_dir, 
-                          self.instance_segmentations_dir, 
-                          self.inspected_area_plots_dir,
-                          self.inspection_final_label_planes_dir,
-                          self.inspection_planes_for_quantification]:
-            filenames = listdir_nohidden(directory)
-            for filename in filenames:
-                if filename.startswith(file_id):
-                    os.remove(directory.joinpath(filename).as_posix())
-        # Remove from file_infos:
-        for key in self.file_infos.keys():
-            self.file_infos[key].pop(index)
-        # Remove from area_rois_for_quantification:
-        if file_id in self.area_rois_for_quantification.keys():
-            self.area_rois_for_quantification.pop(file_id)
-         
-        
-    def import_rois_dict(self, file_id: str, rois_dict: Dict) -> None:
-        if hasattr(self, 'area_rois_for_quantification') == False:
-            self.area_rois_for_quantification = dict()
-        self.area_rois_for_quantification[file_id] = rois_dict

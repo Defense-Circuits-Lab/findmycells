@@ -3,10 +3,10 @@
 from abc import ABC, abstractmethod
 import os
 import numpy as np
-from skimage.io import imsave
 from shapely.geometry import Polygon
 from typing import List, Tuple, Dict
 from skimage.io import imsave
+from skimage.exposure import rescale_intensity
 
 from .database import Database
 from .microscopyimages import MicroscopyImageLoader
@@ -15,16 +15,8 @@ from .utils import convert_12_to_8_bit_rgb_image
 
 
 """
-Next steps:
- - load ROIs (or create one for with shape of the image)
- - make adaptations to database:
-   - use Path objects to enable continous integration
-   - create sorted list of all preprocessing steps (i.e. preprocessing strategies)
- - adapt main
- - function that saves preprocessed images
-
  - Minimal preprocessing steps are:
-    - save the "unprocessed" microscopy images to the preprocessed_dir
+    - save the "unprocessed" (8bit converted) microscopy images to the preprocessed_dir
     - load the unprocessed ROIs into the database (create ROI with shape of image if whole image is to be analyzed)
 """
 
@@ -288,7 +280,7 @@ class ConvertTo8Bit(PreprocessingStrategy):
             for plane_index in range(zstack.shape[0]):
                 zstack[plane_index] = (zstack[plane_index] / 4095 * 255).round(0)
         if zstack.dtype.name != 'uint8':
-            zstack.astype('uint8')
+            zstack = zstack.astype('uint8')
         return zstack
     
 
@@ -298,6 +290,7 @@ class ConvertTo8Bit(PreprocessingStrategy):
         database.update_file_infos(file_id = file_id, updates = updates)
         return database
     
+
 
 class MaximumIntensityProjection(PreprocessingStrategy):
 
@@ -335,6 +328,7 @@ class MaximumIntensityProjection(PreprocessingStrategy):
         return database
     
 
+
 class MinimumIntensityProjection(PreprocessingStrategy):
 
     def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
@@ -371,39 +365,77 @@ class MinimumIntensityProjection(PreprocessingStrategy):
         return database
     
 
-    
+
 class AdjustBrightnessAndContrast(PreprocessingStrategy):
-    
 
     def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
-        preprocessing_object.preprocessed_image = self.adjust_brightness(database = preprocessing_object.database, image = preprocessing_object.preprocessed_image)
-        preprocessing_object.preprocessed_image = self.adjust_contrast(database = preprocessing_object.database, image = preprocessing_object.preprocessed_image)
+        self.percentage_saturated_pixels, self.channel_adjustment_method = self.get_method_specific_attributes(database= preprocessing_object.database)
+        preprocessing_object.preprocessed_image = self.adjust_brightness_and_contrast(zstack = preprocessing_object.preprocessed_image,
+                                                                                      percentage_saturated_pixels = self.percentage_saturated_pixels, 
+                                                                                      channel_adjustment_method = self.channel_adjustment_method)
         preprocessing_object.database = self.update_database(database = preprocessing_object.database, file_id = preprocessing_object.file_id, step = step)
         return preprocessing_object
+
+
+    def get_method_specific_attributes(self, database: Database) -> Tuple[float, str]:
+        if hasattr(database, 'preprocessing_configs'):
+            if 'AdjustBrightnessAndContrast' in database.preprocessing_configs.keys():
+                percentage_saturated_pixels = database.preprocessing_configs['AdjustBrightnessAndContrast']['percentage_saturated_pixels']
+                channel_adjustment_method = database.preprocessing_configs['AdjustBrightnessAndContrast']['channel_adjustment_method']
+            else:
+                percentage_saturated_pixels = 0.0
+                channel_adjustment_method = 'globally'
+        else:
+            percentage_saturated_pixels = 0.0
+            channel_adjustment_method = 'globally'            
+        return percentage_saturated_pixels, channel_adjustment_method
     
     
-    def run_maximum_projection_on_zstack(self, zstack: np.ndarray) -> np.ndarray:
-        # make sure that input shape matches expected shape
-        return np.max(zstack, axis=0)
-    
-    
-    def adjust_rois(self, rois_dict: Dict) -> Dict:
-        # Structure of rois_dict nested dicts: 1st lvl = plane_id, 2nd lvl = roi_id
-        if 'all_planes' not in rois_dict.keys():
-            message_line_0 = 'For findmycells to be able to perform a MaximumIntensityProjection as preprocessing step,\n'
-            message_line_1 = 'all ROIs that specify the areas for quantification must apply to all planes of the microscopy image stack.'
-            message_line_2 = 'Suggested solution not yet specified - please contact segebarth_d@ukw.de for more information.'
-            error_message = message_line_0 + message_line_1 + message_line_2
+    def adjust_brightness_and_contrast(self, zstack: np.ndarray, percentage_saturated_pixels: float, channel_adjustment_method: str) -> np.ndarray:
+        """
+        percentage_saturated_pixels: float, less than 50.0
+        channel_adjustment_method: str, one of: 'individually', 'global'
+        """
+        adjusted_zstack = zstack.copy()
+        if percentage_saturated_pixels >= 50:
+            message_line0 = 'The percentage of saturated pixels cannot be set to values equal to or higher than 50.\n'
+            message_line1 = 'Suggested default (also used by the ImageJ Auto Adjust method): 0.35'
+            error_message = message_line0 + message_line1
             raise ValueError(error_message)
-        for key in rois_dict.keys():
-            if key != 'all_planes':
-                rois_dict.pop(key)
-        return rois_dict
+        if channel_adjustment_method == 'individually':
+            self.min_max_ranges_per_plane_and_channel = list()
+            for plane_index in range(adjusted_zstack.shape[0]):
+                min_max_ranges = list()
+                for channel_index in range(adjusted_zstack.shape[3]):
+                    in_range_min = int(round(np.percentile(adjusted_zstack[plane_index, :, :, channel_index], percentage_saturated_pixels), 0))
+                    in_range_max = int(round(np.percentile(adjusted_zstack[plane_index, :, :, channel_index], 100 - percentage_saturated_pixels), 0))
+                    in_range = (in_range_min, in_range_max)
+                    adjusted_zstack[plane_index, :, :, channel_index] = rescale_intensity(image = adjusted_zstack[plane_index, :, :, channel_index], in_range = in_range)
+                    min_max_ranges.append(in_range)
+                self.min_max_ranges_per_plane_and_channel.append(min_max_ranges)
+        elif channel_adjustment_method == 'globally':
+            self.min_max_ranges_per_plane_and_channel = list()
+            for plane_index in range(adjusted_zstack.shape[0]):
+                in_range_min = int(round(np.percentile(adjusted_zstack[plane_index], percentage_saturated_pixels), 0))
+                in_range_max = int(round(np.percentile(adjusted_zstack[plane_index], 100 - percentage_saturated_pixels), 0))
+                in_range = (in_range_min, in_range_max)
+                adjusted_zstack[plane_index] = rescale_intensity(image = adjusted_zstack[plane_index], in_range = in_range)
+                self.min_max_ranges_per_plane_and_channel.append(in_range)
+        else:
+            message_line0 = "The 'channel_adjustment_method' has to be one of: ['individually', 'globally'].\n"
+            message_line1 = "-->'individually': the range of intensity values wil be calculated and scaled to the min and max values for each individual channel.\n"
+            message_line2 = "-->'globally': the range of intensity values will be calculated from and scaled to the global min and max of all channels.\n" 
+            message_line3 = "Either way, min and max values will be determined for each image plane individually."
+            error_message = message_line0 + message_line1 + message_line2 + message_line3
+            raise NotImplementedError(error_message)
+        return adjusted_zstack.copy()
     
     
     def update_database(self, database: Database, file_id: str, step: int) -> Database:
         updates = dict()
-        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'MaximumIntensityProjection'
-        # Add additional information if neccessary
+        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'AdjustBrightnessAndContrast'
+        updates['percentage_saturated_pixels'] = self.percentage_saturated_pixels
+        updates['channel_adjustment_method'] = self.channel_adjustment_method
+        updates['min_max_ranges_per_plane_and_channel'] = self.min_max_ranges_per_plane_and_channel
         database.update_file_infos(file_id = file_id, updates = updates)
         return database

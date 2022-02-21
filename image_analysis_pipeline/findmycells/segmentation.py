@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 from PIL import Image
 from typing import Tuple, List
+import tempfile
 
 from .database import Database
 from .utils import listdir_nohidden
@@ -180,13 +181,18 @@ class Deepflash2SemanticAndInstanceSegmentation(SegmentationStrategy):
             
     
     def delete_temporary_files_and_dirs(self, database: Database) -> None:
-        if hasattr(database, 'low_memory'):
-            # This will probably only work with Linux as OS
-            if database.low_memory:
+        if hasattr(database, 'clear_tmp_zarrs'):
+            # This was only tested under Linux as OS so far
+            if database.clear_tmp_zarrs:
+                temp_zarr_paths = [elem for elem in Path(tempfile.gettempdir()).iterdir() if 'zarr' in elem.name]
+                for dir_path in temp_zarr_paths:
+                    shutil.rmtree(dir_path.as_posix())
+                """
                 temp_zarr_subdirs = [elem for elem in os.listdir('/tmp/') if 'zarr' in elem]
                 if len(temp_zarr_subdirs) > 0:
                     for subdirectory in temp_zarr_subdirs:
                         shutil.rmtree(f'/tmp/{subdirectory}/')
+                """
         shutil.rmtree(database.segmentation_tool_temp_dir.as_posix())       
         shutil.rmtree(database.segmentation_tool_dir.joinpath('temp_copies_of_preprocessed_images').as_posix())
         # Reset of df_ens is done in self.update_database() as it resembles an update of the database object
