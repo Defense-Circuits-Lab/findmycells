@@ -38,7 +38,7 @@ class ImageJROIReader(ROIReader):
         
         # In case plane-specific ROIs are required / requested at some point, 
         # having this additional level that enables the reference to image planes
-        # should foster the implementation.
+        # should foster the implementation. Plane_ids should be saved as integer
         rois_as_shapely_polygons = {'all_planes': dict()}
         roi_count = len(loaded_rois)
         for roi_index in range(roi_count):

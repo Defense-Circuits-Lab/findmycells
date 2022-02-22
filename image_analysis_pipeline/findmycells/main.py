@@ -45,25 +45,26 @@ class Project:
             segmentation_object.run_all_segmentation_steps()
             segmentation_object.update_database()
             del segmentation_object
+            
+    
+    def quantify(self, file_ids: Optional[List]=None, overwrite: bool=False) -> None:
+        from .quantifications import QuantificationObject
+        file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'quantification_completed', overwrite = overwrite)
+        for file_id in file_ids:
+            print(f'Quantification of file ID: {file_id} ({file_ids.index(file_id) + 1}/{len(file_ids)})')
+            quantification_object = QuantificationObject(database = self.database, file_id = file_id)
+            quantification_object.run_all_postprocessing_steps()
+            quantification_object.save_segmentations_used_for_quantifications()
+            quantification_object.run_all_quantification_steps()
+            quantification_object.update_database()
+            del quantification_object
 
-
-    def run_quantifications(self, file_ids: Optional[List]=None) -> None:
-        from .quantifications import Quantifier
-        
-        if 'quantification_completed' not in self.database.file_infos.keys():
-            self.database.add_new_key_to_file_infos('quantification_completed')
-        if file_ids == None:
-            all_file_ids = self.database.file_infos['file_id']
-            quantification_status = self.database.file_infos['quantification_completed']
-            file_ids = [elem[0] for elem in zip(all_file_ids, quantification_status) if elem[1] == False or elem[1] == None]
-        quantifier = Quantifier(self.database, file_ids)
-        self.database = quantifier.run_all()
         
     def run_inspection(self, file_id: str, inspection_strategy):
         from .inspection import InspectionStrategy
-        
         inspection_strategy.run(self.database, file_id)
         
+    
     def remove_file_id_from_project(self, file_id: str):
         self.database.remove_file_id_from_project(file_id = file_id)
 
