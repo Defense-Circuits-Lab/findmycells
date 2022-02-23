@@ -97,6 +97,8 @@ def get_rgb_color_code_for_3D(zstack: np.ndarray) -> Dict:
     label_ids = list(np.unique(zstack))
     if 0 in label_ids:
         label_ids.remove(0)
+    if 0.0 in label_ids:
+        label_ids.remove(0)
     color_code = get_color_code(label_ids, for_rgb=True)
 
     red_colors = np.zeros(zstack.shape)

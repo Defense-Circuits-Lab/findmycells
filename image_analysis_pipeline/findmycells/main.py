@@ -58,8 +58,33 @@ class Project:
             quantification_object.run_all_quantification_steps()
             quantification_object.update_database()
             del quantification_object
+            
+            
+    def inspect(self, quantification_strategy_index: int=0, file_ids: Optional[List]=None, 
+                area_roi_ids: Optional[List]=None, label_indices: Optional[List]=None, show: bool=True, save: bool=False) -> None:
+        from .inspection import InspectionObject
+        quantification_strategy_str = list(self.database.quantification_results.keys())[quantification_strategy_index]
+        file_ids_not_quantified = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'quantification_completed', overwrite = False)
+        if file_ids == None:
+            file_ids = self.database.file_infos['file_id']
+        file_ids_quantified = [elem for elem in file_ids if elem not in file_ids_not_quantified]
+        for file_id in file_ids_quantified:
+            valid_area_roi_ids = self.database.area_rois_for_quantification[file_id]['all_planes'].keys()
+            if area_roi_ids == None:
+                tmp_area_roi_ids = valid_area_roi_ids
+            else:
+                tmp_area_roi_ids = [elem for elem in area_roi_ids if elem in valid_area_roi_ids]
+            for area_roi_id in tmp_area_roi_ids:
+                total_labels = self.database.quantification_results[quantification_strategy_str][file_id][area_roi_id]
+                if label_indices == None:
+                    tmp_label_indices = [elem for elem in range(total_labels)]
+                else:
+                    tmp_label_indices = [elem for elem in label_indices if elem < total_labels]
+                for label_index in tmp_label_indices:
+                    inspection_object = InspectionObject(database = self.database, file_id = file_id, area_roi_id = area_roi_id, label_index = label_index, show = show, save = save)
+                    inspection_object.run_all_inspection_steps()
 
-        
+                    
     def run_inspection(self, file_id: str, inspection_strategy):
         from .inspection import InspectionStrategy
         inspection_strategy.run(self.database, file_id)
