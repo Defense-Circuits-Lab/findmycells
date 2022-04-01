@@ -25,7 +25,14 @@ class MicroscopyImageReader(ABC):
 class CZIReader(MicroscopyImageReader):
     
     def read(self, filepath: Path) -> np.ndarray:
-        return czifile.imread(filepath.as_posix())[0, 0, 0]       
+        return czifile.imread(filepath.as_posix())[0, 0, 0]
+    
+
+class FromExcel(MicroscopyImageReader):
+    
+    def read(self, filepath: Path) -> np.ndarray:
+        
+        return zstack
 
     
 
@@ -38,6 +45,8 @@ class MicroscopyImageLoader:
     def determine_reader(self, filetype: str) -> MicroscopyImageReader:
         if filetype == '.czi':
             reader = CZIReader()
+        elif filetype == '.xlsx':
+            reader = FromExcel()
         else:
             message_part1 = 'The microscopy image format you are trying to load is not implemented yet.'
             message_part2 = 'Please consider raising an issue in our GitHub repository!'
