@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from .database import Database
 from typing import List, Dict, Tuple, Optional
 
@@ -95,7 +96,11 @@ class Project:
 
         
         
-      
+class Preparations:
+    
+    def create_excel_files_for_image_loader(self, root: Path, destination: Path, batch_processing: bool=True) -> None:
+        from .prepare_my_data import CreateExcelFilesForImageLoader
+        preparation = CreateExcelFilesForImageLoader(root = root, destination = destination, batch_processing = batch_processing)
         
 
         
