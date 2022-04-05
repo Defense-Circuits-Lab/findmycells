@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 import os
 from pathlib import Path
 import numpy as np
+import pandas as pd
 import czifile
-
 
 
 
@@ -31,8 +31,12 @@ class CZIReader(MicroscopyImageReader):
 class FromExcel(MicroscopyImageReader):
     
     def read(self, filepath: Path) -> np.ndarray:
-        
-        return zstack
+        df_single_plane_filepaths = pd.read_excel(filepath)
+        single_plane_images = []
+        for row_index in range(df_single_plane_filepaths.shape[0]):
+            single_plane_image_filepath = df_single_plane_filepaths['plane_filepath'].iloc[row_index]
+            single_plane_images.append(imread(single_plane_image_filepath))
+        return np.stack(single_plane_images)
 
     
 
