@@ -77,9 +77,8 @@ class Database():
         self.microscopy_image_dir = self.project_root_dir.joinpath([elem for elem in subdirectories if 'microscopy' in elem][0])
         self.rois_to_analyze_dir = self.project_root_dir.joinpath([elem for elem in subdirectories if 'rois' in elem][0])
         # Remaining directories that are currently not required to exist when the database object is created:
-        self.check_and_create_remaining_directories(root_dir = self.project_root_dir, subdirectory_attributes = MAIN_SUBDIR_ATTRIBUTES)   
-        self.check_and_create_remaining_directories(root_dir = self.segmentation_tool_dir, subdirectory_attributes = SEGMENTATION_TOOL_SUBDIR_ATTRIBUTES)
-        self.check_and_create_remaining_directories(root_dir = self.inspection_dir, subdirectory_attributes = INSPECTION_SUBDIR_ATTRIBUTES)
+        for subdir_dict in [MAIN_SUBDIR_ATTRIBUTES, SEGMENTATION_TOOL_SUBDIR_ATTRIBUTES, INSPECTION_SUBDIR_ATTRIBUTES]:
+            self.check_and_create_remaining_directories(root_dir = self.project_root_dir, subdirectory_attributes = subdir_dict)
     
     
     def check_and_create_remaining_directories(self, root_dir: Path, subdirectory_attributes: Dict) -> None:

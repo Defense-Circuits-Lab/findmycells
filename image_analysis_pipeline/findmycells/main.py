@@ -32,7 +32,7 @@ class Project:
             del preprocessing_object
 
     
-    def segment(self, file_ids: Optional[List]=None, batch_size: Optional[int]=None, overwrite: bool=False) -> None:
+    def segment(self, file_ids: Optional[List]=None, batch_size: Optional[int]=None, strategy_index: Optional[int]=None, overwrite: bool=False) -> None:
         if all(self.database.file_infos['preprocessing_completed']) == False:
             raise TypeError('Not all files have been preprocessed yet! This has to be finished before deepflash2 can be used.')        
         from .segmentation import SegmentationObject
