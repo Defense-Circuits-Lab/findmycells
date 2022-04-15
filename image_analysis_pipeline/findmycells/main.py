@@ -1,7 +1,14 @@
 import os
 from pathlib import Path
 from .database import Database
+from .core import ProcessingStrategy
+from .segmentation import SegmentationStrategy, SegmentationObject
+from .preprocessing import PreprocessingStrategy, PreprocessingObject
+from .quantification import QuantificationStrategy, QuantificationObject
+
+
 from typing import List, Dict, Tuple, Optional
+from collections.abc import Callable
 
 """
 
@@ -20,18 +27,52 @@ class Project:
     def load_status(self) -> None:
         self.database.load_all()
     
-    def preprocess(self, file_ids: Optional[List]=None, overwrite: bool=False) -> None:
-        from .preprocessing import PreprocessingObject
+    def preprocess(self, file_ids: Optional[List]=None, strategies: List[PreprocessingStrategy], overwrite: bool=False) -> None:
         file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'preprocessing_completed', overwrite = overwrite)
         for file_id in file_ids:
-            preprocessing_object = PreprocessingObject(database = self.database, file_id = file_id)
-            preprocessing_object.run_all_preprocessing_steps()
+            preprocessing_object = PreprocessingObject(database = self.database, file_ids = [file_id], strategies = strategies)
+            preprocessing_object.run_all_strategies()
             preprocessing_object.save_preprocessed_images_on_disk()
             preprocessing_object.save_preprocessed_rois_in_database()
             preprocessing_object.update_database()
             del preprocessing_object
 
-    
+
+    # process_in_batches(self, batch_size: int=3, findmycells_processing_step: Callable[..., None]) -> None:
+        # create batches
+        # call function
+        # eg, taken from former segment function:
+        # file_ids_per_batch = self.database.get_batches_of_file_ids(input_file_ids = file_ids, batch_size = batch_size)
+        # for batch_file_ids in file_ids_per_batch:
+            # segmentation_object = SegmentationObject(database = self.database, file_ids = batch_file_ids)     
+            
+        # this function will then also be responsible to add the batch information & id to the database!!
+        
+
+    def segment(self, file_ids: Optional[List]=None, strategies: List[SegmentationStrategy],
+                run_strategies_individually: bool=True, overwrite: bool=False) -> None:
+        
+        # Not neccessarily required? This should probably rather be checked specifically by the strategies directly!
+        # if all(self.database.file_infos['preprocessing_completed']) == False:
+            # raise TypeError('Not all files have been preprocessed yet! This has to be finished prior to starting segmentations.')        
+        # remove file IDs that were already segmented previously if overwrite = False 
+        file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'segmentation_completed', overwrite = overwrite)
+        
+        if run_strategies_individually:
+            for segmentation_strategy in strategies:
+                segmentation_object = SegmentationObject(database = self.database, file_ids = file_ids, strategies = [segmentation_strategy])
+                segmentation_object.run_all_strategies()
+                del segmentation_object
+            segmentation_object = SegmentationObject(database = self.database, file_ids = file_ids, strategies = strategies)
+            segmentation_object.update_database()
+            del segmentation_object
+        elif not run_strategies_individually:
+            segmentation_object = SegmentationObject(database = self.database, file_ids = file_ids, strategies = strategies)
+            segmentation_object.run_all_strategies()
+            segmentation_object.update_database()
+            del segmentation_object
+
+
     def segment(self, file_ids: Optional[List]=None, batch_size: Optional[int]=None, strategy_index: Optional[int]=None, overwrite: bool=False) -> None:
         if all(self.database.file_infos['preprocessing_completed']) == False:
             raise TypeError('Not all files have been preprocessed yet! This has to be finished before deepflash2 can be used.')        
@@ -46,9 +87,15 @@ class Project:
             segmentation_object.run_all_segmentation_steps()
             segmentation_object.update_database()
             del segmentation_object
+
+
+    def postprocess(self, file_ids: Optional[List]=None, strategies: List[PostprocessingStrategy],
+                 run_strategies_individually: bool=True, overwrite: bool=False) -> None:
+        
             
     
-    def quantify(self, file_ids: Optional[List]=None, overwrite: bool=False) -> None:
+    def quantify(self, file_ids: Optional[List]=None, strategies: List[QuantificationStrategy],
+                 run_strategies_individually: bool=True, overwrite: bool=False) -> None:
         from .quantifications import QuantificationObject
         file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'quantification_completed', overwrite = overwrite)
         for file_id in file_ids:

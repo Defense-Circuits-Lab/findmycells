@@ -12,6 +12,7 @@ from .database import Database
 from .microscopyimages import MicroscopyImageLoader
 from .rois import ROILoader
 from .utils import convert_12_to_8_bit_rgb_image
+from .core import ProcessingObject, ProcessingStrategy
 
 
 """
@@ -20,22 +21,34 @@ from .utils import convert_12_to_8_bit_rgb_image
     - load the unprocessed ROIs into the database (create ROI with shape of image if whole image is to be analyzed)
 """
 
-class PreprocessingObject:
+class PreprocessingStrategy(ProcessingStrategy):
     
-    def __init__(self, database: Database, file_id: str) -> None:
-        self.database = database
-        self.file_id = file_id
+    @property
+    def processing_type(self):
+        return 'preprocessing'
+
+
+class PreprocessingObject(ProcessingObject):
+    
+    def __init__(self, database: Database, file_ids: List[str], strategies: List[ProcessingStrategy]) -> None:
+        super().__init__(database = database, file_ids = file_ids, strategies = strategies)
+        self.file_id = file_ids[0]
         self.file_info = self.database.get_file_infos(identifier = self.file_id)
         self.preprocessed_image = self.load_microscopy_image()
         self.preprocessed_rois = self.load_rois()
 
-        
+
+    @property
+    def processing_type(self):
+        return 'preprocessing'
+
+
     def load_microscopy_image(self) -> np.ndarray:
         microscopy_image_loader = MicroscopyImageLoader(filepath = self.file_info['microscopy_filepath'],
                                                         filetype = self.file_info['microscopy_filetype'])
         return microscopy_image_loader.as_array()
     
-    
+
     def load_rois(self) -> Dict:
         if self.file_info['rois_present'] ==  False:
             message_line0 = 'As of now, it is not supported to not provide a ROI file for each image.\n'
@@ -48,61 +61,38 @@ class PreprocessingObject:
             roi_loader = ROILoader(filepath = self.file_info['rois_filepath'],
                                    filetype = self.file_info['rois_filetype'])
         return roi_loader.as_dict()
-    
-    
-    def run_all_preprocessing_steps(self) -> None:
-        for preprocessing_strategy in self.database.preprocessing_strategies:
-            self = preprocessing_strategy().run(preprocessing_object = self, step = self.database.preprocessing_strategies.index(preprocessing_strategy))
-    
-    
+
+
     def save_preprocessed_images_on_disk(self) -> None:
         for plane_index in range(self.preprocessed_image.shape[0]):
             image = self.preprocessed_image[plane_index].astype('uint8')
             filepath_out = self.database.preprocessed_images_dir.joinpath(f'{self.file_id}-{str(plane_index).zfill(3)}.png')
             imsave(filepath_out, image)
 
-    
+
     def save_preprocessed_rois_in_database(self) -> None:
         self.database.import_rois_dict(file_id = self.file_id, rois_dict = self.preprocessed_rois)
-        
-    
-    def update_database(self) -> None:
-        updates = dict()
+
+
+    def add_processing_specific_infos_to_updates(self, updates: Dict) -> Dict:
         if self.preprocessed_image.shape[3] == 3:
             updates['RGB'] = True
         else:
             updates['RGB'] = False
         updates['total_planes'] = self.preprocessed_image.shape[0]
-        updates['preprocessing_completed'] = True
-        self.database.update_file_infos(file_id = self.file_id, updates = updates)
+        return updates
 
             
 
-class PreprocessingStrategy(ABC):
-    
-    @abstractmethod
-    def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
-        # do preprocessing
-        preprocessing_object.database = self.update_database(database = preprocessing_object.database, file_id = preprocessing_object.file_id, step = step)
-        return preprocessing_object
-    
-    @abstractmethod
-    def update_database(self, database: Database, file_id: str, step: int) -> Database:
-        updates = dict()
-        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'PreprocessingStrategyName'
-        # Add additional information if neccessary
-        database.update_file_infos(file_id = file_id, updates = updates)
-        return database
 
 
 
 class CropStitchingArtefactsRGB(PreprocessingStrategy):
     
-    def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
+    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
         self.cropping_indices = self.determine_cropping_indices_for_entire_zstack(preprocessing_object = preprocessing_object)
         preprocessing_object.preprocessed_image = self.crop_rgb_zstack(zstack = preprocessing_object.preprocessed_image)
         preprocessing_object.preprocessed_rois = self.adjust_rois(rois_dict = preprocessing_object.preprocessed_rois)
-        preprocessing_object.database = self.update_database(database = preprocessing_object.database, file_id = preprocessing_object.file_id, step = step)
         return preprocessing_object
         
     
@@ -168,23 +158,22 @@ class CropStitchingArtefactsRGB(PreprocessingStrategy):
                 adjusted_col_coords = [coordinates[1] - lower_col_idx for coordinates in rois_dict[plane_identifier][roi_id].boundary.coords[:]]
                 rois_dict[plane_identifier][roi_id] = Polygon(np.asarray(list(zip(adjusted_row_coords, adjusted_col_coords))))
         return rois_dict
-    
-    def update_database(self, database: Database, file_id: str, step: int) -> Database:
-        updates = dict()
-        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'CropStitchingArtefactsRGB'
+
+
+    def add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
         updates['cropping_row_indices'] = (self.cropping_indices['lower_row_cropping_idx'], self.cropping_indices['upper_row_cropping_idx'])
-        updates['cropping_column_indices'] = (self.cropping_indices['lower_col_cropping_idx'], self.cropping_indices['upper_col_cropping_idx'])       
-        database.update_file_infos(file_id = file_id, updates = updates)
-        return database
+        updates['cropping_column_indices'] = (self.cropping_indices['lower_col_cropping_idx'], self.cropping_indices['upper_col_cropping_idx']) 
+        return updates
+    
+    
     
 
 class CropToROIsBoundingBox(PreprocessingStrategy):
     
-    def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
+    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
         self.cropping_indices = self.determine_bounding_box(preprocessing_object = preprocessing_object, pad_size = 100)
         preprocessing_object.preprocessed_image = self.crop_rgb_zstack(zstack = preprocessing_object.preprocessed_image)
         preprocessing_object.preprocessed_rois = self.adjust_rois(rois_dict = preprocessing_object.preprocessed_rois)
-        preprocessing_object.database = self.update_database(database = preprocessing_object.database, file_id = preprocessing_object.file_id, step = step)
         return preprocessing_object
                                                   
     
@@ -252,21 +241,17 @@ class CropToROIsBoundingBox(PreprocessingStrategy):
         return rois_dict
 
     
-    def update_database(self, database: Database, file_id: str, step: int) -> Database:
-        updates = dict()
-        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'CropToROIsBoundingBox'
+    def add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
         updates['cropping_row_indices'] = (self.cropping_indices['lower_row_cropping_idx'], self.cropping_indices['upper_row_cropping_idx'])
-        updates['cropping_column_indices'] = (self.cropping_indices['lower_col_cropping_idx'], self.cropping_indices['upper_col_cropping_idx'])       
-        database.update_file_infos(file_id = file_id, updates = updates)
-        return database
+        updates['cropping_column_indices'] = (self.cropping_indices['lower_col_cropping_idx'], self.cropping_indices['upper_col_cropping_idx'])
+        return updates 
 
 
 
 class ConvertTo8Bit(PreprocessingStrategy):
     
-    def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
+    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
         preprocessing_object.preprocessed_image = self.convert_to_8bit(zstack = preprocessing_object.preprocessed_image)
-        preprocessing_object.database = self.update_database(database = preprocessing_object.database, file_id = preprocessing_object.file_id, step = step)
         return preprocessing_object
     
     def convert_to_8bit(self, zstack: np.ndarray) -> np.ndarray:
@@ -284,20 +269,16 @@ class ConvertTo8Bit(PreprocessingStrategy):
         return zstack
     
 
-    def update_database(self, database: Database, file_id: str, step: int) -> Database:
-        updates = dict()
-        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'ConvertTo8Bit'    
-        database.update_file_infos(file_id = file_id, updates = updates)
-        return database
+    def add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
+        return updates 
     
 
 
 class MaximumIntensityProjection(PreprocessingStrategy):
 
-    def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
+    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
         preprocessing_object.preprocessed_image = self.run_maximum_projection_on_zstack(zstack = preprocessing_object.preprocessed_image)
         preprocessing_object.preprocessed_rois = self.adjust_rois(rois_dict = preprocessing_object.preprocessed_rois)
-        preprocessing_object.database = self.update_database(database = preprocessing_object.database, file_id = preprocessing_object.file_id, step = step)
         return preprocessing_object
     
     
@@ -320,21 +301,16 @@ class MaximumIntensityProjection(PreprocessingStrategy):
         return rois_dict
     
     
-    def update_database(self, database: Database, file_id: str, step: int) -> Database:
-        updates = dict()
-        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'MaximumIntensityProjection'
-        # Add additional information if neccessary
-        database.update_file_infos(file_id = file_id, updates = updates)
-        return database
+    def add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
+        return updates 
     
 
 
 class MinimumIntensityProjection(PreprocessingStrategy):
 
-    def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
+    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
         preprocessing_object.preprocessed_image = self.run_minimum_projection_on_zstack(zstack = preprocessing_object.preprocessed_image)
         preprocessing_object.preprocessed_rois = self.adjust_rois(rois_dict = preprocessing_object.preprocessed_rois)
-        preprocessing_object.database = self.update_database(database = preprocessing_object.database, file_id = preprocessing_object.file_id, step = step)
         return preprocessing_object
     
     
@@ -357,23 +333,18 @@ class MinimumIntensityProjection(PreprocessingStrategy):
         return rois_dict
     
     
-    def update_database(self, database: Database, file_id: str, step: int) -> Database:
-        updates = dict()
-        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'MinimumIntensityProjection'
-        # Add additional information if neccessary
-        database.update_file_infos(file_id = file_id, updates = updates)
-        return database
+    def add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
+        return updates 
     
 
 
 class AdjustBrightnessAndContrast(PreprocessingStrategy):
 
-    def run(self, preprocessing_object: PreprocessingObject, step: int) -> PreprocessingObject:
+    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
         self.percentage_saturated_pixels, self.channel_adjustment_method = self.get_method_specific_attributes(database= preprocessing_object.database)
         preprocessing_object.preprocessed_image = self.adjust_brightness_and_contrast(zstack = preprocessing_object.preprocessed_image,
                                                                                       percentage_saturated_pixels = self.percentage_saturated_pixels, 
                                                                                       channel_adjustment_method = self.channel_adjustment_method)
-        preprocessing_object.database = self.update_database(database = preprocessing_object.database, file_id = preprocessing_object.file_id, step = step)
         return preprocessing_object
 
 
@@ -429,13 +400,10 @@ class AdjustBrightnessAndContrast(PreprocessingStrategy):
             error_message = message_line0 + message_line1 + message_line2 + message_line3
             raise NotImplementedError(error_message)
         return adjusted_zstack.copy()
-    
-    
-    def update_database(self, database: Database, file_id: str, step: int) -> Database:
-        updates = dict()
-        updates[f'preprocessing_step_{str(step).zfill(2)}'] = 'AdjustBrightnessAndContrast'
+
+
+    def add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
         updates['percentage_saturated_pixels'] = self.percentage_saturated_pixels
         updates['channel_adjustment_method'] = self.channel_adjustment_method
-        updates['min_max_ranges_per_plane_and_channel'] = self.min_max_ranges_per_plane_and_channel
-        database.update_file_infos(file_id = file_id, updates = updates)
-        return database
+        updates['min_max_ranges_per_plane_and_channel'] = self.min_max_ranges_per_plane_and_channel        
+        return updates 
