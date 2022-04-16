@@ -1,14 +1,13 @@
 from abc import ABC, abstractmethod
-import os
+from typing import Tuple, List, Dict
+
 import numpy as np
 import pandas as pd
 from pathlib import Path
 import shutil
 from PIL import Image
-from typing import Tuple, List
 import tempfile
 import zarr
-
 from skimage.measure import label
 from skimage.segmentation import expand_labels
 from skimage.io import imread, imsave
@@ -40,6 +39,11 @@ class SegmentationStrategy(ProcessingStrategy):
     @property
     def processing_type(self):
         return 'segmentation'
+    
+    @property
+    @abstractmethod
+    def segmentation_type(self):
+        pass
 
 
 class SegmentationObject(ProcessingObject):
@@ -55,13 +59,18 @@ class SegmentationObject(ProcessingObject):
 
 class Deepflash2SemanticSegmentation(SegmentationStrategy):
     
-    def run(self, segmentation_object: SegmentationObject) -> SegmentationObject:
-        segmentation_object.databse = self.add_deepflash2_as_segmentation_tool(database = segmentation_object.database)
-        self.copy_all_files_of_current_batch_to_temp_dir(database = segmentation_object.database, file_ids_in_batch = segmentation_object.file_ids)
-        self.run_semantic_segmentations(database = segmentation_object.database)
-        self.move_files(database = segmentation_object.database)
-        self.delete_temp_files_in_sys_tmp_dir(database = segmentation_object.database)
-        return segmentation_object
+    @property
+    def segmentation_type(self):
+        return 'semantic'
+
+
+    def run(self, processing_object: SegmentationObject) -> SegmentationObject:
+        processing_object.databse = self.add_deepflash2_as_segmentation_tool(database = processing_object.database)
+        self.copy_all_files_of_current_batch_to_temp_dir(database = processing_object.database, file_ids_in_batch = processing_object.file_ids)
+        self.run_semantic_segmentations(database = processing_object.database)
+        self.move_files(database = processing_object.database)
+        self.delete_temp_files_in_sys_tmp_dir(database = processing_object.database)
+        return processing_object
         
     def add_deepflash2_as_segmentation_tool(self, database: Database) -> Database:
         if hasattr(database, 'segmentation_tool_configs') == False:
@@ -137,10 +146,15 @@ class Deepflash2SemanticSegmentation(SegmentationStrategy):
 
 class LosslessConversionOfDF2SemanticSegToInstanceSegWithCP(SegmentationStrategy):
     
-    def run(self, segmentation_object: SegmentationObject) -> SegmentationObject:
-        segmentation_object.databse = self.add_cellpose_as_segmentation_tool(database = segmentation_object.database)        
-        self.run_instance_segmentations(segmentation_object = segmentation_object)
-        return segmentation_object
+    @property
+    def segmentation_type(self):
+        return 'instance'
+
+    
+    def run(self, processing_object: SegmentationObject) -> SegmentationObject:
+        processing_object.databse = self.add_cellpose_as_segmentation_tool(database = processing_object.database)        
+        self.run_instance_segmentations(segmentation_object = processing_object)
+        return processing_object
     
     
     def add_cellpose_as_segmentation_tool(self, database: Database) -> Database:
@@ -154,7 +168,7 @@ class LosslessConversionOfDF2SemanticSegToInstanceSegWithCP(SegmentationStrategy
             database.segmentation_tool_configs['cp']['net_avg'] = True
         if 'model_type' not in database.segmentation_tool_configs['cp'].keys():
             database.segmentation_tool_configs['cp']['model_type'] = 'nuclei'        
-        database.segmentation_tool_configs['cp']['diameter'] = self.compute_cellpose_diameter(semantic_masks_dir = database.semantic_segmentations_dir.as_posix())
+        database.segmentation_tool_configs['cp']['diameter'] = self.compute_cellpose_diameter(semantic_masks_dir = database.semantic_segmentations_dir)
         return database
 
 

@@ -1,20 +1,16 @@
-import os
-from pathlib import Path
-from .database import Database
-from .core import ProcessingStrategy
-from .segmentation import SegmentationStrategy, SegmentationObject
-from .preprocessing import PreprocessingStrategy, PreprocessingObject
-from .quantification import QuantificationStrategy, QuantificationObject
-
-
 from typing import List, Dict, Tuple, Optional
 from collections.abc import Callable
 
-"""
+from pathlib import Path
 
-Longterm: should the other "main" classes like "preprocessor" or "segmentor" be integrated here in main.py?
+from .database import Database
+from .preprocessing import PreprocessingStrategy, PreprocessingObject
+from .segmentation import SegmentationStrategy, SegmentationObject
+from .postprocessing import PostprocessingStrategy, PostprocessingObject
+from .quantifications import QuantificationStrategy, QuantificationObject
 
-"""
+
+
 
 class Project:
     def __init__(self, user_input: Dict):
@@ -27,7 +23,7 @@ class Project:
     def load_status(self) -> None:
         self.database.load_all()
     
-    def preprocess(self, file_ids: Optional[List]=None, strategies: List[PreprocessingStrategy], overwrite: bool=False) -> None:
+    def preprocess(self, strategies: List[PreprocessingStrategy], file_ids: Optional[List]=None, overwrite: bool=False) -> None:
         file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'preprocessing_completed', overwrite = overwrite)
         for file_id in file_ids:
             preprocessing_object = PreprocessingObject(database = self.database, file_ids = [file_id], strategies = strategies)
@@ -49,65 +45,72 @@ class Project:
         # this function will then also be responsible to add the batch information & id to the database!!
         
 
-    def segment(self, file_ids: Optional[List]=None, strategies: List[SegmentationStrategy],
+    def segment(self, strategies: List[SegmentationStrategy], file_ids: Optional[List]=None,
                 run_strategies_individually: bool=True, overwrite: bool=False) -> None:
-        
-        # Not neccessarily required? This should probably rather be checked specifically by the strategies directly!
-        # if all(self.database.file_infos['preprocessing_completed']) == False:
-            # raise TypeError('Not all files have been preprocessed yet! This has to be finished prior to starting segmentations.')        
-        # remove file IDs that were already segmented previously if overwrite = False 
-        file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'segmentation_completed', overwrite = overwrite)
-        
         if run_strategies_individually:
             for segmentation_strategy in strategies:
-                segmentation_object = SegmentationObject(database = self.database, file_ids = file_ids, strategies = [segmentation_strategy])
+                tracker = f'{segmentation_strategy().segmentation_type}_segmentations_done'
+                tmp_file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = tracker, overwrite = overwrite)
+                segmentation_object = SegmentationObject(database = self.database, file_ids = tmp_file_ids, strategies = [segmentation_strategy])
                 segmentation_object.run_all_strategies()
                 del segmentation_object
+            file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'segmentation_completed', overwrite = overwrite)
             segmentation_object = SegmentationObject(database = self.database, file_ids = file_ids, strategies = strategies)
             segmentation_object.update_database()
             del segmentation_object
         elif not run_strategies_individually:
+            file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'segmentation_completed', overwrite = overwrite)
             segmentation_object = SegmentationObject(database = self.database, file_ids = file_ids, strategies = strategies)
             segmentation_object.run_all_strategies()
             segmentation_object.update_database()
             del segmentation_object
 
 
-    def segment(self, file_ids: Optional[List]=None, batch_size: Optional[int]=None, strategy_index: Optional[int]=None, overwrite: bool=False) -> None:
-        if all(self.database.file_infos['preprocessing_completed']) == False:
-            raise TypeError('Not all files have been preprocessed yet! This has to be finished before deepflash2 can be used.')        
-        from .segmentation import SegmentationObject
-        file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'segmentation_completed', overwrite = overwrite)
-        # Create batches of randomly sampled file_ids, where batch size depends on available disk space
-        if batch_size == None:
-            batch_size = 3
-        file_ids_per_batch = self.database.get_batches_of_file_ids(input_file_ids = file_ids, batch_size = batch_size)
-        for batch_file_ids in file_ids_per_batch:
-            segmentation_object = SegmentationObject(database = self.database, file_ids = batch_file_ids)
-            segmentation_object.run_all_segmentation_steps()
-            segmentation_object.update_database()
-            del segmentation_object
+    def postprocess(self, strategies: List[PostprocessingStrategy], segmentations_to_use: str, file_ids: Optional[List]=None, overwrite: bool=False) -> None:
+        if segmentations_to_use not in ['semantic', 'instance']:
+            raise ValueError('"segmentations_to_use" must be either "semantic" or "instance"')
+        else:
+            segmentations_to_use_dir = getattr(self.database, f'{segmentations_to_use}_segmentations_dir')
+            segmentations_present = False
+            for elem in segmentations_to_use_dir.iterdir():
+                if elem.is_file():
+                    segmentations_present = True
+                    break
+            if not segmentations_present:
+                if segmentations_to_use == 'semantic':
+                    error_message_line0 = f'It seems like there are no {segmentations_to_use} segmentations present in the corresponding directory.\n'
+                    error_message_line1 = 'You need to run segmentations first, before you can postprocess them.'
+                    error_message = error_message_line0 + error_message_line1
+                    raise ValueError(error_message)
+                else: # has to be instance then
+                    error_message_line0 = f'It seems like there are no {segmentations_to_use} segmentations present in the corresponding directory.\n'
+                    error_message_line1 = 'Did you mean to use "semantic" instead? Otherwise, please run the respective instance segmentations first.'
+                    error_message = error_message_line0 + error_message_line1
+                    raise ValueError(error_message)
+
+            file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'postprocessing_completed', overwrite = overwrite)
+            for file_id in file_ids:
+                print(f'Postprocessing segmentations of file ID: {file_id} ({file_ids.index(file_id) + 1}/{len(file_ids)})')
+                postprocessing_object = PostprocessingObject(database = self.database, 
+                                                             file_ids = [file_id], 
+                                                             strategies = strategies, 
+                                                             segmentations_to_use = segmentations_to_use)
+                postprocessing_object.run_all_strategies()
+                postprocessing_object.save_postprocessed_segmentations()
+                postprocessing_object.update_database()
+                del postprocessing_object
 
 
-    def postprocess(self, file_ids: Optional[List]=None, strategies: List[PostprocessingStrategy],
-                 run_strategies_individually: bool=True, overwrite: bool=False) -> None:
-        
-            
-    
-    def quantify(self, file_ids: Optional[List]=None, strategies: List[QuantificationStrategy],
-                 run_strategies_individually: bool=True, overwrite: bool=False) -> None:
-        from .quantifications import QuantificationObject
+    def quantify(self, strategies: List[QuantificationStrategy], file_ids: Optional[List]=None, overwrite: bool=False) -> None:
         file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'quantification_completed', overwrite = overwrite)
         for file_id in file_ids:
             print(f'Quantification of file ID: {file_id} ({file_ids.index(file_id) + 1}/{len(file_ids)})')
-            quantification_object = QuantificationObject(database = self.database, file_id = file_id)
-            quantification_object.run_all_postprocessing_steps()
-            quantification_object.save_segmentations_used_for_quantifications()
-            quantification_object.run_all_quantification_steps()
+            quantification_object = QuantificationObject(database = self.database, file_ids = [file_id], strategies = strategies)
+            quantification_object.run_all_strategies()
             quantification_object.update_database()
             del quantification_object
             
-            
+    """        
     def inspect(self, quantification_strategy_index: int=0, file_ids: Optional[List]=None, 
                 area_roi_ids: Optional[List]=None, label_indices: Optional[List]=None, show: bool=True, save: bool=False) -> None:
         from .inspection import InspectionObject
@@ -136,6 +139,7 @@ class Project:
     def run_inspection(self, file_id: str, inspection_strategy):
         from .inspection import InspectionStrategy
         inspection_strategy.run(self.database, file_id)
+    """
         
     
     def remove_file_id_from_project(self, file_id: str):

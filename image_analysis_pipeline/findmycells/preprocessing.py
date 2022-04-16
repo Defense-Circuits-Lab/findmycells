@@ -89,11 +89,11 @@ class PreprocessingObject(ProcessingObject):
 
 class CropStitchingArtefactsRGB(PreprocessingStrategy):
     
-    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
-        self.cropping_indices = self.determine_cropping_indices_for_entire_zstack(preprocessing_object = preprocessing_object)
-        preprocessing_object.preprocessed_image = self.crop_rgb_zstack(zstack = preprocessing_object.preprocessed_image)
-        preprocessing_object.preprocessed_rois = self.adjust_rois(rois_dict = preprocessing_object.preprocessed_rois)
-        return preprocessing_object
+    def run(self, processing_object: PreprocessingObject) -> PreprocessingObject:
+        self.cropping_indices = self.determine_cropping_indices_for_entire_zstack(preprocessing_object = processing_object)
+        processing_object.preprocessed_image = self.crop_rgb_zstack(zstack = processing_object.preprocessed_image)
+        processing_object.preprocessed_rois = self.adjust_rois(rois_dict = processing_object.preprocessed_rois)
+        return processing_object
         
     
     def get_cropping_indices(self, a, min_black_px_stretch: int=100) -> Tuple[int, int]:
@@ -170,11 +170,11 @@ class CropStitchingArtefactsRGB(PreprocessingStrategy):
 
 class CropToROIsBoundingBox(PreprocessingStrategy):
     
-    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
-        self.cropping_indices = self.determine_bounding_box(preprocessing_object = preprocessing_object, pad_size = 100)
-        preprocessing_object.preprocessed_image = self.crop_rgb_zstack(zstack = preprocessing_object.preprocessed_image)
-        preprocessing_object.preprocessed_rois = self.adjust_rois(rois_dict = preprocessing_object.preprocessed_rois)
-        return preprocessing_object
+    def run(self, processing_object: PreprocessingObject) -> PreprocessingObject:
+        self.cropping_indices = self.determine_bounding_box(preprocessing_object = processing_object, pad_size = 100)
+        processing_object.preprocessed_image = self.crop_rgb_zstack(zstack = processing_object.preprocessed_image)
+        processing_object.preprocessed_rois = self.adjust_rois(rois_dict = processing_object.preprocessed_rois)
+        return processing_object
                                                   
     
     def determine_bounding_box(self, preprocessing_object: PreprocessingObject, pad_size: int=100) -> Dict:
@@ -250,9 +250,9 @@ class CropToROIsBoundingBox(PreprocessingStrategy):
 
 class ConvertTo8Bit(PreprocessingStrategy):
     
-    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
-        preprocessing_object.preprocessed_image = self.convert_to_8bit(zstack = preprocessing_object.preprocessed_image)
-        return preprocessing_object
+    def run(self, processing_object: PreprocessingObject) -> PreprocessingObject:
+        processing_object.preprocessed_image = self.convert_to_8bit(zstack = processing_object.preprocessed_image)
+        return processing_object
     
     def convert_to_8bit(self, zstack: np.ndarray) -> np.ndarray:
         max_value = zstack.max()
@@ -276,10 +276,10 @@ class ConvertTo8Bit(PreprocessingStrategy):
 
 class MaximumIntensityProjection(PreprocessingStrategy):
 
-    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
-        preprocessing_object.preprocessed_image = self.run_maximum_projection_on_zstack(zstack = preprocessing_object.preprocessed_image)
-        preprocessing_object.preprocessed_rois = self.adjust_rois(rois_dict = preprocessing_object.preprocessed_rois)
-        return preprocessing_object
+    def run(self, processing_object: PreprocessingObject) -> PreprocessingObject:
+        processing_object.preprocessed_image = self.run_maximum_projection_on_zstack(zstack = processing_object.preprocessed_image)
+        processing_object.preprocessed_rois = self.adjust_rois(rois_dict = processing_object.preprocessed_rois)
+        return processing_object
     
     
     def run_maximum_projection_on_zstack(self, zstack: np.ndarray) -> np.ndarray:
@@ -308,10 +308,10 @@ class MaximumIntensityProjection(PreprocessingStrategy):
 
 class MinimumIntensityProjection(PreprocessingStrategy):
 
-    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
-        preprocessing_object.preprocessed_image = self.run_minimum_projection_on_zstack(zstack = preprocessing_object.preprocessed_image)
-        preprocessing_object.preprocessed_rois = self.adjust_rois(rois_dict = preprocessing_object.preprocessed_rois)
-        return preprocessing_object
+    def run(self, processing_object: PreprocessingObject) -> PreprocessingObject:
+        processing_object.preprocessed_image = self.run_minimum_projection_on_zstack(zstack = processing_object.preprocessed_image)
+        processing_object.preprocessed_rois = self.adjust_rois(rois_dict = processing_object.preprocessed_rois)
+        return processing_object
     
     
     def run_minimum_projection_on_zstack(self, zstack: np.ndarray) -> np.ndarray:
@@ -340,12 +340,12 @@ class MinimumIntensityProjection(PreprocessingStrategy):
 
 class AdjustBrightnessAndContrast(PreprocessingStrategy):
 
-    def run(self, preprocessing_object: PreprocessingObject) -> PreprocessingObject:
-        self.percentage_saturated_pixels, self.channel_adjustment_method = self.get_method_specific_attributes(database= preprocessing_object.database)
-        preprocessing_object.preprocessed_image = self.adjust_brightness_and_contrast(zstack = preprocessing_object.preprocessed_image,
+    def run(self, processing_object: PreprocessingObject) -> PreprocessingObject:
+        self.percentage_saturated_pixels, self.channel_adjustment_method = self.get_method_specific_attributes(database= processing_object.database)
+        processing_object.preprocessed_image = self.adjust_brightness_and_contrast(zstack = processing_object.preprocessed_image,
                                                                                       percentage_saturated_pixels = self.percentage_saturated_pixels, 
                                                                                       channel_adjustment_method = self.channel_adjustment_method)
-        return preprocessing_object
+        return processing_object
 
 
     def get_method_specific_attributes(self, database: Database) -> Tuple[float, str]:

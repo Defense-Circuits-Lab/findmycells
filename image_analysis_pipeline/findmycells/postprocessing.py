@@ -27,13 +27,13 @@ class PostprocessingStrategy(ProcessingStrategy):
 
 class PostprocessingObject(ProcessingObject):
     
-    def __init__(self, database: Database, file_ids: List[str], strategies: List[PostprocessingStrategy], segmentations_to_use: str='instance') -> None:
+    def __init__(self, database: Database, file_ids: List[str], strategies: List[PostprocessingStrategy], segmentations_to_use: str) -> None:
         super().__init__(database = database, file_ids = file_ids, strategies = strategies)
         self.file_id = file_ids[0]
         self.file_info = self.database.get_file_infos(identifier = self.file_id)
-        if input_segmentations == 'semantic':
+        if segmentations_to_use == 'semantic':
             path = self.database.semantic_segmentations_dir
-        elif input_segmentations == 'instance':
+        elif segmentations_to_use == 'instance':
             path = self.database.instance_segmentations_dir
         else:
             raise ValueError("'segmentations_to_use' has to be either 'semantic' or 'instance'.")
@@ -65,13 +65,13 @@ class PostprocessingObject(ProcessingObject):
             
 class ReconstructCellsIn3DFrom2DInstanceLabels(PostprocessingStrategy):
     
-    def run(self, postprocessing_object: PostprocessingObject) -> PostprocessingObject:
+    def run(self, processing_object: PostprocessingObject) -> PostprocessingObject:
         print('-Initializing 3D reconstruction from 2D instance segmentations')
-        postprocessing_object.postprocessed_segmentations, roi_matching_results = self.run_3d_instance_reconstruction(zstack = postprocessing_object.postprocessed_segmentations)
-        postprocessing_object.database = self.save_multimatches_traceback_to_database(database = postprocessing_object.database,
-                                                                                      file_id = postprocessing_object.file_id,
+        processing_object.postprocessed_segmentations, roi_matching_results = self.run_3d_instance_reconstruction(zstack = processing_object.postprocessed_segmentations)
+        processing_object.database = self.save_multimatches_traceback_to_database(database = processing_object.database,
+                                                                                      file_id = processing_object.file_id,
                                                                                       results = roi_matching_results)
-        return postprocessing_object
+        return processing_object
     
     
     def run_3d_instance_reconstruction(self, zstack: np.ndarray) -> Tuple[np.ndarray, Dict]:
@@ -349,19 +349,18 @@ class ReconstructCellsIn3DFrom2DInstanceLabels(PostprocessingStrategy):
             
 class ApplyExclusionCriteria(PostprocessingStrategy):
     
-    def run(self, postprocessing_object: PostprocessingObject) -> PostprocessingObject:
+    def run(self, processing_object: PostprocessingObject) -> PostprocessingObject:
         print('-applying exclusion criteria')
-        instance_label_info = self.get_instance_label_info(postprocessing_object = postprocessing_object)
-        self.exclusion_criteria = self.get_exclusion_criteria(postprocessing_object = postprocessing_object)
-        all_area_roi_ids = self.get_all_unique_area_roi_ids(rois_dict = postprocessing_object.rois_dict)
+        instance_label_info = self.get_instance_label_info(postprocessing_object = processing_object)
+        self.exclusion_criteria = self.get_exclusion_criteria(postprocessing_object = processing_object)
+        all_area_roi_ids = self.get_all_unique_area_roi_ids(rois_dict = processing_object.rois_dict)
         segmentations_per_area_roi_id = dict()
         for area_roi_id in all_area_roi_ids:
-            segmentations_per_area_roi_id[area_roi_id] = self.apply_exclusion_criteria(zstack_prior_to_exclusion = postprocessing_object.postprocessed_segmentations,
+            segmentations_per_area_roi_id[area_roi_id] = self.apply_exclusion_criteria(zstack_prior_to_exclusion = processing_object.postprocessed_segmentations,
                                                                                        area_roi_id = area_roi_id,
                                                                                        info = instance_label_info)
-        postprocessing_object.segmentations_per_area_roi_id = segmentations_per_area_roi_id
-        postprocessing_object.database = self.update_database(database = postprocessing_object.database, file_id = postprocessing_object.file_id, step = step)
-        return postprocessing_object
+        processing_object.segmentations_per_area_roi_id = segmentations_per_area_roi_id
+        return processing_object
 
     
     def get_instance_label_info(self, postprocessing_object: PostprocessingObject) -> Dict:

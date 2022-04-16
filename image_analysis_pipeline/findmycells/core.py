@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from .database import Database
-from typing import List
+from typing import List, Dict
 
 
 class ProcessingObject(ABC):
@@ -52,7 +52,7 @@ class ProcessingStrategy(ABC):
 
 
     def update_database(self, processing_object: ProcessingObject) -> ProcessingObject:
-        for file_id in processing_object.file_ids
+        for file_id in processing_object.file_ids:
             updates = dict()
             step_index = self.determine_correct_step_index(database = processing_object.database, file_id = file_id)
             updates[f'{self.processing_type}_step_{str(step_index).zfill(2)}'] = self.strategy_name
