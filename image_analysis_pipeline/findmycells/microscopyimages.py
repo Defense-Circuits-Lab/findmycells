@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import czifile
+from skimage.io import imread
 
 
 

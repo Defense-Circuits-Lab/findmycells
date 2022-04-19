@@ -1,15 +1,20 @@
 from abc import ABC, abstractmethod
-import os
+from typing import Tuple, List, Dict
+
 import numpy as np
 import pandas as pd
 from pathlib import Path
 import shutil
 from PIL import Image
-from typing import Tuple, List
 import tempfile
+import zarr
+from skimage.measure import label
+from skimage.segmentation import expand_labels
+from skimage.io import imread, imsave
 
 from .database import Database
 from .utils import listdir_nohidden
+from .core import ProcessingObject, ProcessingStrategy
 
 """
 
@@ -29,68 +34,68 @@ Currently remaining issues (old version):
 2.  Should make proper use of classes, like in preprocessing.py and quantifications.py. Probably one level less required here, though.
 """
 
-class SegmentationObject:
+class SegmentationStrategy(ProcessingStrategy):
     
-    def __init__(self, database: Database, file_ids: List[str]) -> None:
-        self.database = database
-        self.file_ids = file_ids
-        if 'batch_id' in database.file_infos.keys():
-            self.batch_id = max(database.file_infos['batch_id']) + 1
-        else:
-            self.batch_id = 0
-
-
-    def run_all_segmentation_steps(self) -> None:
-        for segmentation_strategy in self.database.segmentation_strategies:
-            self = segmentation_strategy().run(segmentation_object = self, step = self.database.segmentation_strategies.index(segmentation_strategy))
-        
+    @property
+    def processing_type(self):
+        return 'segmentation'
     
-    def update_database(self) -> None:
-        for file_id in self.file_ids:
-            self.database.update_file_infos(file_id = file_id, updates = {'batch_id': self.batch_id}, preferred_empty_value = False)
-            self.database.update_file_infos(file_id = file_id, updates = {'segmentation_completed': True})                   
-        
-
-class SegmentationStrategy(ABC):
-    
+    @property
     @abstractmethod
-    def run(self, segmentation_object: SegmentationObject, step: int) -> SegmentationObject:
-        # do preprocessing
-        segmentation_object.database = self.update_database(database = segmentation_object.database, file_id = segmentation_object.file_ids, step = step)
-        return segmentation_object
+    def segmentation_type(self):
+        pass
+
+
+class SegmentationObject(ProcessingObject):
     
-    @abstractmethod
-    def update_database(self, database: Database, file_ids: List[str], step: int) -> Database:
-        for file_id in file_ids:
-            updates = dict()
-            updates[f'segmentation_step_{str(step).zfill(2)}'] = 'SegmentationStrategyName'
-            # Add additional information if neccessary
-            database.update_file_infos(file_id = file_id, updates = updates)
+    @property
+    def processing_type(self):
+        return 'segmentation'
+
+
+    def add_processing_specific_infos_to_updates(self, updates: Dict) -> Dict:
+        return updates
+
+
+    def clear_all_tmp_data(self):
+        if all(self.database.file_infos['segmentation_completed']):
+            for tmp_subdir_path in self.database.segmentation_tool_dir.iterdir():
+                if tmp_subdir_path.is_dir() and tmp_subdir_path.name != 'trained_models':
+                    shutil.rmtree(tmp_subdir_path)
+    
+
+
+
+class Deepflash2SemanticSegmentation(SegmentationStrategy):
+    
+    @property
+    def segmentation_type(self):
+        return 'semantic'
+
+
+    def run(self, processing_object: SegmentationObject) -> SegmentationObject:
+        processing_object.databse = self.add_deepflash2_as_segmentation_tool(database = processing_object.database)
+        self.copy_all_files_of_current_batch_to_temp_dir(database = processing_object.database, file_ids_in_batch = processing_object.file_ids)
+        self.run_semantic_segmentations(database = processing_object.database)
+        self.move_files(database = processing_object.database)
+        self.delete_temp_files_in_sys_tmp_dir(database = processing_object.database)
+        return processing_object
+
+
+    def add_deepflash2_as_segmentation_tool(self, database: Database) -> Database:
+        if hasattr(database, 'segmentation_tool_configs') == False:
+            database.segmentation_tool_configs = {'df2': dict()}
+        elif 'df2' not in database.segmentation_tool_configs.keys():
+            database.segmentation_tool_configs['df2'] = dict()
+        if 'ensemble_path' not in database.segmentation_tool_configs['df2'].keys():
+            database.segmentation_tool_configs['df2']['ensemble_path'] = database.trained_models_dir
+        if 'n_models' not in database.segmentation_tool_configs['df2'].keys():
+            database.segmentation_tool_configs['df2']['n_models'] = len([elem for elem in listdir_nohidden(database.trained_models_dir) if elem.endswith('.pth')])
+        if 'stats' not in database.segmentation_tool_configs['df2'].keys():
+            database.segmentation_tool_configs['df2']['stats'] = self.compute_stats(database = database)
         return database
 
 
-class Deepflash2SemanticAndInstanceSegmentation(SegmentationStrategy):
-    
-    def run(self, segmentation_object: SegmentationObject, step: int) -> SegmentationObject:
-        if hasattr(segmentation_object.database, 'segmentation_tool_configs') == False:
-            segmentation_object.database = self.initialize_deepflash2_as_segmentation_tool(database = segmentation_object.database)
-        self.copy_all_files_of_current_batch_to_temp_dir(database = segmentation_object.database, batch_file_ids = segmentation_object.file_ids)
-        segmentation_object.database = self.run_semantic_segmentations(database = segmentation_object.database)
-        segmentation_object.database = self.run_instance_segmentations(database = segmentation_object.database)
-        self.move_files(database = segmentation_object.database, batch_file_ids = segmentation_object.file_ids)
-        self.delete_temporary_files_and_dirs(database = segmentation_object.database)
-        segmentation_object.database = self.update_database(database = segmentation_object.database, batch_file_ids = segmentation_object.file_ids, step = step)
-        return segmentation_object
-    
-    
-    def initialize_deepflash2_as_segmentation_tool(self, database: Database) -> Database:
-        database.segmentation_tool_configs = dict()
-        database.segmentation_tool_configs['n_models'] = len([elem for elem in listdir_nohidden(database.trained_models_dir) if elem.endswith('.pth')])
-        database.segmentation_tool_configs['ensemble_path'] = database.trained_models_dir
-        database.segmentation_tool_configs['stats'] = self.compute_stats(database = database)
-        return database
-        
-        
     def compute_stats(self, database: Database) -> Tuple:
         from deepflash2.learner import EnsembleLearner
         expected_file_count = sum(database.file_infos['total_planes'])
@@ -98,15 +103,15 @@ class Deepflash2SemanticAndInstanceSegmentation(SegmentationStrategy):
         if actual_file_count != expected_file_count:
             raise ValueError('Actual and expected counts of preprocessed images don´t match.')
         ensemble_learner = EnsembleLearner(image_dir = database.preprocessed_images_dir.as_posix(), 
-                                           ensemble_path = database.segmentation_tool_configs['ensemble_path'])
+                                           ensemble_path = database.segmentation_tool_configs['df2']['ensemble_path'])
         stats = ensemble_learner.stats
         del ensemble_learner
         return stats
-    
-    
-    def copy_all_files_of_current_batch_to_temp_dir(self, database: Database, batch_file_ids: List[str]) -> None:
+
+
+    def copy_all_files_of_current_batch_to_temp_dir(self, database: Database, file_ids_in_batch: List[str]) -> None:
         temp_copies_path = database.segmentation_tool_dir.joinpath('temp_copies_of_preprocessed_images')
-        for file_id in batch_file_ids:
+        for file_id in file_ids_in_batch:
             files_to_segment = [filename for filename in listdir_nohidden(database.preprocessed_images_dir) if filename.startswith(file_id)]
             if len(files_to_segment) > 0:
                 if temp_copies_path.is_dir() == False:
@@ -114,96 +119,204 @@ class Deepflash2SemanticAndInstanceSegmentation(SegmentationStrategy):
                 for filename in files_to_segment:
                     filepath_source = database.preprocessed_images_dir.joinpath(filename)
                     shutil.copy(filepath_source.as_posix(), temp_copies_path.as_posix())
-    
-    
-    def run_semantic_segmentations(self, database: Database) -> Database:
+
+
+    def run_semantic_segmentations(self, database: Database):
         from deepflash2.learner import EnsembleLearner
         image_dir = database.segmentation_tool_dir.joinpath('temp_copies_of_preprocessed_images').as_posix()
         ensemble_learner = EnsembleLearner(image_dir = image_dir,
-                                           ensemble_path = database.segmentation_tool_configs['ensemble_path'],
-                                           stats = database.segmentation_tool_configs['stats'])
+                                           ensemble_path = database.segmentation_tool_configs['df2']['ensemble_path'],
+                                           stats = database.segmentation_tool_configs['df2']['stats'])
         ensemble_learner.get_ensemble_results(ensemble_learner.files, 
                                               zarr_store = database.segmentation_tool_temp_dir,
                                               export_dir = database.segmentation_tool_dir,
                                               use_tta = True)
-        if 'df_ens' not in database.segmentation_tool_configs.keys():
-            database.segmentation_tool_configs['df_ens'] = ensemble_learner.df_ens.copy()
-        else:
-            database.segmentation_tool_configs['df_ens'] = pd.concat([database.segmentation_tool_configs['df_ens'], ensemble_learner.df_ens.copy()])
         del ensemble_learner
-        return database
-        
-    
-    def run_instance_segmentations(self, database: Database) -> Database:
-        from torch.cuda import empty_cache
-        from deepflash2.learner import EnsembleLearner
-        cellpose_diameter = self.get_cellpose_diameter(semantic_masks_dir = database.segmentation_tool_dir.joinpath('masks'))
-        if 'cellpose_diameter_first_batch' not in database.segmentation_tool_configs.keys():
-            database.segmentation_tool_configs['cellpose_diameter_first_batch'] = cellpose_diameter
-            database.segmentation_tool_configs['cellpose_diameters_all_batches'] = list()
-        database.segmentation_tool_configs['cellpose_diameters_all_batches'].append(cellpose_diameter)
 
-        image_dir = database.segmentation_tool_dir.joinpath('temp_copies_of_preprocessed_images').as_posix()
-        empty_cache()
-        for row_id in range(database.segmentation_tool_configs['df_ens'].shape[0]):
-            ensemble_learner = EnsembleLearner(image_dir = image_dir,
-                                               ensemble_path = database.segmentation_tool_configs['ensemble_path'],
-                                               stats = database.segmentation_tool_configs['stats'])
-            df_single_row = database.segmentation_tool_configs['df_ens'].iloc[row_id].to_frame().T.reset_index(drop=True).copy()
-            ensemble_learner.df_ens = df_single_row
-            ensemble_learner.cellpose_diameter = database.segmentation_tool_configs['cellpose_diameter_first_batch']
-            ensemble_learner.get_cellpose_results(export_dir = database.segmentation_tool_dir)
-            del ensemble_learner
-            empty_cache()
-        return database
-        
-        
-    def get_cellpose_diameter(self, semantic_masks_dir: Path) -> float:
-        from deepflash2.models import get_diameters
-        mask_paths = [semantic_masks_dir.joinpath(elem) for elem in listdir_nohidden(semantic_masks_dir)]
-        masks_as_arrays = []
-        for mask_as_image in mask_paths:
-            with Image.open(mask_as_image) as image:
-                masks_as_arrays.append(np.array(image))
-        cellpose_diameter = get_diameters(masks_as_arrays)
-        return cellpose_diameter        
 
-    
-    def move_files(self, database: Database, batch_file_ids: List[str]) -> None:
+    def move_files(self, database: Database) -> None:
         semantic_masks_path = database.segmentation_tool_dir.joinpath('masks')
         for semantic_mask_filename in listdir_nohidden(semantic_masks_path):
             filepath_source = semantic_masks_path.joinpath(semantic_mask_filename)
             shutil.move(filepath_source.as_posix(), database.semantic_segmentations_dir.as_posix())
-        instance_masks_path = database.segmentation_tool_dir.joinpath('cellpose_masks')
-        for instance_mask_filename in listdir_nohidden(instance_masks_path):
-            filepath_source = instance_masks_path.joinpath(instance_mask_filename)
-            shutil.move(filepath_source.as_posix(), database.instance_segmentations_dir.as_posix())
-            
-    
-    def delete_temporary_files_and_dirs(self, database: Database) -> None:
-        if hasattr(database, 'clear_tmp_zarrs'):
+        shutil.rmtree(database.segmentation_tool_dir.joinpath('temp_copies_of_preprocessed_images').as_posix())
+
+
+    def delete_temp_files_in_sys_tmp_dir(self, database: Database) -> None:
+        if hasattr(database, 'clear_temp_zarrs_from_sys_tmp'):
             # This was only tested under Linux as OS so far
-            if database.clear_tmp_zarrs:
+            if database.clear_temp_zarrs_from_sys_tmp:
                 temp_zarr_paths = [elem for elem in Path(tempfile.gettempdir()).iterdir() if 'zarr' in elem.name]
                 for dir_path in temp_zarr_paths:
-                    shutil.rmtree(dir_path.as_posix())
-                """
-                temp_zarr_subdirs = [elem for elem in os.listdir('/tmp/') if 'zarr' in elem]
-                if len(temp_zarr_subdirs) > 0:
-                    for subdirectory in temp_zarr_subdirs:
-                        shutil.rmtree(f'/tmp/{subdirectory}/')
-                """
-        shutil.rmtree(database.segmentation_tool_temp_dir.as_posix())       
-        shutil.rmtree(database.segmentation_tool_dir.joinpath('temp_copies_of_preprocessed_images').as_posix())
-        # Reset of df_ens is done in self.update_database() as it resembles an update of the database object
-             
+                    shutil.rmtree(dir_path.as_posix())       
 
-    def update_database(self, database: Database, batch_file_ids: List[str], step: int) -> Database:
-        for file_id in batch_file_ids:
-            updates = dict()
-            updates[f'segmentation_step_{str(step).zfill(2)}'] = 'Deepflash2SemanticAndInstanceSegmentation'
-            updates['semantic_segmentations_done'] = True
-            updates['instance_segmentations_done'] = True
-            database.update_file_infos(file_id = file_id, updates = updates)
-        database.segmentation_tool_configs['df_ens'] = None
+    def add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
+        updates['semantic_segmentations_done'] = True
+        return updates
+
+
+
+
+class LosslessConversionOfDF2SemanticSegToInstanceSegWithCP(SegmentationStrategy):
+    
+    @property
+    def segmentation_type(self):
+        return 'instance'
+
+    
+    def run(self, processing_object: SegmentationObject) -> SegmentationObject:
+        processing_object.databse = self.add_cellpose_as_segmentation_tool(database = processing_object.database)        
+        self.run_instance_segmentations(segmentation_object = processing_object)
+        return processing_object
+    
+    
+    def add_cellpose_as_segmentation_tool(self, database: Database) -> Database:
+        if not all(database.file_infos['semantic_segmentations_done']):
+            raise ValueError('Before you can proceed with instance segmentations, you have to finish semantic segmentation of all files first!')
+        if hasattr(database, 'segmentation_tool_configs') == False:
+            database.segmentation_tool_configs = {'cp': dict()}
+        elif 'cp' not in database.segmentation_tool_configs.keys():
+            database.segmentation_tool_configs['cp'] = dict()
+        for key, value in database.segmentation_configs['cellpose'].items():
+            database.segmentation_tool_configs['cp'][key] = value
+        if 'net_avg' not in database.segmentation_tool_configs['cp'].keys():
+            database.segmentation_tool_configs['cp']['net_avg'] = True
+        if 'model_type' not in database.segmentation_tool_configs['cp'].keys():
+            database.segmentation_tool_configs['cp']['model_type'] = 'nuclei'
+        if 'diameter' not in database.segmentation_tool_configs['cp'].keys():
+            database.segmentation_tool_configs['cp']['diameter'] = self.compute_cellpose_diameter(semantic_masks_dir = database.semantic_segmentations_dir)
+            print(f'Using cellpose with a diameter of: {database.segmentation_tool_configs["cp"]["diameter"]}')
         return database
+
+
+    def compute_cellpose_diameter(self, semantic_masks_dir: Path) -> float:
+        all_median_equivalent_diameters = []
+        for mask_filepath in semantic_masks_dir.iterdir():
+            if mask_filepath.name.endswith('.png'):
+                mask = imread(mask_filepath)
+                median_equivalent_diameter = self.calculate_median_equivalent_diameter_of_features_in_mask(segmentation_mask = mask)
+                all_median_equivalent_diameters.append(median_equivalent_diameter)
+        if len(all_median_equivalent_diameters) > 0:
+            cellpose_diameter = np.nanmedian(all_median_equivalent_diameters)
+            if np.isnan(cellpose_diameter):
+                error_message_line0 = 'Findmycells could not determine what diameter to use for the Cellpose instance segmentations (diameter = np.NaN).\n'
+                error_message_line1 = 'This could happen if you a) have no semantic segmentation masks in the corresponding directory, or \n'
+                error_message_line2 = 'b) there were no features detected during the semantic segmentation process! Please check your semantic segmentations.'
+                raise ValueError(error_message_line0 + error_message_line1 + error_message_line2)
+        else:
+            raise ValueError('Cellpose diameter could not be calculated, as there were no semantic segmentation masks found. Please check your semantic segmentation masks!')
+        return cellpose_diameter
+            
+
+    def calculate_median_equivalent_diameter_of_features_in_mask(self, segmentation_mask: np.ndarray) -> float:
+        labeled_mask = label(segmentation_mask)
+        unique_label_ids, pixel_counts_per_label_id = np.unique(labeled_mask, return_counts=True)
+        unique_label_ids = list(unique_label_ids)
+        if 0 in unique_label_ids:
+            background_label_index = unique_label_ids.index(0)
+            pixel_counts_per_label_id = np.delete(pixel_counts_per_label_id, background_label_index)
+        if pixel_counts_per_label_id.shape[0] > 0:
+            equivalent_diameters = []
+            for area_in_pixels in pixel_counts_per_label_id:
+                equivalent_diameters.append(((area_in_pixels / np.pi)**0.5) * 2)
+            median_equivalent_diameter = np.median(equivalent_diameters)
+        else:
+            median_equivalent_diameter = np.nan
+        return median_equivalent_diameter
+
+
+    def run_instance_segmentations(self, segmentation_object: SegmentationObject):
+        database = segmentation_object.database
+        zarr_group = zarr.open(database.segmentation_tool_temp_dir.as_posix(), mode='r')
+        for image_filename in zarr_group['/smx'].__iter__():
+            file_id = image_filename[:4]
+            if file_id in segmentation_object.file_ids:
+                if hasattr(database, 'verbose'):
+                    if database.verbose:
+                        print(f'Starting with {image_filename}')
+                df2_softmax = zarr_group[f'/smx/{image_filename}'][..., 1]
+                df2_pred = np.zeros_like(df2_softmax)
+                df2_pred[np.where(df2_softmax >= 0.5)] = 1
+                # check if there was any feature predicted - if not, there is no need to run cellpose
+                if df2_pred.max() == 1:
+                    cp_mask = self.compute_cellpose_mask(df2_softmax = df2_softmax, 
+                                                         model_type = database.segmentation_tool_configs['cp']['model_type'],
+                                                         net_avg = database.segmentation_tool_configs['cp']['net_avg'],
+                                                         diameter = database.segmentation_tool_configs['cp']['diameter'])            
+                    instance_mask = self.lossless_conversion_of_df2_semantic_to_instance_seg_using_cp(df2_pred = df2_pred, cp_mask = cp_mask)
+                else: 
+                    instance_mask = df2_pred.copy()
+                instance_mask = instance_mask.astype('uint16')
+                filepath = database.instance_segmentations_dir.joinpath(image_filename)
+                imsave(filepath, instance_mask, check_contrast=False)
+
+
+    def compute_cellpose_mask(self, df2_softmax: np.ndarray, model_type: str, net_avg: bool, diameter: int) -> np.ndarray:
+        from torch.cuda import empty_cache
+        from cellpose import models
+        empty_cache()
+        model = models.Cellpose(gpu = True, model_type = model_type)
+        cp_mask, _, _, _ = model.eval(df2_softmax, net_avg = net_avg, augment = True, normalize = False, diameter = diameter, channels = [0,0])
+        empty_cache()
+        return cp_mask
+
+
+    def lossless_conversion_of_df2_semantic_to_instance_seg_using_cp(self, df2_pred: np.ndarray, cp_mask: np.ndarray) -> np.ndarray:
+        lossless_converted_mask = np.zeros_like(df2_pred)
+        labeled_df2_pred = label(df2_pred)
+        unique_df2_labels = list(np.unique(labeled_df2_pred))
+        unique_df2_labels.remove(0)
+        for original_df2_label in unique_df2_labels:
+            black_pixels_present = self.check_if_df2_label_is_fully_covered_in_cp_mask(df2_pred = labeled_df2_pred,
+                                                                                       df2_label_id = original_df2_label,
+                                                                                       cp_mask = cp_mask)                                                        
+            if black_pixels_present:
+                lossless_converted_mask = self.fill_entire_df2_label_area_with_instance_label(df2_pred = labeled_df2_pred, 
+                                                                                              df2_label_id = original_df2_label, 
+                                                                                              cp_mask = cp_mask,
+                                                                                              converted_mask = lossless_converted_mask)
+            else:
+                cp_labels_within_df2_label = np.unique(cp_mask[np.where(labeled_df2_pred == original_df2_label)])
+                tmp_cp_mask = cp_mask.copy()
+                tmp_cp_mask[np.where(labeled_df2_pred != original_df2_label)] = 0
+                for cp_label_id in cp_labels_within_df2_label:
+                    next_label_id = lossless_converted_mask.max() + 1
+                    lossless_converted_mask[np.where(tmp_cp_mask == cp_label_id)] = next_label_id
+        return lossless_converted_mask
+
+
+    def check_if_df2_label_is_fully_covered_in_cp_mask(self, df2_pred: np.ndarray, df2_label_id: int, cp_mask: np.ndarray) -> bool:
+        cp_labels_within_df2_label = np.unique(cp_mask[np.where(df2_pred == df2_label_id)])
+        if 0 in cp_labels_within_df2_label:
+            black_pixels_present = True
+        else:
+            black_pixels_present = False
+        return black_pixels_present
+
+
+    def fill_entire_df2_label_area_with_instance_label(self, df2_pred: np.ndarray, df2_label_id: int, cp_mask: np.ndarray, converted_mask: np.ndarray) -> np.ndarray:
+        cp_labels_within_df2_label = list(np.unique(cp_mask[np.where(df2_pred == df2_label_id)]))
+        cp_labels_within_df2_label.remove(0)
+        if len(cp_labels_within_df2_label) > 0:
+            expanded_cp_mask = cp_mask.copy()
+            expanded_cp_mask[np.where(df2_pred != df2_label_id)] = 0
+            black_pixels_present, expansion_distance = True, 0
+            while black_pixels_present:
+                expansion_distance += 500
+                expanded_cp_mask = expand_labels(expanded_cp_mask, distance = expansion_distance)
+                black_pixels_present = self.check_if_df2_label_is_fully_covered_in_cp_mask(df2_pred = df2_pred,
+                                                                                           df2_label_id = df2_label_id,
+                                                                                           cp_mask = expanded_cp_mask)
+            # remove all overflow pixels
+            expanded_cp_mask[np.where(df2_pred != df2_label_id)] = 0
+            for cp_label_id in cp_labels_within_df2_label:
+                next_label_id = converted_mask.max() + 1
+                converted_mask[np.where(expanded_cp_mask == cp_label_id)] = next_label_id
+        else:
+            next_label_id = converted_mask.max() + 1
+            converted_mask[np.where(df2_pred == df2_label_id)] = next_label_id        
+        return converted_mask
+
+    def add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
+        updates['instance_segmentations_done'] = True
+        return updates

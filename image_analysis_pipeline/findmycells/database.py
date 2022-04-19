@@ -77,9 +77,11 @@ class Database():
         self.microscopy_image_dir = self.project_root_dir.joinpath([elem for elem in subdirectories if 'microscopy' in elem][0])
         self.rois_to_analyze_dir = self.project_root_dir.joinpath([elem for elem in subdirectories if 'rois' in elem][0])
         # Remaining directories that are currently not required to exist when the database object is created:
-        self.check_and_create_remaining_directories(root_dir = self.project_root_dir, subdirectory_attributes = MAIN_SUBDIR_ATTRIBUTES)   
-        self.check_and_create_remaining_directories(root_dir = self.segmentation_tool_dir, subdirectory_attributes = SEGMENTATION_TOOL_SUBDIR_ATTRIBUTES)
-        self.check_and_create_remaining_directories(root_dir = self.inspection_dir, subdirectory_attributes = INSPECTION_SUBDIR_ATTRIBUTES)
+        for attribute_str, subdir_dict in [('project_root_dir', MAIN_SUBDIR_ATTRIBUTES), 
+                                           ('segmentation_tool_dir', SEGMENTATION_TOOL_SUBDIR_ATTRIBUTES),
+                                           ('inspection_dir', INSPECTION_SUBDIR_ATTRIBUTES)]:
+            root_path = getattr(self, attribute_str)
+            self.check_and_create_remaining_directories(root_dir = root_path, subdirectory_attributes = subdir_dict)
     
     
     def check_and_create_remaining_directories(self, root_dir: Path, subdirectory_attributes: Dict) -> None:
@@ -202,7 +204,7 @@ class Database():
                 index = self.file_infos['file_id'].index(file_id)
                 process_tracker_status.append(self.file_infos[process_tracker_key][index])
             output_file_ids = [elem[0] for elem in zip(input_file_ids, process_tracker_status) if elem[1] == False or elem[1] == None]
-        return output_file_ids
+        return output_file_ids.copy()
 
 
     def get_batches_of_file_ids(self, input_file_ids: Optional[List], batch_size: int) -> List[List[int]]:
