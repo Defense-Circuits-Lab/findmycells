@@ -52,8 +52,17 @@ class SegmentationObject(ProcessingObject):
     def processing_type(self):
         return 'segmentation'
 
+
     def add_processing_specific_infos_to_updates(self, updates: Dict) -> Dict:
         return updates
+
+
+    def clear_all_tmp_data(self):
+        if all(self.database.file_infos['segmentation_completed']):
+            for tmp_subdir_path in self.database.segmentation_tool_dir.iterdir():
+                if tmp_subdir_path.is_dir() and tmp_subdir_path.name != 'trained_models':
+                    shutil.rmtree(tmp_subdir_path)
+    
 
 
 
@@ -71,15 +80,19 @@ class Deepflash2SemanticSegmentation(SegmentationStrategy):
         self.move_files(database = processing_object.database)
         self.delete_temp_files_in_sys_tmp_dir(database = processing_object.database)
         return processing_object
-        
+
+
     def add_deepflash2_as_segmentation_tool(self, database: Database) -> Database:
         if hasattr(database, 'segmentation_tool_configs') == False:
             database.segmentation_tool_configs = {'df2': dict()}
         elif 'df2' not in database.segmentation_tool_configs.keys():
             database.segmentation_tool_configs['df2'] = dict()
-        database.segmentation_tool_configs['df2']['n_models'] = len([elem for elem in listdir_nohidden(database.trained_models_dir) if elem.endswith('.pth')])
-        database.segmentation_tool_configs['df2']['ensemble_path'] = database.trained_models_dir
-        database.segmentation_tool_configs['df2']['stats'] = self.compute_stats(database = database)
+        if 'ensemble_path' not in database.segmentation_tool_configs['df2'].keys():
+            database.segmentation_tool_configs['df2']['ensemble_path'] = database.trained_models_dir
+        if 'n_models' not in database.segmentation_tool_configs['df2'].keys():
+            database.segmentation_tool_configs['df2']['n_models'] = len([elem for elem in listdir_nohidden(database.trained_models_dir) if elem.endswith('.pth')])
+        if 'stats' not in database.segmentation_tool_configs['df2'].keys():
+            database.segmentation_tool_configs['df2']['stats'] = self.compute_stats(database = database)
         return database
 
 
@@ -158,6 +171,8 @@ class LosslessConversionOfDF2SemanticSegToInstanceSegWithCP(SegmentationStrategy
     
     
     def add_cellpose_as_segmentation_tool(self, database: Database) -> Database:
+        if not all(database.file_infos['semantic_segmentations_done']):
+            raise ValueError('Before you can proceed with instance segmentations, you have to finish semantic segmentation of all files first!')
         if hasattr(database, 'segmentation_tool_configs') == False:
             database.segmentation_tool_configs = {'cp': dict()}
         elif 'cp' not in database.segmentation_tool_configs.keys():
@@ -167,20 +182,47 @@ class LosslessConversionOfDF2SemanticSegToInstanceSegWithCP(SegmentationStrategy
         if 'net_avg' not in database.segmentation_tool_configs['cp'].keys():
             database.segmentation_tool_configs['cp']['net_avg'] = True
         if 'model_type' not in database.segmentation_tool_configs['cp'].keys():
-            database.segmentation_tool_configs['cp']['model_type'] = 'nuclei'        
-        database.segmentation_tool_configs['cp']['diameter'] = self.compute_cellpose_diameter(semantic_masks_dir = database.semantic_segmentations_dir)
+            database.segmentation_tool_configs['cp']['model_type'] = 'nuclei'
+        if 'diameter' not in database.segmentation_tool_configs['cp'].keys():
+            database.segmentation_tool_configs['cp']['diameter'] = self.compute_cellpose_diameter(semantic_masks_dir = database.semantic_segmentations_dir)
+            print(f'Using cellpose with a diameter of: {database.segmentation_tool_configs["cp"]["diameter"]}')
         return database
 
 
     def compute_cellpose_diameter(self, semantic_masks_dir: Path) -> float:
-        from deepflash2.models import get_diameters
-        mask_paths = [semantic_masks_dir.joinpath(elem) for elem in listdir_nohidden(semantic_masks_dir)]
-        masks_as_arrays = []
-        for mask_as_image in mask_paths:
-            with Image.open(mask_as_image) as image:
-                masks_as_arrays.append(np.array(image))
-        cellpose_diameter = get_diameters(masks_as_arrays)
+        all_median_equivalent_diameters = []
+        for mask_filepath in semantic_masks_dir.iterdir():
+            if mask_filepath.name.endswith('.png'):
+                mask = imread(mask_filepath)
+                median_equivalent_diameter = self.calculate_median_equivalent_diameter_of_features_in_mask(segmentation_mask = mask)
+                all_median_equivalent_diameters.append(median_equivalent_diameter)
+        if len(all_median_equivalent_diameters) > 0:
+            cellpose_diameter = np.nanmedian(all_median_equivalent_diameters)
+            if np.isnan(cellpose_diameter):
+                error_message_line0 = 'Findmycells could not determine what diameter to use for the Cellpose instance segmentations (diameter = np.NaN).\n'
+                error_message_line1 = 'This could happen if you a) have no semantic segmentation masks in the corresponding directory, or \n'
+                error_message_line2 = 'b) there were no features detected during the semantic segmentation process! Please check your semantic segmentations.'
+                raise ValueError(error_message_line0 + error_message_line1 + error_message_line2)
+        else:
+            raise ValueError('Cellpose diameter could not be calculated, as there were no semantic segmentation masks found. Please check your semantic segmentation masks!')
         return cellpose_diameter
+            
+
+    def calculate_median_equivalent_diameter_of_features_in_mask(self, segmentation_mask: np.ndarray) -> float:
+        labeled_mask = label(segmentation_mask)
+        unique_label_ids, pixel_counts_per_label_id = np.unique(labeled_mask, return_counts=True)
+        unique_label_ids = list(unique_label_ids)
+        if 0 in unique_label_ids:
+            background_label_index = unique_label_ids.index(0)
+            pixel_counts_per_label_id = np.delete(pixel_counts_per_label_id, background_label_index)
+        if pixel_counts_per_label_id.shape[0] > 0:
+            equivalent_diameters = []
+            for area_in_pixels in pixel_counts_per_label_id:
+                equivalent_diameters.append(((area_in_pixels / np.pi)**0.5) * 2)
+            median_equivalent_diameter = np.median(equivalent_diameters)
+        else:
+            median_equivalent_diameter = np.nan
+        return median_equivalent_diameter
 
 
     def run_instance_segmentations(self, segmentation_object: SegmentationObject):
@@ -193,13 +235,17 @@ class LosslessConversionOfDF2SemanticSegToInstanceSegWithCP(SegmentationStrategy
                     if database.verbose:
                         print(f'Starting with {image_filename}')
                 df2_softmax = zarr_group[f'/smx/{image_filename}'][..., 1]
-                cp_mask = self.compute_cellpose_mask(df2_softmax = df2_softmax, 
-                                                     model_type = database.segmentation_tool_configs['cp']['model_type'],
-                                                     net_avg = database.segmentation_tool_configs['cp']['net_avg'],
-                                                     diameter = database.segmentation_tool_configs['cp']['diameter'])
                 df2_pred = np.zeros_like(df2_softmax)
-                df2_pred[np.where(df2_softmax >= 0.5)] = 1            
-                instance_mask = self.lossless_conversion_of_df2_semantic_to_instance_seg_using_cp(df2_pred = df2_pred, cp_mask = cp_mask)
+                df2_pred[np.where(df2_softmax >= 0.5)] = 1
+                # check if there was any feature predicted - if not, there is no need to run cellpose
+                if df2_pred.max() == 1:
+                    cp_mask = self.compute_cellpose_mask(df2_softmax = df2_softmax, 
+                                                         model_type = database.segmentation_tool_configs['cp']['model_type'],
+                                                         net_avg = database.segmentation_tool_configs['cp']['net_avg'],
+                                                         diameter = database.segmentation_tool_configs['cp']['diameter'])            
+                    instance_mask = self.lossless_conversion_of_df2_semantic_to_instance_seg_using_cp(df2_pred = df2_pred, cp_mask = cp_mask)
+                else: 
+                    instance_mask = df2_pred.copy()
                 instance_mask = instance_mask.astype('uint16')
                 filepath = database.instance_segmentations_dir.joinpath(image_filename)
                 imsave(filepath, instance_mask, check_contrast=False)

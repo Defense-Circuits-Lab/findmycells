@@ -204,7 +204,7 @@ class Database():
                 index = self.file_infos['file_id'].index(file_id)
                 process_tracker_status.append(self.file_infos[process_tracker_key][index])
             output_file_ids = [elem[0] for elem in zip(input_file_ids, process_tracker_status) if elem[1] == False or elem[1] == None]
-        return output_file_ids
+        return output_file_ids.copy()
 
 
     def get_batches_of_file_ids(self, input_file_ids: Optional[List], batch_size: int) -> List[List[int]]:

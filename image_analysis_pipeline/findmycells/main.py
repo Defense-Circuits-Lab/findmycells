@@ -2,8 +2,10 @@ from typing import List, Dict, Tuple, Optional
 from collections.abc import Callable
 
 from pathlib import Path
+import random
 
 from .database import Database
+from .core import ProcessingStrategy
 from .preprocessing import PreprocessingStrategy, PreprocessingObject
 from .segmentation import SegmentationStrategy, SegmentationObject
 from .postprocessing import PostprocessingStrategy, PostprocessingObject
@@ -11,18 +13,21 @@ from .quantifications import QuantificationStrategy, QuantificationObject
 
 
 
-
 class Project:
+
     def __init__(self, user_input: Dict):
         self.project_root_dir = user_input['project_root_dir']
         self.database = Database(user_input)
-        
+
+
     def save_status(self) -> None:
         self.database.save_all()
-    
+
+
     def load_status(self) -> None:
         self.database.load_all()
-    
+
+
     def preprocess(self, strategies: List[PreprocessingStrategy], file_ids: Optional[List]=None, overwrite: bool=False) -> None:
         file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'preprocessing_completed', overwrite = overwrite)
         for file_id in file_ids:
@@ -32,39 +37,93 @@ class Project:
             preprocessing_object.save_preprocessed_rois_in_database()
             preprocessing_object.update_database()
             del preprocessing_object
-
-
-    # process_in_batches(self, batch_size: int=3, findmycells_processing_step: Callable[..., None]) -> None:
-        # create batches
-        # call function
-        # eg, taken from former segment function:
-        # file_ids_per_batch = self.database.get_batches_of_file_ids(input_file_ids = file_ids, batch_size = batch_size)
-        # for batch_file_ids in file_ids_per_batch:
-            # segmentation_object = SegmentationObject(database = self.database, file_ids = batch_file_ids)     
             
-        # this function will then also be responsible to add the batch information & id to the database!!
-        
 
-    def segment(self, strategies: List[SegmentationStrategy], file_ids: Optional[List]=None,
-                run_strategies_individually: bool=True, overwrite: bool=False) -> None:
+    def segment(self, strategies: List[SegmentationStrategy], file_ids: Optional[List]=None, batch_size: Optional[int]=None,
+                run_strategies_individually: bool=True, overwrite: bool=False, autosave: bool=True, clear_tmp_data: bool=False) -> None:
+        # check if there is a new strategy - if yes: reset "segmentation_completed" for all files to "None"
+        self.database.file_infos['segmentation_completed'] = self.reset_file_infos_if_new_strategy(strategies = strategies)
+        
+        if type(batch_size) == int:
+            file_ids_per_batch = self.create_batches(batch_size = batch_size, file_ids = file_ids, process_tracker_key = 'segmentation_completed', overwrite = overwrite)
+            if file_ids_per_batch == None:
+                return None
+        else:
+            file_ids_per_batch = [file_ids]
+        
         if run_strategies_individually:
             for segmentation_strategy in strategies:
-                tracker = f'{segmentation_strategy().segmentation_type}_segmentations_done'
-                tmp_file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = tracker, overwrite = overwrite)
-                segmentation_object = SegmentationObject(database = self.database, file_ids = tmp_file_ids, strategies = [segmentation_strategy])
+                for batch_file_ids in file_ids_per_batch:
+                    tracker = f'{segmentation_strategy().segmentation_type}_segmentations_done'
+                    tmp_file_ids = self.database.get_file_ids_to_process(input_file_ids = batch_file_ids, process_tracker_key = tracker, overwrite = overwrite)
+                    if len(tmp_file_ids) > 0:
+                        segmentation_object = SegmentationObject(database = self.database, file_ids = tmp_file_ids, strategies = [segmentation_strategy])
+                        segmentation_object.run_all_strategies()
+                        del segmentation_object
+                        if autosave:
+                            self.database.save_all()
+            all_file_ids = []
+            for batch_file_ids in file_ids_per_batch:
+                all_file_ids += batch_file_ids
+            all_file_ids = self.database.get_file_ids_to_process(input_file_ids = all_file_ids, process_tracker_key = 'segmentation_completed', overwrite = overwrite)
+            segmentation_object = SegmentationObject(database = self.database, file_ids = all_file_ids, strategies = strategies)
+            segmentation_object.update_database()
+            del segmentation_object
+            if autosave:
+                self.database.save_all()
+        else:
+            for batch_file_ids in file_ids_per_batch:
+                batch_file_ids = self.database.get_file_ids_to_process(input_file_ids = batch_file_ids, process_tracker_key = 'segmentation_completed', overwrite = overwrite)
+                segmentation_object = SegmentationObject(database = self.database, file_ids = batch_file_ids, strategies = strategies)
                 segmentation_object.run_all_strategies()
+                segmentation_object.update_database()
                 del segmentation_object
-            file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'segmentation_completed', overwrite = overwrite)
+                if autosave:
+                    self.database.save_all()
+        
+        if clear_tmp_data:
+            file_ids = self.database.get_file_ids_to_process(input_file_ids = None, process_tracker_key = 'segmentation_completed', overwrite = True)
             segmentation_object = SegmentationObject(database = self.database, file_ids = file_ids, strategies = strategies)
-            segmentation_object.update_database()
-            del segmentation_object
-        elif not run_strategies_individually:
-            file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = 'segmentation_completed', overwrite = overwrite)
-            segmentation_object = SegmentationObject(database = self.database, file_ids = file_ids, strategies = strategies)
-            segmentation_object.run_all_strategies()
-            segmentation_object.update_database()
-            del segmentation_object
+            segmentation_object.clear_all_tmp_data()
 
+
+    def reset_file_infos_if_new_strategy(self, strategies: List[ProcessingStrategy]) -> List:
+        new_strategy = False
+        for strategy in strategies:
+            processing_type = strategy().processing_type
+            strategy_name = strategy().strategy_name
+            matching_index = [key for key, column in self.database.file_infos.items() if f'{processing_type}_step' in key and strategy_name in column]
+            if len(matching_index) == 0:
+                new_strategy = True
+                break
+        if f'{processing_type}_completed' not in self.database.file_infos.keys():
+            column = [None] * len(self.database.file_infos['file_ids'])
+        elif new_strategy:
+            column = [None] * len(self.database.file_infos['file_ids'])
+        else:
+            column = self.database.file_infos[f'{processing_type}_completed']
+        return column
+
+
+    def create_batches(self, batch_size: int, file_ids: List[str], process_tracker_key: str, overwrite: bool) -> Optional[List]:
+            if batch_size <= 0:
+                raise ValueError('"batch_size" must be greater than 0!')
+            all_file_ids = self.database.get_file_ids_to_process(input_file_ids = file_ids, process_tracker_key = process_tracker_key, overwrite = overwrite)
+            if len(all_file_ids) == 0:
+                file_ids_per_batch = None
+            else:
+                file_ids_per_batch = []
+                while len(all_file_ids) > 0:
+                    if len(all_file_ids) >= batch_size:
+                        subsample = random.sample(all_file_ids, batch_size)
+                        for elem in subsample:
+                            all_file_ids.remove(elem)
+                        file_ids_per_batch.append(subsample)
+                    else:
+                        file_ids_per_batch.append(all_file_ids)
+                        all_file_ids = []
+            return file_ids_per_batch
+    
 
     def postprocess(self, strategies: List[PostprocessingStrategy], segmentations_to_use: str, file_ids: Optional[List]=None, overwrite: bool=False) -> None:
         if segmentations_to_use not in ['semantic', 'instance']:
