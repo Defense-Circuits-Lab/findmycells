@@ -62,15 +62,19 @@ class Project:
                         del segmentation_object
                         if autosave:
                             self.database.save_all()
-            all_file_ids = []
-            for batch_file_ids in file_ids_per_batch:
-                all_file_ids += batch_file_ids
+            if file_ids_per_batch[0] == None:
+                all_file_ids = None
+            else:
+                all_file_ids = []
+                for batch_file_ids in file_ids_per_batch:
+                    all_file_ids += batch_file_ids
             all_file_ids = self.database.get_file_ids_to_process(input_file_ids = all_file_ids, process_tracker_key = 'segmentation_completed', overwrite = overwrite)
-            segmentation_object = SegmentationObject(database = self.database, file_ids = all_file_ids, strategies = strategies)
-            segmentation_object.update_database()
-            del segmentation_object
-            if autosave:
-                self.database.save_all()
+            if len(all_file_ids) > 0:
+                segmentation_object = SegmentationObject(database = self.database, file_ids = all_file_ids, strategies = strategies)
+                segmentation_object.update_database()
+                del segmentation_object
+                if autosave:
+                    self.database.save_all()
         else:
             for batch_file_ids in file_ids_per_batch:
                 batch_file_ids = self.database.get_file_ids_to_process(input_file_ids = batch_file_ids, process_tracker_key = 'segmentation_completed', overwrite = overwrite)
@@ -97,9 +101,9 @@ class Project:
                 new_strategy = True
                 break
         if f'{processing_type}_completed' not in self.database.file_infos.keys():
-            column = [None] * len(self.database.file_infos['file_ids'])
+            column = [None] * len(self.database.file_infos['file_id'])
         elif new_strategy:
-            column = [None] * len(self.database.file_infos['file_ids'])
+            column = [None] * len(self.database.file_infos['file_id'])
         else:
             column = self.database.file_infos[f'{processing_type}_completed']
         return column

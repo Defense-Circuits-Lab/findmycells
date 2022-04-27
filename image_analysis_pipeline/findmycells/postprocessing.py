@@ -431,6 +431,8 @@ class ApplyExclusionCriteria(PostprocessingStrategy):
         database = postprocessing_object.database
         total_planes = postprocessing_object.postprocessed_segmentations.shape[0]
         exclusion_criteria = dict()
+        if hasattr(database, 'quantification_configs') == False:
+            database.quantification_configs = dict()
         if 'exclusion_criteria' in database.quantification_configs.keys():
             if 'allowed_relative_positions' in database.quantification_configs['exclusion_criteria'].keys():
                 exclusion_criteria['allowed_relative_positions'] = database.quantification_configs['exclusion_criteria']['allowed_relative_positions']
