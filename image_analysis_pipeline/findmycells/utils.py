@@ -4,6 +4,7 @@ from pathlib import Path
 from skimage.io import imread
 from skimage import measure
 from shapely.geometry import Polygon
+from shapely.validation import make_valid
 import matplotlib.pyplot as plt
 from typing import List, Tuple, Dict, Optional
 
@@ -69,7 +70,10 @@ def get_polygon_from_instance_segmentation(single_plane: np.ndarray, label_id: i
     tmp_array = np.zeros((x_dim, y_dim), dtype='uint8')
     tmp_array[np.where(single_plane == label_id)] = 1
     tmp_contours = measure.find_contours(tmp_array, level = 0)[0]
-    return Polygon(tmp_contours)
+    roi = Polygon(tmp_contours)
+    if roi.is_valid == False:
+        roi = make_valid(roi)
+    return roi
 
 
 def get_cropping_box_arround_centroid(roi: Polygon, half_window_size: int) -> Tuple[int, int, int, int]:
