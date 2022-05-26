@@ -91,6 +91,7 @@ class CropStitchingArtefactsRGB(PreprocessingStrategy):
     
     def run(self, processing_object: PreprocessingObject) -> PreprocessingObject:
         self.cropping_indices = self.determine_cropping_indices_for_entire_zstack(preprocessing_object = processing_object)
+        self.step_index = self.determine_correct_step_index(database = processing_object.database, file_id = processing_object.file_id)
         processing_object.preprocessed_image = self.crop_rgb_zstack(zstack = processing_object.preprocessed_image)
         processing_object.preprocessed_rois = self.adjust_rois(rois_dict = processing_object.preprocessed_rois)
         return processing_object
@@ -161,8 +162,10 @@ class CropStitchingArtefactsRGB(PreprocessingStrategy):
 
 
     def add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
-        updates['cropping_row_indices'] = (self.cropping_indices['lower_row_cropping_idx'], self.cropping_indices['upper_row_cropping_idx'])
-        updates['cropping_column_indices'] = (self.cropping_indices['lower_col_cropping_idx'], self.cropping_indices['upper_col_cropping_idx']) 
+        updates[f'cropping_row_indices_step_{str(self.step_index).zfill(2)}'] = (self.cropping_indices['lower_row_cropping_idx'], 
+                                                                                 self.cropping_indices['upper_row_cropping_idx'])
+        updates[f'cropping_column_indices_step_{str(self.step_index).zfill(2)}'] = (self.cropping_indices['lower_col_cropping_idx'], 
+                                                                                    elf.cropping_indices['upper_col_cropping_idx']) 
         return updates
     
     
@@ -172,6 +175,7 @@ class CropToROIsBoundingBox(PreprocessingStrategy):
     
     def run(self, processing_object: PreprocessingObject) -> PreprocessingObject:
         self.cropping_indices = self.determine_bounding_box(preprocessing_object = processing_object, pad_size = 100)
+        self.step_index = self.determine_correct_step_index(database = processing_object.database, file_id = processing_object.file_id)
         processing_object.preprocessed_image = self.crop_rgb_zstack(zstack = processing_object.preprocessed_image)
         processing_object.preprocessed_rois = self.adjust_rois(rois_dict = processing_object.preprocessed_rois)
         return processing_object
@@ -242,9 +246,11 @@ class CropToROIsBoundingBox(PreprocessingStrategy):
 
     
     def add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
-        updates['cropping_row_indices'] = (self.cropping_indices['lower_row_cropping_idx'], self.cropping_indices['upper_row_cropping_idx'])
-        updates['cropping_column_indices'] = (self.cropping_indices['lower_col_cropping_idx'], self.cropping_indices['upper_col_cropping_idx'])
-        return updates 
+        updates[f'cropping_row_indices_step_{str(self.step_index).zfill(2)}'] = (self.cropping_indices['lower_row_cropping_idx'], 
+                                                                                 self.cropping_indices['upper_row_cropping_idx'])
+        updates[f'cropping_column_indices_step_{str(self.step_index).zfill(2)}'] = (self.cropping_indices['lower_col_cropping_idx'], 
+                                                                                    elf.cropping_indices['upper_col_cropping_idx']) 
+        return updates
 
 
 
