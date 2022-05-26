@@ -316,6 +316,7 @@ class ReconstructCellsIn3DFrom2DInstanceLabels(PostprocessingStrategy):
     
     def set_new_label_ids(self, zstack_with_old_label_ids: np.ndarray, new_ids_assignment: Dict) -> np.ndarray:
         zstack_with_new_label_ids = zstack_with_old_label_ids.copy()
+        zstack_with_new_label_ids = zstack_with_new_label_ids.astype('uint16')
         for new_label_id in new_ids_assignment.keys():
             for idx in range(len(new_ids_assignment[new_label_id]['plane_index'])):
                 plane_index = new_ids_assignment[new_label_id]['plane_index'][idx]
