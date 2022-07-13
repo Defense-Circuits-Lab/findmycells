@@ -31,6 +31,7 @@ class CZIReader(MicroscopyImageReader):
 
 class FromExcel(MicroscopyImageReader):
     
+    # should actually again check which loaded is applicable! Could be any!
     def read(self, filepath: Path) -> np.ndarray:
         df_single_plane_filepaths = pd.read_excel(filepath)
         single_plane_images = []
@@ -39,6 +40,12 @@ class FromExcel(MicroscopyImageReader):
             single_plane_images.append(imread(single_plane_image_filepath))
         return np.stack(single_plane_images)
 
+    
+class RegularImageFiletypeReader(MicroscopyImageReader):
+    
+    def read(self, filepath: Path) -> np.ndarray:
+        single_plane_image = imread(filepath)
+        return np.expand_dims(single_plane_image, axis=[0, -1])
     
 
 class MicroscopyImageLoader:
@@ -50,6 +57,8 @@ class MicroscopyImageLoader:
     def determine_reader(self, filetype: str) -> MicroscopyImageReader:
         if filetype == '.czi':
             reader = CZIReader()
+        elif filetype in ['.png', '.PNG']: #add more that are applicable!
+            reader = RegularImageFiletypeReader()
         elif filetype == '.xlsx':
             reader = FromExcel()
         else:

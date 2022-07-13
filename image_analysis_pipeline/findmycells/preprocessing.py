@@ -165,7 +165,7 @@ class CropStitchingArtefactsRGB(PreprocessingStrategy):
         updates[f'cropping_row_indices_step_{str(self.step_index).zfill(2)}'] = (self.cropping_indices['lower_row_cropping_idx'], 
                                                                                  self.cropping_indices['upper_row_cropping_idx'])
         updates[f'cropping_column_indices_step_{str(self.step_index).zfill(2)}'] = (self.cropping_indices['lower_col_cropping_idx'], 
-                                                                                    elf.cropping_indices['upper_col_cropping_idx']) 
+                                                                                    self.cropping_indices['upper_col_cropping_idx']) 
         return updates
     
     
@@ -249,7 +249,7 @@ class CropToROIsBoundingBox(PreprocessingStrategy):
         updates[f'cropping_row_indices_step_{str(self.step_index).zfill(2)}'] = (self.cropping_indices['lower_row_cropping_idx'], 
                                                                                  self.cropping_indices['upper_row_cropping_idx'])
         updates[f'cropping_column_indices_step_{str(self.step_index).zfill(2)}'] = (self.cropping_indices['lower_col_cropping_idx'], 
-                                                                                    elf.cropping_indices['upper_col_cropping_idx']) 
+                                                                                    self.cropping_indices['upper_col_cropping_idx']) 
         return updates
 
 
