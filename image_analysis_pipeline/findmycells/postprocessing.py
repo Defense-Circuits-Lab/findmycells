@@ -374,16 +374,27 @@ class ApplyExclusionCriteria(PostprocessingStrategy):
             instance_label_info[label_id] = dict()
             plane_indices_with_label_id = list(set(np.where(postprocessing_object.postprocessed_segmentations == label_id)[0]))
             instance_label_info[label_id]['plane_indices_with_label_id'] = plane_indices_with_label_id
+            instance_label_info[label_id]['max_roi_area'] = self.get_max_roi_area(zstack = postprocessing_object.postprocessed_segmentations,
+                                                                                  label_id = label_id,
+                                                                                  all_plane_indices = instance_label_info[label_id]['plane_indices_with_label_id'])
         instance_label_info = self.extend_info_with_relative_positions(info = instance_label_info, 
                                                                        rois_dict = postprocessing_object.rois_dict,
                                                                        zstack = postprocessing_object.postprocessed_segmentations)
         return instance_label_info
     
+    
+    def get_max_roi_area(self, zstack: np.ndarray, label_id: int, all_plane_indices: List) -> int:
+        all_area_sizes = []
+        for plane_index in all_plane_indices:
+            roi = get_polygon_from_instance_segmentation(single_plane = zstack[plane_index], label_id = label_id)
+            all_area_sizes.append(roi.area)
+        return max(all_area_sizes)
 
+    
     def extend_info_with_relative_positions(self, info: Dict, rois_dict: Dict, zstack: np.ndarray) -> Dict:
         for label_id in info.keys():
-            info[label_id]['area_roi_ids_with_matching_plane_index_and_id'] = list()
-            info[label_id]['relative_positions_per_area_roi_id'] = dict()
+            info[label_id]['area_roi_ids_with_matching_plane_index_and_id'] = []
+            info[label_id]['relative_positions_per_area_roi_id'] = {}
             for plane_index in info[label_id]['plane_indices_with_label_id']:
                 if plane_index in rois_dict.keys():
                     for area_roi_id in rois_dict[plane_index]:
@@ -439,6 +450,8 @@ class ApplyExclusionCriteria(PostprocessingStrategy):
                 exclusion_criteria['allowed_relative_positions'] = database.quantification_configs['exclusion_criteria']['allowed_relative_positions']
             if 'minimum_planes_covered' in database.quantification_configs['exclusion_criteria'].keys():
                 exclusion_criteria['minimum_planes_covered'] = database.quantification_configs['exclusion_criteria']['minimum_planes_covered']
+            if 'min_roi_area_size' in database.quantification_configs['exclusion_criteria'].keys():
+                exclusion_criteria['min_roi_area_size'] = database.quantification_configs['exclusion_criteria']['min_roi_area_size']
             if len(list(exclusion_criteria.keys())) < 1:
                 warning_line0 = "Warning: You added 'exclusion_criteria' as attribute to the database, but it does not contain valid entries.\n"
                 warning_line1 = "         The correct keys are: 'allowed_relative_positions' and 'minimum_planes_covered'."
@@ -452,6 +465,8 @@ class ApplyExclusionCriteria(PostprocessingStrategy):
             else:
                 minimum_planes_covered = 1
             exclusion_criteria['minimum_planes_covered'] = minimum_planes_covered
+        if 'min_roi_area_size' not in exclusion_criteria.keys():
+            exclusion_criteria['min_roi_area_size'] = 0
         return exclusion_criteria
     
     
@@ -469,9 +484,12 @@ class ApplyExclusionCriteria(PostprocessingStrategy):
         for label_id in info.keys():
             relative_position = info[label_id]['relative_positions_per_area_roi_id'][area_roi_id]['final_relative_position_for_quantifications']
             max_z_expansion = self.get_max_z_expansion(planes = info[label_id]['plane_indices_with_label_id'])
+            max_roi_area = info[label_id]['max_roi_area']
             if relative_position not in self.exclusion_criteria['allowed_relative_positions']:
                 zstack[np.where(zstack == label_id)] = 0
             if max_z_expansion < self.exclusion_criteria['minimum_planes_covered']:
+                zstack[np.where(zstack == label_id)] = 0
+            if max_roi_area < self.exclusion_criteria['min_roi_area_size']:
                 zstack[np.where(zstack == label_id)] = 0
         return zstack      
         

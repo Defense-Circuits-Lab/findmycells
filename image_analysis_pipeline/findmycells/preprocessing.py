@@ -269,7 +269,7 @@ class ConvertTo8Bit(PreprocessingStrategy):
                 zstack[plane_index] = (zstack[plane_index] / 4095 * 255).round(0)
         elif max_value <= 65535:
             for plane_index in range(zstack.shape[0]):
-                zstack[plane_index] = (zstack[plane_index] / 4095 * 255).round(0)
+                zstack[plane_index] = (zstack[plane_index] / 65535 * 255).round(0)
         if zstack.dtype.name != 'uint8':
             zstack = zstack.astype('uint8')
         return zstack

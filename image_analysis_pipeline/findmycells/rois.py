@@ -47,7 +47,8 @@ class ImageJROIReader(ROIReader):
             if roi_count > 1:
                 rois_as_shapely_polygons['all_planes'][loaded_rois[roi_index].name] = Polygon(np.asarray(list(zip(row_coords, col_coords))))
             else:
-                rois_as_shapely_polygons['all_planes'][str(roi_index).zfill(3)] = Polygon(np.asarray(list(zip(row_coords, col_coords))))     
+                rois_as_shapely_polygons['all_planes'][str(roi_index).zfill(3)] = Polygon(np.asarray(list(zip(row_coords, col_coords))))
+            #rois_as_shapely_polygons['all_planes'][loaded_rois[roi_index].name] = Polygon(np.asarray(list(zip(row_coords, col_coords))))
         
         return rois_as_shapely_polygons
 
