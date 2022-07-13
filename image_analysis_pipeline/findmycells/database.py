@@ -279,7 +279,7 @@ class Database():
             if column_name in RENAMING_DICT.keys():
                 new_columns.append(RENAMING_DICT[column_name])
             else: 
-                print(f"Warning: {column_name} not yet specified in renaming dictionary")
+                #print(f"Warning: {column_name} not yet specified in renaming dictionary")
                 new_columns.append(column_name)
         df.columns=new_columns
         df.to_csv(self.results_dir.joinpath(f'{datetime.now().strftime("%Y_%m_%d")}_findmycells_overview_for_user.csv').as_posix())

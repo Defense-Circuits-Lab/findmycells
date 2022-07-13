@@ -6,7 +6,7 @@ import cc3d
 
 from .database import Database
 from .core import ProcessingObject, ProcessingStrategy
-from .utils import load_zstack_as_array_from_single_planes
+from .utils import load_zstack_as_array_from_single_planes, listdir_nohidden
 
 
 
@@ -50,8 +50,10 @@ class QuantificationObject(ProcessingObject):
         segmentations_per_area_roi_id = dict()
         for elem in self.database.quantified_segmentations_dir.iterdir():
             if elem.is_dir():
-                area_roi_id = elem.name
-                segmentations_per_area_roi_id[area_roi_id] = load_zstack_as_array_from_single_planes(path = elem, file_id = self.file_id)
+                filenames = [filename for filename in listdir_nohidden(elem) if filename.startswith(self.file_id)]
+                if len(filenames) > 0:
+                    area_roi_id = elem.name
+                    segmentations_per_area_roi_id[area_roi_id] = load_zstack_as_array_from_single_planes(path = elem, file_id = self.file_id)
         return segmentations_per_area_roi_id
             
 

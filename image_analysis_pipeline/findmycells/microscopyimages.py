@@ -26,7 +26,13 @@ class MicroscopyImageReader(ABC):
 class CZIReader(MicroscopyImageReader):
     
     def read(self, filepath: Path) -> np.ndarray:
-        return czifile.imread(filepath.as_posix())[0, 0, 0]
+        zstack = czifile.imread(filepath.as_posix())
+        if len(zstack.shape) == 7:
+            return zstack[0, 0, -1]
+        elif len(zstack.shape) == 6:
+            return zstack[0, -1]
+        else:
+            raise ValueError(f'The number of channels in the following .czi file was unexpected. Please check if the file was saved correctly! {filepath}')
     
 
 class FromExcel(MicroscopyImageReader):
