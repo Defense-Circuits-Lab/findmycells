@@ -1,3 +1,158 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from skimage.color import label2rgb
+
+from typing import Tuple, Dict
+
+from .main import Project
+from .utils import load_zstack_as_array_from_single_planes, listdir_nohidden
+
+
+def inspect_in_3d(fmc_project: Project, file_id: str, area_id: str, center_pixel_coords: Tuple[int, int], half_box_size: int=100, binning_factor: int=0, save: bool=False, show: bool=True) -> None:
+    image_zstack, mask_zstack, area_roi_coordinates = _load_data(fmc_project = fmc_project, file_id = file_id, area_id = area_id)
+    rgb_labeled_mask_image_2d_overlay = _create_rgb_labeled_2d_overlay_of_mask_and_image(mask_zstack = mask_zstack, image_zstack = image_zstack)
+    cropping_boundaries = _calculate_cropping_boundaries(center_pixel_coords = center_pixel_coords, half_box_size = half_box_size, image_shape = mask_zstack[0].shape[:2])
+    cropped_and_binned_mask_zstack = _crop_and_bin_zstack(zstack = mask_zstack, cropping_boundaries = cropping_boundaries, binning_factor = binning_factor)
+    voxel_color_code = label2rgb(cropped_and_binned_mask_zstack)
+    _create_3d_plot(fmc_project = fmc_project,
+                    file_id = file_id,
+                    area_id = area_id,
+                    binning_factor = binning_factor,
+                    overview_image = rgb_labeled_mask_image_2d_overlay,
+                    area_roi_coordinates = area_roi_coordinates,
+                    box_boundaries = cropping_boundaries,
+                    voxels = cropped_and_binned_mask_zstack,
+                    color_code = voxel_color_code,
+                    save = save,
+                    show = show)
+
+
+def _load_data(fmc_project: Project, file_id: str, area_id: str) -> Tuple[np.ndarray, np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    image_zstack = load_zstack_as_array_from_single_planes(path = fmc_project.database.preprocessed_images_dir, file_id = file_id)
+    mask_zstack = load_zstack_as_array_from_single_planes(path = fmc_project.database.quantified_segmentations_dir.joinpath(area_id), file_id = file_id)
+    area_roi_coordinates = fmc_project.database.area_rois_for_quantification[file_id]['all_planes'][area_id].boundary.coords.xy
+    return image_zstack, mask_zstack, area_roi_coordinates
+
+
+def _create_rgb_labeled_2d_overlay_of_mask_and_image(mask_zstack: np.ndarray, image_zstack: np.ndarray) -> np.ndarray:
+    max_projection_mask = np.max(mask_zstack, axis=0)
+    max_projection_image = np.max(image_zstack, axis=0)
+    return label2rgb(max_projection_mask, image=max_projection_image, bg_label = 0, bg_color = None, saturation=1, alpha=1)
+    
+
+def _calculate_cropping_boundaries(center_pixel_coords: Tuple[int, int], half_box_size: int, image_shape: Tuple[int, int]) -> Dict:
+    center_pixel_row, center_pixel_col = center_pixel_coords
+    max_row, max_col = image_shape
+    lower_row_cropping_index, upper_row_cropping_index = _determine_cropping_indices(center_pixel_index = center_pixel_row, half_box_size = half_box_size, max_index = max_row)
+    lower_col_cropping_index, upper_col_cropping_index = _determine_cropping_indices(center_pixel_index = center_pixel_col, half_box_size = half_box_size, max_index = max_col)
+    cropping_boundaries = {'lower_row': lower_row_cropping_index,
+                           'upper_row': upper_row_cropping_index,
+                           'lower_col': lower_col_cropping_index,
+                           'upper_col': upper_col_cropping_index}
+    return cropping_boundaries
+    
+    
+def _determine_cropping_indices(center_pixel_index: int, half_box_size: int, max_index: int) -> Tuple[int, int]:
+    if (center_pixel_index - half_box_size >= 0) & (center_pixel_index + half_box_size <= max_index):
+        lower_cropping_index, upper_cropping_index = center_pixel_index - half_box_size,  center_pixel_index + half_box_size
+    elif 2*half_box_size <= max_index:
+        if center_pixel_index - half_box_size < 0:
+            lower_cropping_index, upper_cropping_index = 0,  0 + 2*half_box_size
+        else: # means: center_pixel_index + half_box_size > max_index
+            lower_cropping_index, upper_cropping_index = max_index - 2*half_box_size, max_index
+    else:
+        raise ValueError(f'The desired box size (2 * "half_box_size" = {2*half_box_size}) is larger than one of the image axes ({max_index}). Please select a smaller "half_box_size"!')
+    return lower_cropping_index, upper_cropping_index
+
+    
+def _crop_and_bin_zstack(zstack: np.ndarray, cropping_boundaries: Dict, binning_factor: int=0) -> np.ndarray:
+    cropped_zstack = zstack[:, cropping_boundaries['lower_row']:cropping_boundaries['upper_row'], cropping_boundaries['lower_col']:cropping_boundaries['upper_col']].copy()
+    if binning_factor > 0:
+        cropped_and_binned_zstack = _bin_zstack(zstack_to_bin = cropped_zstack, binning_factor = binning_factor)
+    else:
+        cropped_and_binned_zstack = cropped_zstack
+    return cropped_and_binned_zstack
+
+
+def _bin_zstack(zstack_to_bin: np.ndarray, binning_factor: int) -> np.ndarray:
+    zstack, new_shape = _adjust_zstack_for_binning_to_new_shape(input_zstack = zstack_to_bin, binning_factor = binning_factor)
+    binned_single_planes = []
+    for plane_index in range(zstack.shape[0]):
+        binned_single_planes.append(_bin_2d_image(single_plane = zstack[plane_index], new_shape = new_shape))
+    return np.asarray(binned_single_planes)
+        
+
+def _adjust_zstack_for_binning_to_new_shape(input_zstack: np.ndarray, binning_factor: int) -> Tuple[np.ndarray, Tuple[int, int]]:
+    zstack = input_zstack.copy()
+    rows, cols = zstack[0].shape[:2]
+    if rows % binning_factor != 0:
+        excess_pixels = rows % binning_factor
+        cropping_lower_end = int(excess_pixels/2)
+        cropping_upper_end = rows - (excess_pixels - cropping_lower_end)
+        zstack = zstack[:, cropping_lower_end:cropping_upper_end, :]
+    if cols % binning_factor != 0:
+        excess_pixels = cols % binning_factor
+        cropping_lower_end = int(excess_pixels/2)
+        cropping_upper_end = cols - (excess_pixels - cropping_lower_end)
+        zstack = zstack[:, :, cropping_lower_end:cropping_upper_end]
+    adjusted_rows, adjusted_cols = zstack[0].shape[:2]
+    if (adjusted_rows % binning_factor != 0) or (adjusted_cols % binning_factor != 0):
+        error_message_line_1 = 'Sorry! Something went wrong during the binning process.\n'
+        error_message_line_2 = 'To avoid this issue, consider changing the "half_box_size" or the "binning_factor", such that\n'
+        error_message_line_3 = 'division of the entire box size (= 2*"half_box_size) by the binning factor does not yield any remainder, e.g.:\n'
+        error_message_line_4 = 'half_box_size = 100, binning_factor = 4 --> entire box size = 2 * half_box_size = 200 --> 200 / 4 = 50 (no remainder!)'
+        error_message = error_message_line_1 + error_message_line_2 + error_message_line_3 + error_message_line_4
+        raise ValueError(error_message)
+    else:
+        new_shape = (int(adjusted_rows / binning_factor), int(adjusted_cols / binning_factor))
+    return zstack, new_shape
+
+
+def _bin_2d_image(single_plane: np.ndarray, new_shape: Tuple[int, int]):
+    shape = (new_shape[0], single_plane.shape[0] // new_shape[0],
+             new_shape[1], single_plane.shape[1] // new_shape[1])
+    return single_plane.reshape(shape).max(-1).max(1)
+    
+
+def _create_3d_plot(fmc_project: Project, file_id: str, area_id: str, binning_factor: int, overview_image: np.ndarray, 
+                    area_roi_coordinates: Tuple[np.ndarray, np.ndarray], box_boundaries: Dict, voxels: np.ndarray, 
+                    color_code: np.ndarray, save: bool, show: bool) -> None:
+    
+    box_size = box_boundaries['upper_row'] - box_boundaries['lower_row']
+    center_row_index = box_boundaries['lower_row'] + 0.5*box_size
+    center_col_index = box_boundaries['lower_col'] + 0.5*box_size
+    box_row_coords = [box_boundaries['lower_row'], box_boundaries['lower_row'], box_boundaries['upper_row'], box_boundaries['upper_row'], box_boundaries['lower_row']]
+    box_col_coords = [box_boundaries['lower_col'], box_boundaries['upper_col'], box_boundaries['upper_col'], box_boundaries['lower_col'], box_boundaries['lower_col']]
+
+    fig = plt.figure(figsize=(24,8), facecolor='white')
+    gs = fig.add_gridspec(1,3)
+
+    fig.add_subplot(gs[0,0])
+    plt.imshow(overview_image)
+    plt.plot(area_roi_coordinates[1], area_roi_coordinates[0])
+    plt.plot(box_col_coords, box_row_coords, c='magenta', lw='3', linestyle='dashed')
+
+    ax1 = fig.add_subplot(gs[0,1], projection='3d')
+    ax1.voxels(voxels, facecolors=color_code)
+    ax1.view_init(elev=30, azim=33)
+    
+    ax2 = fig.add_subplot(gs[0,2], projection='3d')
+    ax2.voxels(voxels, facecolors=color_code)
+    ax2.view_init(elev=30, azim=213)
+
+    plt.suptitle(f'Area_id {area_id} of file_id {file_id}, centered at ({center_row_index}, {center_col_index}) with a binning of factor {binning_factor}', y=0.9)
+    if save:
+        plt.savefig(fmc_project.database.inspected_area_plots_dir.joinpath(f'{file_id}_3D_inspection_centered_at_{center_row_index}-{center_col_index}_and_{binning_factor}xbinning.png'), dpi=300)
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+
+# Code of previous implementation:
+"""
+
 from abc import ABC, abstractmethod
 import os
 from pathlib import Path
@@ -14,7 +169,6 @@ from typing import Dict, List, Tuple, Optional, Union
 from .database import Database
 from .utils import load_zstack_as_array_from_single_planes, get_polygon_from_instance_segmentation, get_cropping_box_arround_centroid
 from .utils import get_color_code, get_rgb_color_code_for_3D, listdir_nohidden
-
 
 class InspectionObject:
     
@@ -186,11 +340,9 @@ class InspectReconstructedCells2D(InspectionStrategy):
             plt.show()
         else:
             plt.close()        
-        
 
+# even older:
 
-
-"""
 class InspectionStrategy(ABC):
     
     @abstractmethod
