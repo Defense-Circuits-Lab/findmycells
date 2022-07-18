@@ -365,15 +365,18 @@ class FillHoles(PostprocessingStrategy):
             elif 0.0 in unique_label_ids:
                 unique_label_ids.remove(0.0)
             for label_id in unique_label_ids:
-                roi = get_polygon_from_instance_segmentation(single_plane = single_plane, label_id = label_id)
-                bounding_box_coords = [int(elem) for elem in roi.bounds]
-                cropped_mask = single_plane[bounding_box_coords[0]:bounding_box_coords[2], bounding_box_coords[1]:bounding_box_coords[3]]
-                cropped_mask_copy = cropped_mask.copy()
-                cropped_mask_copy[np.where(cropped_mask_copy != label_id)] = 0
-                filled_holes = binary_fill_holes(cropped_mask_copy)
-                # since "cropped_mask" refers ultimately to the zstack (not a copy)
-                # the changes are also made to the zstack itself:
-                cropped_mask[np.where(filled_holes == True)] = label_id
+                # add additional check here, if the label_id is still present in the single plane
+                # Maybe it got overwritten by the filling process, if it was a small ROI within a ring-like bigger ROI
+                if label_id in np.unique(single_plane):
+                    roi = get_polygon_from_instance_segmentation(single_plane = single_plane, label_id = label_id)
+                    bounding_box_coords = [int(elem) for elem in roi.bounds]
+                    cropped_mask = single_plane[bounding_box_coords[0]:bounding_box_coords[2], bounding_box_coords[1]:bounding_box_coords[3]]
+                    cropped_mask_copy = cropped_mask.copy()
+                    cropped_mask_copy[np.where(cropped_mask_copy != label_id)] = 0
+                    filled_holes = binary_fill_holes(cropped_mask_copy)
+                    # since "cropped_mask" refers ultimately to the zstack (not a copy)
+                    # the changes are also made to the zstack itself:
+                    cropped_mask[np.where(filled_holes == True)] = label_id
         return zstack
 
     
