@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from skimage import measure
 from skimage.io import imsave, imread
+from scipy.ndimage import binary_fill_holes
 from shapely.geometry import Polygon
 import cc3d
 
@@ -22,7 +23,6 @@ class PostprocessingStrategy(ProcessingStrategy):
     @property
     def processing_type(self):
         return 'postprocessing' 
-
 
 
 class PostprocessingObject(ProcessingObject):
@@ -344,7 +344,44 @@ class ReconstructCellsIn3DFrom2DInstanceLabels(PostprocessingStrategy):
                                                                                       
     
     def add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
-        return updates          
+        return updates
+
+
+
+class FillHoles(PostprocessingStrategy):
+
+    def run(self, processing_object: PostprocessingObject) -> PostprocessingObject:
+        print('-filling holes')
+        processing_object.postprocessed_segmentations = self.fill_holes_in_all_planes_of_mask_stack(zstack = processing_object.postprocessed_segmentations)
+        return processing_object
+    
+    
+    def fill_holes_in_all_planes_of_mask_stack(self, zstack: np.ndarray) -> np.ndarray:
+        for plane_index in range(zstack.shape[0]):
+            single_plane = zstack[plane_index]
+            unique_label_ids = list(np.unique(single_plane))
+            if 0 in unique_label_ids:
+                unique_label_ids.remove(0)
+            elif 0.0 in unique_label_ids:
+                unique_label_ids.remove(0.0)
+            for label_id in unique_label_ids:
+                # add additional check here, if the label_id is still present in the single plane
+                # Maybe it got overwritten by the filling process, if it was a small ROI within a ring-like bigger ROI
+                if label_id in np.unique(single_plane):
+                    roi = get_polygon_from_instance_segmentation(single_plane = single_plane, label_id = label_id)
+                    bounding_box_coords = [int(elem) for elem in roi.bounds]
+                    cropped_mask = single_plane[bounding_box_coords[0]:bounding_box_coords[2], bounding_box_coords[1]:bounding_box_coords[3]]
+                    cropped_mask_copy = cropped_mask.copy()
+                    cropped_mask_copy[np.where(cropped_mask_copy != label_id)] = 0
+                    filled_holes = binary_fill_holes(cropped_mask_copy)
+                    # since "cropped_mask" refers ultimately to the zstack (not a copy)
+                    # the changes are also made to the zstack itself:
+                    cropped_mask[np.where(filled_holes == True)] = label_id
+        return zstack
+
+    
+    def add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
+        return updates
   
    
             
@@ -521,4 +558,4 @@ class ApplyExclusionCriteria(PostprocessingStrategy):
     def add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
         updates['included_relative_positions'] = self.exclusion_criteria['allowed_relative_positions']
         updates['minimum_number_of_planes_required_to_cover'] = self.exclusion_criteria['minimum_planes_covered']
-        return updates  
+        return updates
