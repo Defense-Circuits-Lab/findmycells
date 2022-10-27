@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "findmycells"
+  site-url: "https://Defense-Circuits-Lab.github.io/findmycells"
+  description: "An end-to-end bioimage analysis pipeline with state-of-the-art tools for non-coding experts"
+  repo-branch: main
+  repo-url: "https://github.com/Defense-Circuits-Lab/findmycells"
