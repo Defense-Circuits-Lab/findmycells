@@ -12,13 +12,24 @@ from typing import List, Dict
 class ProcessingObject(ABC):
     
     """
-    Abstract base class that defines the general structure of `ProcessingObjects` in findmycells.
+    Abstract base class (inherits from ABC) that defines the general structure of `ProcessingObjects` in findmycells.
     A `ProcessingObject` combines all information needed for the corresponding processing step, 
     i.e. what files are supposed to be processed & how. It also interfaces to the database of the
     project, such that it can automatically update the database with the latest progress.
     """
     
     def __init__(self, database: Database, file_ids: List, strategies: List) -> None:
+        """
+        ----------
+        Parameters:
+        
+            database (findmycells.database.Database): The database of the findmycells project.
+            
+            file_ids (List[str]): A list with the file_ids of all files that need to be processed.
+            
+            strategies (List[findmycells.core.ProcessingStrategy]): A list of all ProcessingStrategies that shall be run on the files defined in file_ids.
+        """
+        
         self.database = database
         self.file_ids = file_ids
         self.strategies = strategies # strategies is a list of ProcessingStrategies (can of course also be just a single strategy)
@@ -26,20 +37,47 @@ class ProcessingObject(ABC):
 
     @property
     @abstractmethod
-    def processing_type(self):
-        # has to be any of these: 'preprocessing', 'segmentation', 'quantification', 'inspection'
+    def processing_type(self) -> str:
+        """
+        Abstract method that requires its subclasses to define the `processing_type`
+        as a property of the class. Thus, this will be specified in each individual 
+        processing module (e.g. the "preprocess" or "quantify" modules). It will be used
+        in the database to keep track of the processing progress of the project.
+        ----------
+        Returns:
+        
+            processing_type (str): processing type identifier (e.g. "proprocessing" or "segmentation", unique for each processing step module)
+        """
         pass
 
 
     @abstractmethod
     def add_processing_specific_infos_to_updates(self, updates: Dict) -> Dict:
-        # add all additional ProcessingObject specifc information to the update dictionary,
-        # which is not already covered in the individual ProcessingStrategies.
-        # Or simply return updates right away if there are no information to add
+        """
+        Abstract method that that requires its subclasses to define what updates need to be
+        passed to the database, in addition to those that are already covered by the corresponding
+        ProcessingStrategies or the "self.update_database()" method. If there are no more 
+        information to add, simply return the input 'updates' dictionary without any alterations.
+        ----------
+        Parameters:
+        
+            updates (dict): A dictionary with updates that need to be passed to the database.
+        ----------
+        Returns:
+        
+            updates (dict): A dictionary with all updates that need to be passed to the database. 
+        
+        """
         return updates
     
     
     def run_all_strategies(self) -> None:
+        """
+        Runs all ProcessingStrategies that were passed upon initialization (i.e. self.strategies).
+        For this, the corresponding ProcessingStrategy objects will be initialized and their ".run()"
+        method will be called, while passing "self" as "processing_object". Finally, it updates the
+        database and deletes the ProcessingStrategy object to clear it from memory.
+        """
         for strategy in self.strategies:
             processing_strategy = strategy()
             self = processing_strategy.run(processing_object = self)
@@ -48,13 +86,20 @@ class ProcessingObject(ABC):
 
 
     def update_database(self) -> None:
+        """
+        For each microscopy file that had to be processed (self.file_ids), the database
+        will be updated with the respective processing progress information. Interfaces
+        back to the abstract method "self.add_processing_specific_infos_to_updates()" that
+        enables the corresponding subclasses to add more specific details before triggering
+        the update method of the database.
+        """
         for file_id in self.file_ids:
             updates = dict()
             updates[f'{self.processing_type}_completed'] = True
             updates = self.add_processing_specific_infos_to_updates(updates = updates)
             self.database.update_file_infos(file_id = file_id, updates = updates)
 
-# %% ../nbs/01_core.ipynb 6
+# %% ../nbs/01_core.ipynb 12
 class ProcessingStrategy(ABC):
     
     """
