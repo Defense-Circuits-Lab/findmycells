@@ -18,55 +18,41 @@ class ProcessingObject(ABC):
     project, such that it can automatically update the database with the latest progress.
     """
     
-    def __init__(self, database: Database, file_ids: List, strategies: List) -> None:
-        """
-        ----------
-        Parameters:
-        
-            database (findmycells.database.Database): The database of the findmycells project.
-            
-            file_ids (List[str]): A list with the file_ids of all files that need to be processed.
-            
-            strategies (List[findmycells.core.ProcessingStrategy]): A list of all ProcessingStrategies that shall be run on the files defined in file_ids.
-        """
-        
+    def __init__(self, 
+                 database: Database, # The database of the findmycells project
+                 file_ids: List, # A list with the file_ids of all files that need to be processed
+                 strategies: List # A list of all ProcessingStrategies that shall be run on the files defined in file_ids.
+                ) -> None:
         self.database = database
         self.file_ids = file_ids
-        self.strategies = strategies # strategies is a list of ProcessingStrategies (can of course also be just a single strategy)
-        # additional attributes can be added in the respective subclasses
+        self.strategies = strategies
+
 
     @property
     @abstractmethod
-    def processing_type(self) -> str:
+    def processing_type(self
+                       ) -> str: # string that defines the processing type (e.g. "preprocessing" or "quantification")
         """
         Abstract method that requires its subclasses to define the `processing_type`
         as a property of the class. Thus, this will be specified in each individual 
         processing module (e.g. the "preprocess" or "quantify" modules). It will be used
         in the database to keep track of the processing progress of the project.
-        ----------
-        Returns:
-        
-            processing_type (str): processing type identifier (e.g. "proprocessing" or "segmentation", unique for each processing step module)
+        Has to be a string.
         """
         pass
 
 
     @abstractmethod
-    def add_processing_specific_infos_to_updates(self, updates: Dict) -> Dict:
+    def add_processing_specific_infos_to_updates(self, 
+                                                 updates: Dict # A dictionary with updates that need to be passed to the database
+                                                ) -> Dict: # A dictionary with all updates that need to be passed to the database
         """
         Abstract method that that requires its subclasses to define what updates need to be
         passed to the database, in addition to those that are already covered by the corresponding
         ProcessingStrategies or the "self.update_database()" method. If there are no more 
         information to add, simply return the input 'updates' dictionary without any alterations.
-        ----------
-        Parameters:
         
-            updates (dict): A dictionary with updates that need to be passed to the database.
-        ----------
-        Returns:
-        
-            updates (dict): A dictionary with all updates that need to be passed to the database. 
-        
+        Returns a dictionary with all updates that need to be passed to the database.
         """
         return updates
     
