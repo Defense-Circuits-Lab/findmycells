@@ -1,0 +1,23 @@
+[
+  {
+    "objectID": "core.html",
+    "href": "core.html",
+    "title": "core",
+    "section": "",
+    "text": "source\n\nProcessingObject\n\n ProcessingObject (database:findmycells.database.Database, file_ids:List,\n                   strategies:List)\n\nAbstract base class (inherits from ABC) that defines the general structure of ProcessingObjects in findmycells. A ProcessingObject combines all information needed for the corresponding processing step, i.e. what files are supposed to be processed & how. It also interfaces to the database of the project, such that it can automatically update the database with the latest progress.\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\ndatabase\nDatabase\nThe database of the findmycells project\n\n\nfile_ids\nList\nA list with the file_ids of all files that need to be processed\n\n\nstrategies\nList\nA list of all ProcessingStrategies that shall be run on the files defined in file_ids.\n\n\nReturns\nNone\n\n\n\n\nSubclasses that inherit from ProcessingObject need to implement the following two abstract methods:\n\nsource\n\n\nProcessingObject.processing_type\n\n ProcessingObject.processing_type ()\n\nAbstract method that requires its subclasses to define the processing_type as a property of the class. Thus, this will be specified in each individual processing module (e.g. the “preprocess” or “quantify” modules). It will be used in the database to keep track of the processing progress of the project. Has to be a string.\n\nsource\n\n\nProcessingObject.add_processing_specific_infos_to_updates\n\n ProcessingObject.add_processing_specific_infos_to_updates (updates:Dict)\n\nAbstract method that that requires its subclasses to define what updates need to be passed to the database, in addition to those that are already covered by the corresponding ProcessingStrategies or the “self.update_database()” method. If there are no more information to add, simply return the input ‘updates’ dictionary without any alterations.\nReturns a dictionary with all updates that need to be passed to the database.\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\nupdates\nDict\nA dictionary with updates that need to be passed to the database\n\n\nReturns\nDict\nA dictionary with all updates that need to be passed to the database\n\n\n\nIn addition, ProcessingObject defines two core functions that will be called on all its subclasses, which are:\n\nsource\n\n\nProcessingObject.run_all_strategies\n\n ProcessingObject.run_all_strategies ()\n\nRuns all ProcessingStrategies that were passed upon initialization (i.e. self.strategies). For this, the corresponding ProcessingStrategy objects will be initialized and their “.run()” method will be called, while passing “self” as “processing_object”. Finally, it updates the database and deletes the ProcessingStrategy object to clear it from memory.\n\nsource\n\n\nProcessingObject.update_database\n\n ProcessingObject.update_database ()\n\nFor each microscopy file that had to be processed (self.file_ids), the database will be updated with the respective processing progress information. Interfaces back to the abstract method “self.add_processing_specific_infos_to_updates()” that enables the corresponding subclasses to add more specific details before triggering the update method of the database.\n\nsource\n\n\nProcessingStrategy\n\n ProcessingStrategy ()\n\nAbstract base class that defines the general structure of ProcessingStrategies in findmycells. A ProcessingStrategy combines all functions that are required for one particular processing step, e.g. ConvertTo8Bit is a ProcessingStrategy in the “preprocess” module and converts the corresponding images into 8-bit."
+  },
+  {
+    "objectID": "database.html",
+    "href": "database.html",
+    "title": "database",
+    "section": "",
+    "text": "source\n\nlistdir_nohidden\n\n listdir_nohidden (path:pathlib.Path)\n\n\nsource\n\n\nDatabase\n\n Database (user_input_via_gui:dict)\n\nThe database object is intended to collect and hold all information about the image analysis project at hand. Depending on the type of analysis that shall be performed, the Database needs to be flexible and adopt to the respective needs. For instance, there might be more than just two groups that are investigated, or just a single group but with multiple images per subject, and so on."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "findmycells",
+    "section": "",
+    "text": "Development using nbdev just started, README and docs will be updated soon"
+  }
+]
