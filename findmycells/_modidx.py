@@ -64,4 +64,8 @@ d = { 'settings': { 'branch': 'main',
                                       'findmycells.database.Database.update_file_infos': ( 'database.html#database.update_file_infos',
                                                                                            'findmycells/database.py'),
                                       'findmycells.database.listdir_nohidden': ( 'database.html#listdir_nohidden',
-                                                                                 'findmycells/database.py')}}}
+                                                                                 'findmycells/database.py')},
+            'findmycells.preprocessing': { 'findmycells.preprocessing.MicroscopyImageReader': ( 'microscopy_images.html#microscopyimagereader',
+                                                                                                'findmycells/preprocessing.py'),
+                                           'findmycells.preprocessing.MicroscopyImageReader.read': ( 'microscopy_images.html#microscopyimagereader.read',
+                                                                                                     'findmycells/preprocessing.py')}}}
