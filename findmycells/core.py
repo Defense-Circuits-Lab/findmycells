@@ -3,13 +3,20 @@
 # %% auto 0
 __all__ = ['ProcessingObject', 'ProcessingStrategy']
 
-# %% ../nbs/01_core.ipynb 3
+# %% ../nbs/01_core.ipynb 4
 from abc import ABC, abstractmethod
 from .database import Database
 from typing import List, Dict
 
-# %% ../nbs/01_core.ipynb 4
+# %% ../nbs/01_core.ipynb 5
 class ProcessingObject(ABC):
+    
+    """
+    Abstract base class that defines the general structure of `ProcessingObjects` in findmycells.
+    A `ProcessingObject` combines all information needed for the corresponding processing step, 
+    i.e. what files are supposed to be processed & how. It also interfaces to the database of the
+    project, such that it can automatically update the database with the latest progress.
+    """
     
     def __init__(self, database: Database, file_ids: List, strategies: List) -> None:
         self.database = database
@@ -47,8 +54,15 @@ class ProcessingObject(ABC):
             updates = self.add_processing_specific_infos_to_updates(updates = updates)
             self.database.update_file_infos(file_id = file_id, updates = updates)
 
-# %% ../nbs/01_core.ipynb 5
+# %% ../nbs/01_core.ipynb 6
 class ProcessingStrategy(ABC):
+    
+    """
+    Abstract base class that defines the general structure of `ProcessingStrategies` in findmycells.
+    A `ProcessingStrategy` combines all functions that are required for one particular processing step, 
+    e.g. `ConvertTo8Bit` is a `ProcessingStrategy` in the "preprocess" module and converts the corresponding
+    images into 8-bit.
+    """
 
     @property
     @abstractmethod
