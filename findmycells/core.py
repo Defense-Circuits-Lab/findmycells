@@ -175,7 +175,7 @@ class DataReader(ABC):
     
     @property
     @abstractmethod
-    def default_config_values(self) -> Dict:
+    def default_config_values(self) -> Dict[str, Any]:
         """
         Property that will specify all configs that apply to the specific DataReader subclass.
         """
@@ -197,6 +197,15 @@ class DataReader(ABC):
         This method eventually reads the data stored at the given filepath applying the specified configs.
         The returned datatype will be different for each DataReader subclass, e.g. a numpy array of a specific
         shape for MicroscopyImageReaders, or a shapely Polygon for ROIReaders.
+        """
+        pass
+    
+    
+    @abstractmethod
+    def assert_correct_output_format(self, output: Any) -> None:
+        """
+        Run an assert to validate that the data was actually read in the correct way and that the created output
+        matches the intended format!
         """
         pass
     
@@ -250,4 +259,6 @@ class DataLoader:
     def load(self, data_reader_class: DataReader, filepath: Path, database: Database) -> Any:
         data_reader = data_reader_class()
         data_reader.set_optional_configs(database = database)
-        return data_reader.read(filepath = filepath, database = databse)                           
+        data = data_reader.read(filepath = filepath, database = databse)
+        data_reader.assert_correct_output_format(output = data)
+        return data                 

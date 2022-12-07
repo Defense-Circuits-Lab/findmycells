@@ -3,6 +3,17 @@
 # %% auto 0
 __all__ = ['MicroscopyImageReaders', 'CZIReader', 'RegularImageFiletypeReader', 'FromExcelReader']
 
+# %% ../../nbs/02_readers_00_microscopy_images.ipynb 2
+from abc import abstractmethod
+from typing import List, Tuple, Optional, Dict, Any
+from pathlib import Path
+import numpy as np
+import czifile
+from skimage.io import imread
+
+from ..core import DataReader, DataLoader
+from ..database import Database
+
 # %% ../../nbs/02_readers_00_microscopy_images.ipynb 4
 class MicroscopyImageReaders(DataReader):
     """
@@ -23,7 +34,7 @@ class MicroscopyImageReaders(DataReader):
     
     
     @property
-    def default_config_values(self) -> Dict:
+    def default_config_values(self) -> Dict[str, Any]:
         """
         Commonly only a fraction of the actual microscopy image file needs to analyzed and, therefore,
         loaded. This methods allows the user to define the exact color channel, imaging plane, tile, or
@@ -47,6 +58,11 @@ class MicroscopyImageReaders(DataReader):
         return default_config_value_types
 
 
+    def assert_correct_output_format(self, output: np.ndarray) -> None:
+        assert type(output) == np.ndarray, 'The constructed output is not a numpy array!'
+        assert len(output.shape) == 4, 'The shape of the to-be-returned array does not match the expected shape!'
+
+    
     def _get_adapted_configs_value(self,
                                    configs_attribute_key: str,
                                    replace_value: bool=False,
@@ -58,10 +74,6 @@ class MicroscopyImageReaders(DataReader):
             if configs_value == value_to_be_replaced:
                 configs_value = value_to_use_instead
         return configs_value
-    
-    
-    def _assert_correct_output_shape(self, shape_of_to_be_returned_array: Tuple) -> None:
-        assert len(shape_of_to_be_returned_array) == 4, 'The shape of the to-be-returned array does not match the expected shape!'
 
 # %% ../../nbs/02_readers_00_microscopy_images.ipynb 5
 class CZIReader(MicroscopyImageReaders):
@@ -101,7 +113,6 @@ class CZIReader(MicroscopyImageReaders):
         if type(color_channel_idx) == int:
             color_channel_idx = slice(color_channel_idx, color_channel_idx + 1)
         read_image_using_configs = czifile.imread(filepath)[version_idx, tile_row_idx, tile_col_idx, plane_idx, :, :, color_channel_idx]
-        self._assert_correct_output_shape(shape_of_to_be_returned_array = read_image_using_configs.shape)
         return read_image_using_configs
 
 # %% ../../nbs/02_readers_00_microscopy_images.ipynb 6
@@ -131,7 +142,6 @@ class RegularImageFiletypeReader(MicroscopyImageReaders):
         if type(color_channel_idx) == int:
             color_channel_idx = slice(color_channel_idx, color_channel_idx + 1)
         read_image_using_configs = image_with_correct_format[:, :, :, color_channel_idx]
-        self._assert_correct_output_shape(shape_of_to_be_returned_array = read_image_using_configs.shape)
         return read_image_using_configs 
     
     
@@ -186,5 +196,4 @@ class FromExcelReader(MicroscopyImageReaders):
                                              database = database)
             single_plane_images.append(loaded_image)
         read_image_using_configs = np.stack(single_plane_images)
-        self._assert_correct_output_shape(shape_of_to_be_returned_array = read_image_using_configs.shape)
         return read_image_using_configs
