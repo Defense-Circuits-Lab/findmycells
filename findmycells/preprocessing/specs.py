@@ -84,6 +84,25 @@ class PreprocessingObject(ProcessingObject):
             updates['RGB'] = False
         updates['total_planes'] = self.preprocessed_image.shape[0]
         return updates
+
+
+    def adjust_rois(self, rois_dict: Dict[str, Dict[str, Polygon]]) -> Dict[str, Dict[str, Polygon]]:
+        lower_row_idx = self.cropping_indices['lower_row_cropping_idx']
+        lower_col_idx = self.cropping_indices['lower_col_cropping_idx']
+        for plane_identifier in rois_dict.keys():
+            for roi_id in rois_dict[plane_identifier].keys():
+                adjusted_row_coords = [coordinates[0] - lower_row_idx for coordinates in rois_dict[plane_identifier][roi_id].boundary.coords[:]]
+                adjusted_col_coords = [coordinates[1] - lower_col_idx for coordinates in rois_dict[plane_identifier][roi_id].boundary.coords[:]]
+                rois_dict[plane_identifier][roi_id] = Polygon(np.asarray(list(zip(adjusted_row_coords, adjusted_col_coords))))
+        return rois_dict
+    
+    
+    def crop_rgb_zstack(self, zstack: np.ndarray) -> np.ndarray:
+        min_row_idx = self.cropping_indices['lower_row_cropping_idx']
+        max_row_idx = self.cropping_indices['upper_row_cropping_idx']
+        min_col_idx = self.cropping_indices['lower_col_cropping_idx']
+        max_col_idx = self.cropping_indices['upper_col_cropping_idx']
+        return zstack[:, min_row_idx:max_row_idx, min_col_idx:max_col_idx, :]
     
 
     def save_preprocessed_images_on_disk(self) -> None:
