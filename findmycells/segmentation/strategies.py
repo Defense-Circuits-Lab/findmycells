@@ -15,7 +15,7 @@ from skimage import measure, segmentation, io
 
 from .specs import SegmentationObject, SegmentationStrategy
 from ..database import Database
-from ..utils import listdir_nohidden
+from .. import utils
 
 # %% ../../nbs/06_segmentation_01_strategies.ipynb 4
 class Deepflash2SemanticSegmentation(SegmentationStrategy):
@@ -42,7 +42,7 @@ class Deepflash2SemanticSegmentation(SegmentationStrategy):
         if 'ensemble_path' not in database.segmentation_tool_configs['df2'].keys():
             database.segmentation_tool_configs['df2']['ensemble_path'] = database.trained_models_dir
         if 'n_models' not in database.segmentation_tool_configs['df2'].keys():
-            database.segmentation_tool_configs['df2']['n_models'] = len([elem for elem in listdir_nohidden(database.trained_models_dir) if elem.endswith('.pth')])
+            database.segmentation_tool_configs['df2']['n_models'] = len([elem for elem in utils.listdir_nohidden(database.trained_models_dir) if elem.endswith('.pth')])
         if 'stats' not in database.segmentation_tool_configs['df2'].keys():
             database.segmentation_tool_configs['df2']['stats'] = self.compute_stats(database = database)
         return database
@@ -51,7 +51,7 @@ class Deepflash2SemanticSegmentation(SegmentationStrategy):
     def _copy_all_files_of_current_batch_to_temp_dir(self, database: Database, file_ids_in_batch: List[str]) -> None:
         temp_copies_path = database.segmentation_tool_dir.joinpath('temp_copies_of_preprocessed_images')
         for file_id in file_ids_in_batch:
-            files_to_segment = [filename for filename in listdir_nohidden(database.preprocessed_images_dir) if filename.startswith(file_id)]
+            files_to_segment = [filename for filename in utils.listdir_nohidden(database.preprocessed_images_dir) if filename.startswith(file_id)]
             if len(files_to_segment) > 0:
                 if temp_copies_path.is_dir() == False:
                     temp_copies_path.mkdir()
@@ -63,7 +63,7 @@ class Deepflash2SemanticSegmentation(SegmentationStrategy):
     def compute_stats(self, database: Database) -> Tuple:
         from deepflash2.learner import EnsembleLearner
         expected_file_count = sum(database.file_infos['total_planes'])
-        actual_file_count = len([image for image in listdir_nohidden(database.preprocessed_images_dir) if image.endswith('.png')])
+        actual_file_count = len([image for image in utils.listdir_nohidden(database.preprocessed_images_dir) if image.endswith('.png')])
         if actual_file_count != expected_file_count:
             raise ValueError('Actual and expected counts of preprocessed images don´t match.')
         ensemble_learner = EnsembleLearner(image_dir = database.preprocessed_images_dir.as_posix(), 
@@ -88,7 +88,7 @@ class Deepflash2SemanticSegmentation(SegmentationStrategy):
 
     def _move_files(self, database: Database) -> None:
         semantic_masks_path = database.segmentation_tool_dir.joinpath('masks')
-        for semantic_mask_filename in listdir_nohidden(semantic_masks_path):
+        for semantic_mask_filename in utils.listdir_nohidden(semantic_masks_path):
             filepath_source = semantic_masks_path.joinpath(semantic_mask_filename)
             shutil.move(filepath_source.as_posix(), database.semantic_segmentations_dir.as_posix())
         shutil.rmtree(database.segmentation_tool_dir.joinpath('temp_copies_of_preprocessed_images').as_posix())
