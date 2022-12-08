@@ -10,11 +10,11 @@ import numpy as np
 from shapely.geometry import Polygon
 from scipy import ndimage
 
-from ..segmentation.specs import PostprocessingObject, PostprocessingStrategy
+from .specs import PostprocessingObject, PostprocessingStrategy
 from ..database import Database
 from .. import utils
 
-# %% ../../nbs/07_postprocessing_01_strategies.ipynb 5
+# %% ../../nbs/07_postprocessing_01_strategies.ipynb 4
 class ReconstructCellsIn3DFrom2DInstanceLabels(PostprocessingStrategy):
     
     def run(self, processing_object: PostprocessingObject) -> PostprocessingObject:
@@ -298,7 +298,7 @@ class ReconstructCellsIn3DFrom2DInstanceLabels(PostprocessingStrategy):
     def add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
         return updates
 
-# %% ../../nbs/07_postprocessing_01_strategies.ipynb 6
+# %% ../../nbs/07_postprocessing_01_strategies.ipynb 5
 class FillHoles(PostprocessingStrategy):
 
     def run(self, processing_object: PostprocessingObject) -> PostprocessingObject:
@@ -334,7 +334,7 @@ class FillHoles(PostprocessingStrategy):
     def add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
         return updates
 
-# %% ../../nbs/07_postprocessing_01_strategies.ipynb 7
+# %% ../../nbs/07_postprocessing_01_strategies.ipynb 6
 class ApplyExclusionCriteria(PostprocessingStrategy):
     
     def run(self, processing_object: PostprocessingObject) -> PostprocessingObject:
