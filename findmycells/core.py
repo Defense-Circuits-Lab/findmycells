@@ -6,11 +6,13 @@ __all__ = ['ProcessingObject', 'ProcessingStrategy', 'DataReader', 'DataLoader']
 # %% ../nbs/02_core.ipynb 2
 from abc import ABC, abstractmethod
 from .database import Database
+from .configs import DefaultConfigs, GUIConfigs
 from typing import List, Dict, Tuple, Optional, Any
 from types import ModuleType
-from pathlib import Path
+from pathlib import Path, PosixPath
+import inspect
 
-# %% ../nbs/02_core.ipynb 5
+# %% ../nbs/02_core.ipynb 6
 class ProcessingObject(ABC):
     
     """
@@ -19,16 +21,6 @@ class ProcessingObject(ABC):
     i.e. what files are supposed to be processed & how. It also interfaces to the database of the
     project, such that it can automatically update the database with the latest progress.
     """
-    
-    def __init__(self, 
-                 database: Database, # The database of the findmycells project
-                 file_ids: List, # A list with the file_ids of all files that need to be processed
-                 strategies: List # A list of all ProcessingStrategies that shall be run on the files defined in file_ids.
-                ) -> None:
-        self.database = database
-        self.file_ids = file_ids
-        self.strategies = strategies
-
 
     @property
     @abstractmethod
@@ -43,9 +35,24 @@ class ProcessingObject(ABC):
         """
         pass
 
-
+    
+    @property
     @abstractmethod
-    def add_processing_specific_infos_to_updates(self, 
+    def default_configs(self) -> DefaultConfigs:
+        """
+        Abstract method that requires its subclasses to define the `default_configs`
+        as a property of the class. Thus, this will specify all configuration options
+        that come with each subclass, while simultaneously also providing default values
+        for each option and, moreover, defining what types of values are allowed for each
+        option. Check out the implementation of `DefaultConfigs` in the configs module, or
+        have a look at how this is implemented in one of the processing sub-modules, for 
+        instance in the "specs.py" file in the preprocessing sub-module.
+        """
+        pass    
+
+    
+    @abstractmethod
+    def _add_processing_specific_infos_to_updates(self, 
                                                  updates: Dict # A dictionary with updates that need to be passed to the database
                                                 ) -> Dict: # A dictionary with all updates that need to be passed to the database
         """
@@ -59,21 +66,35 @@ class ProcessingObject(ABC):
         return updates
     
     
-    def run_all_strategies(self) -> None:
+    @abstractmethod
+    def _processing_specific_preparations(self) -> None:
+        pass
+    
+    
+    def prepare_for_processing(self,
+                               file_ids: List[str], # A list with the file_ids of all files that need to be processed
+                               database: Database, # The database of the findmycells project
+                              ) -> None:
+        self.file_ids = file_ids
+        self.database = database
+        self._processing_specific_preparations()
+    
+    
+    def run_all_strategies(self, strategies: List, strategy_configs: List[Dict]) -> None:
         """
         Runs all ProcessingStrategies that were passed upon initialization (i.e. self.strategies).
         For this, the corresponding ProcessingStrategy objects will be initialized and their ".run()"
         method will be called, while passing "self" as "processing_object". Finally, it updates the
         database and deletes the ProcessingStrategy object to clear it from memory.
         """
-        for strategy in self.strategies:
+        for strategy, configs in zip(strategies, strategy_configs):
             processing_strategy = strategy()
-            self = processing_strategy.run(processing_object = self)
-            self = processing_strategy.update_database(processing_object = self)
+            self = processing_strategy.run(processing_object = self, strategy_configs = configs)
+            self = processing_strategy.update_tracking_histories(processing_object = self, strategy_configs = configs)
             del processing_strategy
 
 
-    def update_database(self) -> None:
+    def update_database(self, mark_as_completed: bool=True) -> None:
         """
         For each microscopy file that had to be processed (self.file_ids), the database
         will be updated with the respective processing progress information. Interfaces
@@ -82,12 +103,13 @@ class ProcessingObject(ABC):
         the update method of the database.
         """
         for file_id in self.file_ids:
-            updates = dict()
-            updates[f'{self.processing_type}_completed'] = True
-            updates = self.add_processing_specific_infos_to_updates(updates = updates)
+            updates = {}
+            if mark_as_completed == True:
+                self.database.file_histories[file_id].mark_processing_step_as_completed(processing_step_id = self.processing_type)
+            updates = self._add_processing_specific_infos_to_updates(updates = updates)
             self.database.update_file_infos(file_id = file_id, updates = updates)
 
-# %% ../nbs/02_core.ipynb 12
+# %% ../nbs/02_core.ipynb 13
 class ProcessingStrategy(ABC):
     
     """
@@ -100,18 +122,57 @@ class ProcessingStrategy(ABC):
     @property
     @abstractmethod
     def processing_type(self):
-        # has to be any of these: 'preprocessing', 'segmentation', 'quantification', 'inspection'
+        # has to be any of these: 'preprocessing', 'segmentation', 'postprocessing', 'quantification', 'inspection'
+        pass
+    
+    
+    @property
+    @abstractmethod
+    def default_configs(self) -> DefaultConfigs:
+        """
+        Abstract method that requires its subclasses to define the `default_configs`
+        as a property of the class. Thus, this will specify all configuration options
+        that come with each subclass, while simultaneously also providing default values
+        for each option and, moreover, defining what types of values are allowed for each
+        option. Check out the implementation of `DefaultConfigs` in the configs module, or
+        have a look at how this is implemented in one of the processing sub-modules, for 
+        instance in the "specs.py" file in the preprocessing sub-module.
+        """
+        pass
+    
+    
+    @property
+    @abstractmethod
+    def widget_names(self) -> Dict[str, str]:
+        pass
+    
+    
+    @property
+    @abstractmethod
+    def descriptions(self) -> Dict[str, str]:
+        pass
+    
+    
+    @property
+    @abstractmethod
+    def tooltips(self) -> Optional[Dict[str, str]]:
+        return None
+    
+    
+    @property
+    @abstractmethod
+    def dropdown_option_value_for_gui(self) -> str:
         pass
 
 
     @abstractmethod
-    def run(self, processing_object: ProcessingObject) -> ProcessingObject:
+    def run(self, processing_object: ProcessingObject, strategy_configs: Dict) -> ProcessingObject:
         # process the processing_object
         return processing_object
 
     
     @abstractmethod
-    def add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
+    def _add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
         # add all ProcessingStrategy specifc information to the update dictionary
         # or simply return updates right away if there are no information to add
         return updates
@@ -122,31 +183,30 @@ class ProcessingStrategy(ABC):
         return self.__class__.__name__ 
 
     
-    def update_database(self, processing_object: ProcessingObject) -> ProcessingObject:
-        for file_id in processing_object.file_ids:
-            updates = dict()
-            step_index = self.determine_correct_step_index(database = processing_object.database, file_id = file_id)
-            updates[f'{self.processing_type}_step_{str(step_index).zfill(2)}'] = self.strategy_name
-            updates = self.add_strategy_specific_infos_to_updates(updates = updates)
-            processing_object.database.update_file_infos(file_id = file_id, updates = updates)
-        return processing_object
-            
+    def initialize_gui_configs_and_widget(self) -> None:
+        gui_configs = GUIConfigs(widget_names = self.widget_names,
+                                 descriptions = self.descriptions,
+                                 tooltips = self.tooltips)
+        gui_configs.construct_widget(strategy_description = self.__doc__,
+                                     default_configs = self.default_configs)
+        setattr(self, 'gui_configs', gui_configs)
+        self.widget = self.gui_configs.strategy_widget
     
-    def determine_correct_step_index(self, database: Database, file_id: str) -> int:
-        file_infos = database.get_file_infos(identifier = file_id)
-        previous_step_indices_of_same_processing_type = []
-        for key, value in file_infos.items():
-            if f'{self.processing_type}_step_' in key:
-                if value != None: # to ensure that this file_id was actually already processed
-                    step_index = int(key[key.rfind('_') + 1 :])
-                    previous_step_indices_of_same_processing_type.append(step_index)
-        if len(previous_step_indices_of_same_processing_type) > 0:
-            correct_step_index = max(previous_step_indices_of_same_processing_type) + 1
-        else:
-            correct_step_index = 0
-        return correct_step_index
+    
+    def export_current_gui_config_values(self) -> Dict:
+        return self.gui_configs.export_current_config_values()
+    
+    
+    def update_tracking_histories(self, processing_object: ProcessingObject, strategy_configs: Dict) -> ProcessingObject:
+        for file_id in processing_object.file_ids:
+            strategy_configs_with_updates = self._add_strategy_specific_infos_to_updates(updates = strategy_configs)
+            tracking_history = processing_object.database.file_histories[file_id]
+            tracking_history.track_processing_strat(processing_step_id = self.processing_type,
+                                                    processing_strategy_name = self.strategy_name,
+                                                    strategy_configs = strategy_configs_with_updates)
+        return processing_object
 
-# %% ../nbs/02_core.ipynb 14
+# %% ../nbs/02_core.ipynb 16
 class DataReader(ABC):
     
     """
@@ -166,35 +226,12 @@ class DataReader(ABC):
     
     @property
     @abstractmethod
-    def key_to_configs_attribute_in_database(self) -> str:
-        """
-        Property that will specify the key under which the corresponding configs can be found in the project configs,
-        for instance "MicroscopyImageReader_configs". Will be specified in the DataReader subclass in each DataReader
-        module, from which all correpsonding DataReaders of this subclass will inherit from.
-        """
-        pass
-    
-    
-    @property
-    @abstractmethod
-    def default_config_values(self) -> Dict[str, Any]:
-        """
-        Property that will specify all configs that apply to the specific DataReader subclass.
-        """
-        pass
-
-
-    @property
-    @abstractmethod
-    def default_config_value_types(self) -> Dict[str, List]:
-        """
-        Property that will specify the types of each configs value.
-        """
+    def default_configs(self) -> DefaultConfigs:
         pass
     
     
     @abstractmethod
-    def read(self, filepath: Path, database: Database) -> Any:
+    def read(self, filepath: Path, reader_configs: Dict) -> Any:
         """
         This method eventually reads the data stored at the given filepath applying the specified configs.
         The returned datatype will be different for each DataReader subclass, e.g. a numpy array of a specific
@@ -210,57 +247,25 @@ class DataReader(ABC):
         matches the intended format!
         """
         pass
-    
 
-    def set_optional_configs(self, database: Database) -> None:
-        """
-        For some data it will be important for the user to be able to specify additional configurations, like 
-        for instance which color channel should be read, loaded, and eventually analyzed for microscopy images.
-        These settings will be saved in the 'optional_configs' section of the `Database` of the project under
-        the corresponding key, which is, again, specific for each of the data types and will be defined in each
-        DataReader subclass (e.g. 'MicroscopyImageReader_configs' for all DataReaders that handle microscopy
-        image data). Via the '_set_defaults_for_unspecified_or_invalid_configs()' method, missing values will
-        be filled with default values (defined in 'self.default_config_values') and the types of all user
-        specified values will be confirmed (as defined in 'self.default_config_value_types').
-        """
-        configs = database['optional_configs'][self.key_to_configs_attribute_in_database]
-        if type(configs) == dict:
-            if len(configs.keys) > 0:
-                for key, value in configs.items():
-                    setattr(self, key, value)
-        self._set_defaults_for_unspecified_or_invalid_configs()
-    
-
-    def _set_defaults_for_unspecified_or_invalid_configs(self) -> None:
-        for key, default_value in self.default_config_values.items():
-            if hasattr(self, key):
-                specified_value = getattr(self, key)
-                if type(specified_value) not in self.default_config_value_types[key]:
-                    raise ValueError(f'The type of the value you specified as {key} in the {self.key_to_configs_attribute_in_database} '
-                                     f'does not match the expected type. Your specified value was: {specified_value}, which is of type: '
-                                     f'{type(specified_value)}, while the default value is: {default_value}, which is of type: '
-                                     f'{type(default_value)}.')
-            else:
-                setattr(self, key, default_value)
-
-# %% ../nbs/02_core.ipynb 15
+# %% ../nbs/02_core.ipynb 17
 class DataLoader:
     
     def determine_reader(self, file_extension: str, data_reader_module: ModuleType) -> DataReader:
         available_reader = None
         for name, data_reader in inspect.getmembers(data_reader_module):
-            if name.endswith('Reader'):
+            if (name.endswith('Reader') == True) & (name != 'DataReader'):
                 if file_extension in data_reader().readable_filetype_extensions:
-                    available_reader = obj
+                    available_reader = data_reader
         if available_reader == None:
             raise NotImplementedError(f'Unfortunately, there is no DataReader implemented in {data_reader_module} '
                                       f'which can handle your filetype ("{file_extension}").')
         return available_reader
     
     
-    def load(self, data_reader_class: DataReader, filepath: Path, database: Database) -> Any:
+    def load(self, data_reader_class: DataReader, filepath: PosixPath, reader_configs: Dict) -> Any:
         data_reader = data_reader_class()
-        data_reader.set_optional_configs(database = database)
-        data = data_reader.read(filepath = filepath, database = databse)
+        # data_reader.set_optional_configs(database = database)
+        data = data_reader.read(filepath = filepath, reader_configs = reader_configs)
         data_reader.assert_correct_output_format(output = data)
         return data                 

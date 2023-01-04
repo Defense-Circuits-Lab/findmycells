@@ -9,8 +9,8 @@ from shapely.geometry import Polygon
 from typing import List, Dict
 from skimage.io import imsave
 
-from ..core import ProcessingObject, ProcessingStrategy, DataLoader
-from ..database import Database
+from ..core import DefaultConfigs, ProcessingObject, ProcessingStrategy, DataLoader
+# from findmycells.database import Database
 from .. import readers
 
 # %% ../../nbs/05_preprocessing_00_specs.ipynb 4
@@ -44,25 +44,41 @@ class PreprocessingObject(ProcessingObject):
         return 'preprocessing'
     
     
-    def __init__(self, database: Database, file_ids: List[str], strategies: List[ProcessingStrategy]) -> None:
-        super().__init__(database = database, file_ids = file_ids, strategies = strategies)
-        self.file_id = file_ids[0]
-        self.file_info = self.database.get_file_infos(identifier = self.file_id)
-        self.preprocessed_image = self._load_microscopy_image()
-        self.preprocessed_rois = self._load_rois()
+    @property
+    def default_configs(self) -> DefaultConfigs:
+        default_values = {'overwrite': False,
+                          'autosave': True,
+                          'show_progress': True}
+        valid_types = {'overwrite': [bool],
+                       'autosave': [bool],
+                       'show_progress': [bool]}
+        default_configs = DefaultConfigs(default_values = default_values, valid_types = valid_types)
+        return default_configs
+    
+    
+    def _processing_specific_preparations(self) -> None:
+        self.file_id = self.file_ids[0]
+        self.file_info = self.database.get_file_infos(file_id = self.file_id)
+        
 
 
-    def _load_microscopy_image(self) -> np.ndarray:
+    def load_image_and_rois(self, microscopy_reader_configs: Dict, roi_reader_configs: Dict) -> None:
+        self.preprocessed_image = self._load_microscopy_image(microscopy_reader_configs = microscopy_reader_configs)
+        self.preprocessed_rois = self._load_rois(roi_reader_configs = roi_reader_configs)
+        
+        
+        
+    def _load_microscopy_image(self, microscopy_reader_configs: Dict) -> np.ndarray:
         microscopy_image_data_loader = DataLoader()
         microscopy_image_reader_class = microscopy_image_data_loader.determine_reader(file_extension = self.file_info['microscopy_filetype'],
                                                                                       data_reader_module = readers.microscopy_images)
         microscopy_image = microscopy_image_data_loader.load(data_reader_class = microscopy_image_reader_class,
                                                              filepath = self.file_info['microscopy_filepath'],
-                                                             database = self.database)
+                                                             reader_configs = microscopy_reader_configs)
         return microscopy_image
     
 
-    def _load_rois(self) -> Dict[str, Dict[str, Polygon]]:
+    def _load_rois(self, roi_reader_configs: Dict) -> Dict[str, Dict[str, Polygon]]:
         if self.file_info['rois_present'] ==  False:
             raise NotImplementedError('As of now, it is not supported to not provide a ROI file for each image. If you would like to '
                                       'quantify the image features in the entire image, please provide a ROI that covers the entire image. '
@@ -70,14 +86,15 @@ class PreprocessingObject(ProcessingObject):
                                       'problems, specifically if any cropping is used as preprocessing method.')
         else: # means: self.file_info['rois_present'] == True
             roi_data_loader = DataLoader()
-            roi_reader_class = roi_data_loader.determine_reader(file_extension = self.file_info['rois_filetype'])
+            roi_reader_class = roi_data_loader.determine_reader(file_extension = self.file_info['rois_filetype'],
+                                                                data_reader_module = readers.rois)
             extracted_roi_data = roi_data_loader.load(data_reader_class = roi_reader_class,
                                                       filepath = self.file_info['rois_filepath'],
-                                                      database = self.database)
+                                                      reader_configs = roi_reader_configs)
         return extracted_roi_data
 
 
-    def add_processing_specific_infos_to_updates(self, updates: Dict) -> Dict:
+    def _add_processing_specific_infos_to_updates(self, updates: Dict) -> Dict:
         if self.preprocessed_image.shape[3] == 3:
             updates['RGB'] = True
         else:
@@ -86,30 +103,33 @@ class PreprocessingObject(ProcessingObject):
         return updates
 
 
-    def adjust_rois(self, rois_dict: Dict[str, Dict[str, Polygon]]) -> Dict[str, Dict[str, Polygon]]:
-        lower_row_idx = self.cropping_indices['lower_row_cropping_idx']
-        lower_col_idx = self.cropping_indices['lower_col_cropping_idx']
+    def adjust_rois(self,
+                    rois_dict: Dict[str, Dict[str, Polygon]],
+                    lower_row_cropping_idx: int,
+                    lower_col_cropping_idx: int
+                    ) -> Dict[str, Dict[str, Polygon]]:
         for plane_identifier in rois_dict.keys():
             for roi_id in rois_dict[plane_identifier].keys():
-                adjusted_row_coords = [coordinates[0] - lower_row_idx for coordinates in rois_dict[plane_identifier][roi_id].boundary.coords[:]]
-                adjusted_col_coords = [coordinates[1] - lower_col_idx for coordinates in rois_dict[plane_identifier][roi_id].boundary.coords[:]]
+                adjusted_row_coords = [coordinates[0] - lower_row_cropping_idx for coordinates in rois_dict[plane_identifier][roi_id].boundary.coords[:]]
+                adjusted_col_coords = [coordinates[1] - lower_col_cropping_idx for coordinates in rois_dict[plane_identifier][roi_id].boundary.coords[:]]
                 rois_dict[plane_identifier][roi_id] = Polygon(np.asarray(list(zip(adjusted_row_coords, adjusted_col_coords))))
         return rois_dict
     
     
-    def crop_rgb_zstack(self, zstack: np.ndarray) -> np.ndarray:
-        min_row_idx = self.cropping_indices['lower_row_cropping_idx']
-        max_row_idx = self.cropping_indices['upper_row_cropping_idx']
-        min_col_idx = self.cropping_indices['lower_col_cropping_idx']
-        max_col_idx = self.cropping_indices['upper_col_cropping_idx']
+    def crop_rgb_zstack(self, zstack: np.ndarray, cropping_indices: Dict[str, int]) -> np.ndarray:
+        min_row_idx = cropping_indices['lower_row_cropping_idx']
+        max_row_idx = cropping_indices['upper_row_cropping_idx']
+        min_col_idx = cropping_indices['lower_col_cropping_idx']
+        max_col_idx = cropping_indices['upper_col_cropping_idx']
         return zstack[:, min_row_idx:max_row_idx, min_col_idx:max_col_idx, :]
     
 
     def save_preprocessed_images_on_disk(self) -> None:
         for plane_index in range(self.preprocessed_image.shape[0]):
             image = self.preprocessed_image[plane_index].astype('uint8')
-            filepath_out = self.database.preprocessed_images_dir.joinpath(f'{self.file_id}-{str(plane_index).zfill(3)}.png')
-            imsave(filepath_out, image)
+            out_dir_path = self.database.project_configs.root_dir.joinpath(self.database.preprocessed_images_dir)
+            filename = f'{self.file_id}-{str(plane_index).zfill(3)}.png'
+            imsave(out_dir_path.joinpath(filename), image)
 
 
     def save_preprocessed_rois_in_database(self) -> None:
