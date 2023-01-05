@@ -49,7 +49,25 @@ class ProcessingObject(ABC):
         instance in the "specs.py" file in the preprocessing sub-module.
         """
         pass    
-
+    
+    
+    @property
+    @abstractmethod
+    def widget_names(self) -> Dict[str, str]:
+        pass
+    
+    
+    @property
+    @abstractmethod
+    def descriptions(self) -> Dict[str, str]:
+        pass
+    
+    
+    @property
+    @abstractmethod
+    def tooltips(self) -> Optional[Dict[str, str]]:
+        return None
+    
     
     @abstractmethod
     def _add_processing_specific_infos_to_updates(self, 
@@ -69,6 +87,20 @@ class ProcessingObject(ABC):
     @abstractmethod
     def _processing_specific_preparations(self) -> None:
         pass
+    
+    
+    def initialize_gui_configs_and_widget(self) -> None:
+        gui_configs = GUIConfigs(widget_names = self.widget_names,
+                                 descriptions = self.descriptions,
+                                 tooltips = self.tooltips)
+        gui_configs.construct_widget(strategy_description = 'General processing configurations for this step:',
+                                     default_configs = self.default_configs)
+        setattr(self, 'gui_configs', gui_configs)
+        self.widget = self.gui_configs.strategy_widget
+    
+    
+    def export_current_gui_config_values(self) -> Dict:
+        return self.gui_configs.export_current_config_values()
     
     
     def prepare_for_processing(self,

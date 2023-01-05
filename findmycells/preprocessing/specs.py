@@ -37,6 +37,23 @@ class PreprocessingObject(ProcessingObject):
           list as input, only a single file_id will be passed to a `PreprocessingObject`
           upon initialization. This is handled in the api module of findmycells.
     """
+    @property
+    def widget_names(self):
+        widget_names = {'overwrite': 'Checkbox',
+                        'autosave': 'Checkbox',
+                        'show_progress': 'Checkbox'}
+        return widget_names
+
+    @property
+    def descriptions(self):
+        descriptions = {'overwrite': 'overwrite previously processed files',
+                        'autosave': 'autosave progress after each file',
+                        'show_progress': 'show progress bar and estimated computation time'}
+        return descriptions
+    
+    @property
+    def tooltips(self):
+        return {}   
 
 
     @property

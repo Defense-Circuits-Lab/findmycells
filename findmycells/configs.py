@@ -128,7 +128,8 @@ class DefaultConfigs:
             assert key in self.values.keys(), f'User input key "{key}" does not match with default value keys!'
             assert type(value) in self.valid_types[key], f'Value type for {key} not listed in valid types!'
             if type(value) in [int, float]:
-                assert value in self.valid_ranges[key], f'Value for {key} is not within valid ranges!'
+                lower_border, upper_border = self.valid_ranges[key][:2]
+                assert lower_border <= value <= upper_border, f'Value for {key} is not within valid ranges!'
             if type(value) in [str]:
                 assert value in self.valid_options[key], f'Value for {key} is not among valid options!'
                 
@@ -235,7 +236,10 @@ class GUIConfigs:
         current_configs = {}
         for config_key in self.widget_names.keys():
             config_widget = getattr(self, config_key)
-            current_configs[config_key] = config_widget.value
+            if type(config_widget) == w.HBox: # Some widgets are embedded in HBox to avoid display of a vertical scrollbar
+                current_configs[config_key] = config_widget.children[0].value
+            else:
+                current_configs[config_key] = config_widget.value
         return current_configs
     
             
@@ -267,8 +271,10 @@ class GUIConfigs:
 
     def _construct_a_checkbox(self, key: str, default_configs: DefaultConfigs) -> WidgetType:
         checkbox = w.Checkbox(description = self.descriptions[key],
-                              value = default_configs.values[key])
-        return checkbox
+                              value = default_configs.values[key],
+                              layout = self.layout,
+                              style = self.style)
+        return w.HBox([checkbox])
         
     
     def _construct_an_intslider(self, key: str, default_configs: DefaultConfigs) -> WidgetType:
@@ -279,8 +285,10 @@ class GUIConfigs:
                                 min = default_configs.valid_ranges[key][0],
                                 max = default_configs.valid_ranges[key][1],
                                 step = step_size,
-                                tooltip = tooltip)
-        return intslider
+                                tooltip = tooltip,
+                                layout = self.layout,
+                                style = self.style)
+        return w.HBox([intslider])
     
     
     def _construct_a_floatslider(self, key: str, default_configs: DefaultConfigs) -> WidgetType:
@@ -291,8 +299,10 @@ class GUIConfigs:
                                     min = default_configs.valid_ranges[key][0],
                                     max = default_configs.valid_ranges[key][1],
                                     step = step_size,
-                                    tooltip = tooltip)
-        return floatslider
+                                    tooltip = tooltip,
+                                    layout = self.layout,
+                                    style = self.style)
+        return w.HBox([floatslider])
     
     
     def _construct_a_dropdown(self, key: str, default_configs: DefaultConfigs) -> WidgetType:
@@ -303,8 +313,10 @@ class GUIConfigs:
                              'attribute of the DefaultConfigs!')
         dropdown = w.Dropdown(description = self.descriptions[key],
                               value = default_configs.values[key],
-                              options = options)
-        return dropdown
+                              options = options,
+                              layout = self.layout,
+                              style = self.style)
+        return w.HBox([dropdown])
 
 
     def _get_tooltip_if_present(self, key: str) -> Optional[str]:
