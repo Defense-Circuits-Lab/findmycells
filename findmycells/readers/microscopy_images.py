@@ -80,7 +80,7 @@ class CZIReader(MicroscopyImageReaders):
              filepath: Path, # filepath to the microscopy image file
              reader_configs: Dict # the project database
             ) -> np.ndarray: # numpy array with the structure: [imaging-planes, rows, columns, imaging-channel]     
-        # To ensure that we donÂ´t lose a dimension if only a single color channel is to be selected:
+        # To ensure that we don´t lose a dimension if only a single color channel is to be selected:
         if type(reader_configs['color_channel_idx']) == int:
             reader_configs['color_channel_idx'] = slice(reader_configs['color_channel_idx'], reader_configs['color_channel_idx'] + 1)
         read_image_using_configs = czifile.imread(filepath)[reader_configs['version_idx'],
@@ -111,7 +111,7 @@ class RegularImageFiletypeReader(MicroscopyImageReaders):
              reader_configs: Dict
             ) -> np.ndarray: # numpy array with the structure: [imaging-planes, rows, columns, imaging-channel]
         image_with_correct_format = self._attempt_to_load_image_at_correct_format(filepath = filepath)
-        # To ensure that we donÂ´t losse a dimension if only a single color channel is to be selected:
+        # To ensure that we don´t losse a dimension if only a single color channel is to be selected:
         if type(reader_configs['color_channel_idx']) == int:
             reader_configs['color_channel_idx'] = slice(reader_configs['color_channel_idx'], reader_configs['color_channel_idx'] + 1)
         read_image_using_configs = image_with_correct_format[:, :, :, reader_configs['color_channel_idx']]
@@ -127,9 +127,9 @@ class RegularImageFiletypeReader(MicroscopyImageReaders):
         elif len(single_plane_image.shape) == 3: # multiple color channels (at least when assumption of "single plane image" holds)
             image_with_correct_format = np.expand_dims(single_plane_image, axis=[0])
         else:
-            raise NotImplementedError('There is something odd with the dimensions of the image youÂ´re attempting to load. '
+            raise NotImplementedError('There is something odd with the dimensions of the image you´re attempting to load. '
                                       'It should have either 2 or 3 dimensions, if it is a 2D image with a single color '
-                                      'channel, or with multiple color channels, respectively. However, the file youÂ´d like '
+                                      'channel, or with multiple color channels, respectively. However, the file you´d like '
                                       f'to load has {len(single_plane_image.shape)} dimensions. For developers: the shape '
                                       f'was: {single_plane_image.shape}.')
         return image_with_correct_format

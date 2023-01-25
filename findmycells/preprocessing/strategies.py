@@ -18,8 +18,23 @@ from ..configs import DefaultConfigs, GUIConfigs
 # %% ../../nbs/05_preprocessing_01_strategies.ipynb 4
 class CropStitchingArtefactsRGBStrat(PreprocessingStrategy):
     
+    #ToDo:
+    # - Option to specify whether artefact pixel color is black or white
+    # - if white: make sure to identify bit type of the image (whether white == 255, 4095, ..)
+    # - check whether it also works if it´s only a single channel image
+    
     """
-    Explanation of the `CropStitchingArtefactsRGB` preprocessing strategy.
+    When you acquire microscopy images that are essentially several individual 
+    images (= tiles) stitched together, you may end up with some artefacts on the
+    borders of the image as a result from the stitching process. These pixels are
+    usually either fully black or fully white and can therefore interfere with 
+    other processing strategies that you might want to apply to your images (for 
+    instance, if you´d like to adjust brightness and contrast). This strategy aims
+    at identifying these pixels that were added to account for some offset between
+    the individual tiles and eventually remove them. As these artefacts might 
+    interfere with other processing steps, it is recommended to add this (or any other
+    cropping strategy to get rid of these artefacts) prior to other preprocessing 
+    strategies. 
     """
     
     @property
@@ -111,7 +126,15 @@ class CropStitchingArtefactsRGBStrat(PreprocessingStrategy):
 class CropToROIsBoundingBoxStrat(PreprocessingStrategy):
     
     """
-    Explanation of the `CropToROIsBoundingBox` preprocessing strategy.
+    You might not be interested in analyzing the entire image, but only to quantify
+    image features of interest in a certain region of your image (or actually also
+    several regions). Now, chances are that it is possible to find a bounding box that
+    contains all regions of the image that you are interested in, which is, however,
+    smaller than the original image. Cropping your original image down to that smaller 
+    size will then significantly reduce computation time, required memory space, and also
+    required disk space. Therefore, it is highly recommended to add this strategy to your
+    preprocessing. You can also combine it with additional cropping strategies, like the
+    one that tries to remove stitching artefacts.
     """
     
     @property
@@ -206,7 +229,9 @@ class CropToROIsBoundingBoxStrat(PreprocessingStrategy):
 class ConvertTo8BitStrat(PreprocessingStrategy):
     
     """
-    Explanation of the `ConvertTo8Bit` preprocessing strategy.
+    This strategy converts your image to an 8-bit format. Adding this strategy is
+    at the moment mandatory, as all implemented segmentation tools (deepflash2 & cellpose)
+    require 8-bit as input format. So you actually don´t really have a choice but adding it! :-)
     """
     
     @property
@@ -260,7 +285,12 @@ class ConvertTo8BitStrat(PreprocessingStrategy):
 class MaximumIntensityProjectionStrat(PreprocessingStrategy):
 
     """
-    Explanation of the `MaximumIntensityProjection` preprocessing strategy.
+    If you acquired your microscopy images as z-stack, you can use this strategy to
+    project it from a 3D image stack (commonly referred to as 2.5D) into a two
+    dimensional single plane image. If you select this strategy, the brightest (= maximal)
+    pixel value from the z-stack will be used in the final 2D projection. Alternatively,
+    feel free to use the "Minimum intenstity projection" strategy, if you´d like to 
+    keep only the darkest (= minimal) value of each pixel.
     """
     
     @property
@@ -315,7 +345,12 @@ class MaximumIntensityProjectionStrat(PreprocessingStrategy):
 class MinimumIntensityProjectionStrat(PreprocessingStrategy):
     
     """
-    Explanation of the `MinimumIntensityProjection` preprocessing strategy.
+    If you acquired your microscopy images as z-stack, you can use this strategy to
+    project it from a 3D image stack (commonly referred to as 2.5D) into a two
+    dimensional single plane image. If you select this strategy, the darkest (= minimal)
+    pixel value from the z-stack will be used in the final 2D projection. Alternatively,
+    feel free to use the "Maximum intenstity projection" strategy, if you´d like to 
+    keep only the brightest (= maximal) value of each pixel.
     """
     
     @property
@@ -366,11 +401,22 @@ class MinimumIntensityProjectionStrat(PreprocessingStrategy):
     def _add_strategy_specific_infos_to_updates(self, updates: Dict) -> Dict:
         return updates 
 
-# %% ../../nbs/05_preprocessing_01_strategies.ipynb 9
+# %% ../../nbs/05_preprocessing_01_strategies.ipynb 10
 class AdjustBrightnessAndContrastStrat(PreprocessingStrategy):
 
     """
-    Explanation of the `AdjustBrightnessAndContrast` preprocessing strategy.
+    This strategy allows you to automatically adjust brightness and contrast
+    of your images. For this, please specify the percentage of pixels that
+    you want to be saturated (default: 0.35 % - same as in ImageJ2). This 
+    strategy will then ensure that this specified percentage of pixels will
+    be fully saturated in all of your images. If you have z-stack images,
+    you can furthermore also specify whether you´d like to run this operation
+    on the full z-stack (chose "globally"), or on each individual plane of the
+    z-stack (chose "individually"). I would rather recommend using "globally" 
+    to keep a somewhat consistent meaning of pixel intensities. And, finally, 
+    if you are anyhow dealing with 2D images (either from the get-go, or since
+    you applied a maximum or minimum intensity projection strategy prior to
+    this one - both "globally" and "individually" will lead to the same result.
     """
     
     @property
@@ -383,7 +429,7 @@ class AdjustBrightnessAndContrastStrat(PreprocessingStrategy):
                           'channel_adjustment_method': 'globally'}
         valid_types = {'percentage_saturated_pixels': [float],
                        'channel_adjustment_method': [str]}
-        valid_ranges = {'percentage_saturated_pixels': (0.0, 49.95, 0.05)}
+        valid_ranges = {'percentage_saturated_pixels': (0.05, 49.95, 0.05)}
         valid_options = {'channel_adjustment_method': ('globally', 'individually')}
         default_configs = DefaultConfigs(default_values = default_values,
                                          valid_types = valid_types,

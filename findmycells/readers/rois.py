@@ -39,15 +39,15 @@ class ROIReaders(DataReader):
         findmycells enables analyses of multiple ROIs in the image data. To do so, they will be matched based on their ID that will
         be retrieved from the ROI file. Some softwares that create these ROI-files, however, create default IDs for the individual
         ROIs that will interfere with this matching. For instance, in Fiji / ImageJ2, created ROIs get its centroid (?) pixel 
-        coordinates as default ID (e.g. something like "523-378"). Since such default IDs most likely wonÂ´t be consistent throughout
+        coordinates as default ID (e.g. something like "523-378"). Since such default IDs most likely won´t be consistent throughout
         your entire image dataset, findmycells provides you with two options to adress this:
         a) You can set 'load_roi_ids_from_file' to False (default): 
           This will cause findmycells to ignore the IDs of the ROIs that are saved in the provided ROI file and assign them with 
           new IDs starting at "000". Note: Essentially, this requires you to have always the same type of ROIs present in the 
-          exact same order in all your ROI-files. It is therefore only recommended if you have just a single ROI youÂ´d like to analyze.
+          exact same order in all your ROI-files. It is therefore only recommended if you have just a single ROI you´d like to analyze.
         b) You can set 'load_roi_ids_from_file' to True (recommended if you have more than a single ROI):
           This will enforce that findmycells uses the IDs that each ROI was saved with. Therefore, it requires that you use consistent
-          naming of the ROIs with your preferred software. For instance, if youÂ´re using Fiji / ImageJ2, you can rename each ROI in the
+          naming of the ROIs with your preferred software. For instance, if you´re using Fiji / ImageJ2, you can rename each ROI in the
           ROIManager (e.g. "CA3", "vlPAG", or "ipsilateral_SNc"). Analyses and quantifications will then be matched and pooled across
           all ROIs with the respective IDs (e.g. all "CA3" ROIs).
         """
@@ -78,7 +78,7 @@ class ImageJROIReader(ROIReaders):
             ) -> Dict[str, Dict[str, Polygon]]: # nested dictionaries of shapely polygons: {plane_id: {roi_id: Polygon}}
         if filepath.suffix == '.roi':
             loaded_rois = [roifile.ImagejRoi.fromfile(filepath)]
-        else: # itÂ´s a .zip file:
+        else: # it´s a .zip file:
             loaded_rois = roifile.ImagejRoi.fromfile(filepath)
         rois_as_shapely_polygons = {'all_planes': {}} # plane specific ROIs are not yet supported, but this structure would allow it
         roi_count = len(loaded_rois)

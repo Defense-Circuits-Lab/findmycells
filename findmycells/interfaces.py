@@ -388,10 +388,10 @@ class GUI:
         
     
     def _initialize_start_screen(self) -> WidgetType:
-        welcome_label_line_1 = w.Label(value = 'Welcome to findmycells, glad youÂ´re here! :-)')
+        welcome_label_line_1 = w.Label(value = 'Welcome to findmycells, glad you´re here! :-)')
         welcome_label_line_2 = w.Label(value = 'Please start by selecting the root directory for your project below.')
-        welcome_label_line_3 = w.Label(value = 'When youÂ´re happy with your selection, click "confirm" and we are ready to go!')
-        self.root_dir = FileChooser('/mnt/c/Users/dsege/Downloads/test/', show_only_dirs = True)
+        welcome_label_line_3 = w.Label(value = 'When you´re happy with your selection, click "confirm" and we are ready to go!')
+        self.root_dir = FileChooser('/Users/dsege/Downloads/', show_only_dirs = True)
         confirm_root_dir_selection = w.Button(description = 'confirm')
         confirm_root_dir_selection.on_click(self._confirm_root_dir_selection)
         return w.VBox([welcome_label_line_1, welcome_label_line_2, welcome_label_line_3, self.root_dir, confirm_root_dir_selection])
