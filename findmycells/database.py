@@ -28,7 +28,8 @@ class Database:
     def _initialize_project_in_root_dir(self) -> None:
         self._initialize_all_top_level_subdirectories()
         self._initialize_segmentation_tool_subdirectories()
-        self._initialize_microscopy_images_subdirectory_tree()
+        if len(utils.list_dir_no_hidden(path = self.project_configs.root_dir.joinpath(self.microscopy_images_dir), only_dirs = True)) > 0:
+            self._assert_valid_microscopy_image_subdir_tree_structure()
     
           
     def _initialize_all_top_level_subdirectories(self) -> None:
@@ -68,6 +69,31 @@ class Database:
         self._find_or_create_subdir(target_name = 'segmentation_tool_temp_dir',
                                     keywords = ['tmp', 'temp'],
                                     parent_dir = self.project_configs.root_dir.joinpath(self.segmentation_tool_dir))
+                                               
+
+    def _create_file_infos_as_attr(self) -> None:
+        file_infos = {'file_id': [],
+                      'original_filename': [],
+                      'main_group_id': [],
+                      'subgroup_id': [],
+                      'subject_id': [],
+                      'hemisphere_id': [],
+                      'microscopy_filepath': [],
+                      'microscopy_filetype': [],
+                      'rois_present': [],
+                      'rois_filepath': [],
+                      'rois_filetype': []}
+        setattr(self, 'file_infos', file_infos)
+        
+        
+    def _create_file_histories_as_attr(self) -> None:
+        setattr(self, 'file_histories', {})
+        
+        
+    def compute_file_infos(self) -> None:
+        self._initialize_microscopy_images_subdirectory_tree()
+        self._add_new_files_to_database()
+        self._identify_removed_files() # ToDo: not implemented yet
         
         
     def _initialize_microscopy_images_subdirectory_tree(self) -> None:
@@ -118,44 +144,16 @@ class Database:
         microscopy_images_dir.joinpath(main_group_id, subgroup_id).mkdir(exist_ok = True)
         microscopy_images_dir.joinpath(main_group_id, subgroup_id, subject_id).mkdir(exist_ok = True)
         microscopy_images_dir.joinpath(main_group_id, subgroup_id, subject_id, hemisphere_id).mkdir(exist_ok = True)
-                                               
-                                               
-
-    def _create_file_infos_as_attr(self) -> None:
-        file_infos = {'file_id': [],
-                      'original_filename': [],
-                      'main_group_id': [],
-                      'subgroup_id': [],
-                      'subject_id': [],
-                      'hemisphere_id': [],
-                      'microscopy_filepath': [],
-                      'microscopy_filetype': [],
-                      'rois_present': [],
-                      'rois_filepath': [],
-                      'rois_filetype': []}
-        setattr(self, 'file_infos', file_infos)
         
         
-    def _create_file_histories_as_attr(self) -> None:
-        setattr(self, 'file_histories', {})
-        
-        
-    def compute_file_infos(self, skip_checking: bool=False) -> None:
-        self._add_new_files_to_database(skip_checking = skip_checking)
-        self._identify_removed_files() # ToDo: not implemented yet
-        
-        
-    def _add_new_files_to_database(self, skip_checking: bool) -> None:
+    def _add_new_files_to_database(self) -> None:
         microscopy_images_dir_path = self.project_configs.root_dir.joinpath(self.microscopy_images_dir)
         for main_group_id_subdir_path in utils.list_dir_no_hidden(path = microscopy_images_dir_path, only_dirs = True):
             for subgroup_id_subdir_path in utils.list_dir_no_hidden(path = main_group_id_subdir_path, only_dirs = True):
                 for subject_id_subdir_path in utils.list_dir_no_hidden(path = subgroup_id_subdir_path, only_dirs = True):
                     for hemisphere_id_subdir_path in utils.list_dir_no_hidden(path = subject_id_subdir_path, only_dirs = True):
                         for filepath in utils.list_dir_no_hidden(path = hemisphere_id_subdir_path, only_files = True):
-                            if skip_checking == True:
-                                new_file_found = True
-                            else:
-                                new_file_found = self._is_this_a_new_file(filepath = filepath)
+                            new_file_found = self._is_this_a_new_file(filepath = filepath)
                             if new_file_found == True:
                                 file_id = self._get_next_available_file_id()
                                 self._append_details_to_file_infos(file_id = file_id, filepath = filepath)
@@ -169,17 +167,27 @@ class Database:
         main_group_id = subgroup_subdir_path.parent.name
         original_filename = filepath.name[:filepath.name.find('.')]
         file_infos_as_df = pd.DataFrame(data = self.file_infos)
-        matching_entries = file_infos_as_df.loc[(file_infos_as_df['main_group_id'] == main_group_id) &
-                                                (file_infos_as_df['subgroup_id'] == subgroup_subdir_path.name) &
-                                                (file_infos_as_df['subject_id'] == subject_subdir_path.name) &
-                                                (file_infos_as_df['hemisphere_id'] == hemisphere_subdir_path.name) &
-                                                (file_infos_as_df['original_filename'] == original_filename)].shape[0]
-        if matching_entries == 0:
+        matching_entries_df = file_infos_as_df.loc[(file_infos_as_df['main_group_id'] == main_group_id) &
+                                                   (file_infos_as_df['subgroup_id'] == subgroup_subdir_path.name) &
+                                                   (file_infos_as_df['subject_id'] == subject_subdir_path.name) &
+                                                   (file_infos_as_df['hemisphere_id'] == hemisphere_subdir_path.name) &
+                                                   (file_infos_as_df['original_filename'] == original_filename)]
+        matching_entries_count = matching_entries_df.shape[0]
+        if matching_entries_count == 0:
             is_new_file = True
-        elif matching_entries == 1:
+        elif matching_entries_count == 1:
             is_new_file = False
         else:
-            raise ValueError(f'Found multiple entries in file_infos for {filepath}.')
+            conflicting_file_ids = matching_entries_df['file_id'].values
+            raise ValueError((f'Found multiple entries in file_infos for {filepath}.'
+                              'This is an unexpected behavior and needs to be resolved. Please '
+                              'Try to remove the file that was '
+                              'reported above by using the steps described in "removing files '
+                              'from a findmycells project". Since this process requires you '
+                              'to specify the respective file IDs of the files you´d like to '
+                              'remove, please find the conflicting IDs below. You have to remove '
+                              'at least all but one, yet removing all and then adding one correct '
+                              f'again is recommended.\n Conflicting file IDs: {conflicting_file_ids}.'))
         return is_new_file
         
         

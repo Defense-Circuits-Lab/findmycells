@@ -21,7 +21,7 @@ class CropStitchingArtefactsRGBStrat(PreprocessingStrategy):
     #ToDo:
     # - Option to specify whether artefact pixel color is black or white
     # - if white: make sure to identify bit type of the image (whether white == 255, 4095, ..)
-    # - check whether it also works if it´s only a single channel image
+    # - check whether it also works if itÂ´s only a single channel image
     
     """
     When you acquire microscopy images that are essentially several individual 
@@ -29,7 +29,7 @@ class CropStitchingArtefactsRGBStrat(PreprocessingStrategy):
     borders of the image as a result from the stitching process. These pixels are
     usually either fully black or fully white and can therefore interfere with 
     other processing strategies that you might want to apply to your images (for 
-    instance, if you´d like to adjust brightness and contrast). This strategy aims
+    instance, if youÂ´d like to adjust brightness and contrast). This strategy aims
     at identifying these pixels that were added to account for some offset between
     the individual tiles and eventually remove them. As these artefacts might 
     interfere with other processing steps, it is recommended to add this (or any other
@@ -231,7 +231,7 @@ class ConvertTo8BitStrat(PreprocessingStrategy):
     """
     This strategy converts your image to an 8-bit format. Adding this strategy is
     at the moment mandatory, as all implemented segmentation tools (deepflash2 & cellpose)
-    require 8-bit as input format. So you actually don´t really have a choice but adding it! :-)
+    require 8-bit as input format. So you actually donÂ´t really have a choice but adding it! :-)
     """
     
     @property
@@ -289,7 +289,7 @@ class MaximumIntensityProjectionStrat(PreprocessingStrategy):
     project it from a 3D image stack (commonly referred to as 2.5D) into a two
     dimensional single plane image. If you select this strategy, the brightest (= maximal)
     pixel value from the z-stack will be used in the final 2D projection. Alternatively,
-    feel free to use the "Minimum intenstity projection" strategy, if you´d like to 
+    feel free to use the "Minimum intenstity projection" strategy, if youÂ´d like to 
     keep only the darkest (= minimal) value of each pixel.
     """
     
@@ -349,7 +349,7 @@ class MinimumIntensityProjectionStrat(PreprocessingStrategy):
     project it from a 3D image stack (commonly referred to as 2.5D) into a two
     dimensional single plane image. If you select this strategy, the darkest (= minimal)
     pixel value from the z-stack will be used in the final 2D projection. Alternatively,
-    feel free to use the "Maximum intenstity projection" strategy, if you´d like to 
+    feel free to use the "Maximum intenstity projection" strategy, if youÂ´d like to 
     keep only the brightest (= maximal) value of each pixel.
     """
     
@@ -410,7 +410,7 @@ class AdjustBrightnessAndContrastStrat(PreprocessingStrategy):
     you want to be saturated (default: 0.35 % - same as in ImageJ2). This 
     strategy will then ensure that this specified percentage of pixels will
     be fully saturated in all of your images. If you have z-stack images,
-    you can furthermore also specify whether you´d like to run this operation
+    you can furthermore also specify whether youÂ´d like to run this operation
     on the full z-stack (chose "globally"), or on each individual plane of the
     z-stack (chose "individually"). I would rather recommend using "globally" 
     to keep a somewhat consistent meaning of pixel intensities. And, finally, 

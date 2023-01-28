@@ -260,7 +260,7 @@ class GUIConfigs:
             
     
     def _initialize_individual_widgets_as_attributes(self, strategy_description: str, default_configs: DefaultConfigs) -> None:
-        self.strategy_description_label = w.Label(value = strategy_description)
+        self.strategy_description_label = w.HTML(value = strategy_description)
         for config_key, widget_name in self.widget_names.items():
             widget_constructor = self.widget_constructors[widget_name]
             widget = widget_constructor(key = config_key, default_configs = default_configs)

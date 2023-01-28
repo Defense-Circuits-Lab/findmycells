@@ -31,8 +31,8 @@ class API:
         self.database = Database(project_configs = self.project_configs)
         
         
-    def update_database_with_current_source_files(self, skip_checking: bool=False) -> None:
-        self.database.compute_file_infos(skip_checking = skip_checking)
+    def update_database_with_current_source_files(self) -> None:
+        self.database.compute_file_infos()
         
         
     def preprocess(self,
@@ -77,6 +77,37 @@ class API:
             reader_configs = default_configs.fill_user_input_with_defaults_where_needed(user_input = reader_configs)
             self.project_configs.add_reader_configs(reader_type = reader_type, reader_configs = reader_configs)
         return reader_configs
+    
+
+    def segment(self,
+                   strategies: List[PreprocessingStrategy],
+                   strategy_configs: Optional[List[Dict]]=None,
+                   processing_configs: Optional[Dict]=None,
+                   file_ids: Optional[List[str]]=None
+                  ) -> None:
+        processing_step_id = 'segmentation'
+        strategy_configs, processing_configs, file_ids = self._assert_and_update_input(processing_step_id = processing_step_id,
+                                                                                       strategies = strategies,
+                                                                                       strategy_configs = strategy_configs,
+                                                                                       processing_configs = processing_configs,
+                                                                                       file_ids = file_ids)
+        # ToDo: split file_ids in batches if requested in processing_configs
+        
+        for file_id in tqdm(file_ids, display = processing_configs['show_progress']):
+            segmentation_object = SegmentationObject()
+            # Continue here
+            # information on previous implementation can be found in:
+            #   /tmp_nbs/03_api.ipynb - class: "Project", method "segment"
+            
+            segmentation_object.prepare_for_processing(file_ids = [file_id], database = self.database)
+            segmentation_object.run_all_strategies(strategies = strategies, strategy_configs = strategy_configs)
+            segmentation_object.update_database()
+            del segmentation_object
+            if processing_configs['autosave'] == True:
+                self.save_status()
+                self.load_status()
+                
+                
 
     
     def save_status(self) -> None:
@@ -231,7 +262,21 @@ class API:
                 all_final_configs.append(full_configs)
         return all_final_configs
 
-# %% ../nbs/03_interfaces.ipynb 6
+# %% ../nbs/03_interfaces.ipynb 7
+from pathlib import Path, PosixPath
+from typing import List, Dict, Tuple, Optional, Union
+from traitlets.traitlets import MetaHasTraits as WidgetType
+
+from tqdm.notebook import tqdm
+from datetime import datetime
+import pickle
+import ipywidgets as w
+from IPython.display import display
+from ipyfilechooser import FileChooser
+import os
+
+
+# %% ../nbs/03_interfaces.ipynb 10
 class PageButtonBundle(ABC):
     
     
@@ -261,15 +306,200 @@ class PageButtonBundle(ABC):
         self.navigator_button.style.button_color = 'skyblue'
         self.gui_page_screen.children = (self.page_content, )
 
-# %% ../nbs/03_interfaces.ipynb 7
+# %% ../nbs/03_interfaces.ipynb 11
 class OverviewPage(PageButtonBundle):
         
     def _initialize_page_content(self) -> WidgetType:
-        label = w.Label(value = 'This will be the Overview page')
-        return w.VBox([label])
+        overview_intro_text = w.HTML(value = ('This is the overview page for your findmycells '
+                                              'project. You will find everything relevant regarding '
+                                              'the organization of your project in the tabs below. '
+                                              'If you have just started your findmycells project, '
+                                              'please make sure to follow the instructions in the '
+                                              '"project files" tab before you can get started.'))
+        project_files_tab_widget = self._initialize_project_files_tab_widget()
+        save_load_project_tab_widget = self._initialize_save_load_project_tab_widget()
+        browse_file_histories_tab_widget = self._initialize_browse_file_histories_tab_widget()
+        self._bind_buttons_to_functions()
+        tabs = w.Tab([save_load_project_tab_widget, 
+                      project_files_tab_widget, 
+                      browse_file_histories_tab_widget], selected_index = 1)
+        tabs.set_title(0, 'save & load project')
+        tabs.set_title(1, 'project files')
+        tabs.set_title(2, 'browser file histories')
+        page_content_widget = w.VBox([overview_intro_text, tabs])
+        return page_content_widget
+        
+        
+    def _initialize_project_files_tab_widget(self) -> WidgetType:
+        intro_text = w.HTML(value = ('Just started a new project? Great! Before you can get started with '
+                                     'the processing of your data, you need to associate the corresponding '
+                                     'files with your findmycells project. Unfortunately, this requires you '
+                                     'to arrange your files in a very rigid structure of directories (this '
+                                     'will be fixed in a later version). But donÂ´t worry, if you click on '
+                                     'the "expand me if you need a detailed guide to prepare your data!" '
+                                     'widget below you will find a comprehensive overview on how this tree '
+                                     'of directories has to look like. Once you have your data arranged '
+                                     'accordingly, just click the "update project files" button below. You '
+                                     'can also always come back to this page & hit the button again in order '
+                                     'to update the files associated with your project. Findmycells will then '
+                                     'automatically identify files that have been deleted or added to the '
+                                     'directories and remove them from or add them to your current project, '
+                                     'respectively. To get an overview of which files are currently associ'
+                                     'ated with your project, just click the "display current project files" '
+                                     'button right next to the "update project files" button. If you are inter'
+                                     'ested in more detailed information about each file, for instance its '
+                                     'processing history, please head over to the "file histories" tab.'))
+        guide_accordion = self._initialize_guide_accordion_widget()
+        self.update_project_files_button = w.Button(description = 'update project files', icon = 'refresh')
+        self.display_current_project_files_button = w.Button(description = 'display current project files')
+        buttons = w.HBox([self.update_project_files_button, self.display_current_project_files_button])
+        self.current_project_files_output = w.Output()
+        project_files_tab_widget = w.VBox([intro_text,
+                                           guide_accordion,
+                                           buttons,
+                                           self.current_project_files_output])
+        return project_files_tab_widget
+    
+    
+    def _initialize_guide_accordion_widget(self) -> WidgetType:
+        # ToDo: write detailed description of directory tree
+        # ToDo: add sample image of how this could look like
+        # ToDo: what to do for walkthrough through data
+        # ToDo: hint that just clicking the button with an empty microscopy dir launches sample tree
+        general_info = w.HTML(value = 'space for some general infos')
+        detailed_infos = w.HTML(value = 'all details come here')
+        sample_image = w.HTML(value = 'this shall be replaced by the sample image')
+        whole_guide = w.VBox([general_info, 
+                              detailed_infos,
+                              sample_image])
+        guide_accordion = w.Accordion([whole_guide], selected_index = None)
+        guide_accordion.set_title(0, 'expand me if you need a detailed guide to prepare your data!')
+        return guide_accordion
+        
+        
+    def _initialize_save_load_project_tab_widget(self) -> WidgetType:
+        intro_text = w.HTML(value = ('Here you can either save the progress of your currently '
+                                     'running project or load a previously saved project.'))
+        save_project_widget = self._initialize_save_project_widget()
+        load_project_widget = self._initialize_load_project_widget()
+        accordion = w.Accordion([save_project_widget, load_project_widget], selected_index = 0)
+        accordion.set_title(0, 'save')
+        accordion.set_title(1, 'load')
+        save_load_project_tab_widget = w.VBox([intro_text, accordion])
+        return save_load_project_tab_widget
+    
+    
+    def _initialize_save_project_widget(self) -> WidgetType:
+        save_description = w.HTML(value = ('Clicking the following "save" button will save '
+                                           'your current project, including all configurations '
+                                           'and processing progress. The file will automatically '
+                                           'be written as a ".configs" file to the root directory '
+                                           'you specified, with the current date as prefix.'))
+        self.save_project_button = w.Button(description = 'save project', icon = 'save')
+        save_project_widget = w.VBox([save_description, self.save_project_button])
+        return save_project_widget
+    
+    
+    def _initialize_load_project_widget(self) -> WidgetType:
+        load_description = w.HTML(value = ('You already have a findmycells project to load? Great! '
+                                           'Please make sure to choose the corresponding root dir'
+                                           'rectory in which you previously created and run your '
+                                           'project upon starting this GUI. If you have specified a '
+                                           'different root directory, simply restart the GUI. When '
+                                           'you are in the correct root directory, simply click the '
+                                           '"load project" button to load your project and the last '
+                                           'status you have saved.'))
+        self.load_project_button = w.Button(description = 'load project', icon = 'upload')
+        # ToDo: 
+        #   For the moment you should only load a project from its own root dir.
+        #   However, it should be possible in later versions to provide the filepath(s)
+        #   to the file(s) that fmc created upon saving the project. This would, consequently,
+        #   require the use of filechooser(s). I think it was possible to restrict the selection
+        #   to only files with a specific extension (to make sure the user selects the correct
+        #   file(s)). In addition, it might be possible to re-configure the default filepath
+        #   of the current root dir. 
+        load_project_widget = w.VBox([load_description,
+                                      self.load_project_button])
+        return load_project_widget
+    
+        
+    def _initialize_browse_file_histories_tab_widget(self) -> WidgetType:
+        intro_text = w.HTML(value = ('Findmycells keeps a detailed track of how and when your '
+                                     'files are processed. Using the widget below, you are '
+                                     'able to browser through this history for all files in your '
+                                     'project. Note: Unfortunately, this interactive widget is '
+                                     'not yet implemented in your current version. Nevertheless, '
+                                     'findmycells already tracks the processing history of your '
+                                     'files and if you have some experience with python, you can '
+                                     'access them at: self.api.database.file_histories, where '
+                                     '"self" refers to the GUI object you have instantiated.'))
+        self.file_histories_id_dropdown = w.Dropdown(description = 'History of file ID:', 
+                                                     style = {'description_width': 'initial'},
+                                                     layout = {'width': '66%'})
+        self.display_file_history_button = w.Button(description = 'show history', layout = {'width': '33%'})
+        dropdown_button_hbox = w.HBox([self.file_histories_id_dropdown, self.display_file_history_button])
+        self.file_history_output = w.Output()
+        browse_file_hostories_tab_widget = w.VBox([intro_text,
+                                                   dropdown_button_hbox,
+                                                   self.file_history_output])
+        return browse_file_hostories_tab_widget
+                                      
+        
+    def _bind_buttons_to_functions(self) -> None:
+        self.update_project_files_button.on_click(self._update_project_files_button_clicked)
+        self.display_current_project_files_button.on_click(self._display_current_project_files_button_clicked)
+        self.save_project_button.on_click(self._save_project_button_clicked)
+        self.load_project_button.on_click(self._load_project_button_clicked)
+        self.display_file_history_button.on_click(self._display_file_history_button_clicked)
+        
+        
+    def _update_project_files_button_clicked(self, b) -> None:
+        self.api.update_database_with_current_source_files()
+        self.api.database.compute_file_infos()
+        self._update_options_for_file_histories_id_dropdown()
+        self._display_current_project_files_button_clicked('simulate a click')
+        
+    
+    def _update_options_for_file_histories_id_dropdown(self) -> None:
+        self.file_histories_id_dropdown.options = self.api.database.file_infos['file_id']
+        
+        
+    def _display_current_project_files_button_clicked(self, b) -> None:
+        file_infos_df = pd.DataFrame(data = self.api.database.file_infos)
+        refreshed_datetime = datetime.now()
+        with self.current_project_files_output:
+            self.current_project_files_output.clear_output()
+            print(f'Data refreshed at {refreshed_datetime:%H:%M:%S} on {refreshed_datetime:%d.%m.%Y}')
+            print('\n\n')
+            display(file_infos_df)
 
-# %% ../nbs/03_interfaces.ipynb 8
+            
+    def _save_project_button_clicked(self, b) -> None:
+        self.api.save_status()
+    
+    
+    def _load_project_button_clicked(self, b) -> None:
+        self.api.load_status()
+        
+    
+    def _display_file_history_button_clicked(self, b) -> None:
+        # ToDo: 
+        #   Needs to be implemented. File histories are implemented, yet
+        #   it needs to be checked how to best visualize them, as they 
+        #   consist of two parts, a pd.DataFrame that tracks the general
+        #   processing information (what strategy was run when & was a 
+        #   given processing step completed), and a dictionary that lists
+        #   the exact parameters (user settings and determined by fmc) 
+        #   for each processing step individually
+        with self.file_history_output:
+            self.file_history_output.clear_output()
+            print('Not implemented yet!')
+
+# %% ../nbs/03_interfaces.ipynb 12
 class ProcessingStepPage(PageButtonBundle):
+    
+    #ToDo: 
+    # For preprocessing, widgets to configure the DataReaders (microscopy_configs & roi_configs) need to be added!
         
     def _initialize_page_content(self) -> WidgetType:
         self.exported_strategies_with_configs = []
@@ -380,7 +610,7 @@ class ProcessingStepPage(PageButtonBundle):
         strategy_configs = list(strategy_configs)
         return strategies, strategy_configs
 
-# %% ../nbs/03_interfaces.ipynb 9
+# %% ../nbs/03_interfaces.ipynb 13
 class GUI:
     
     def __init__(self) -> None:
@@ -388,10 +618,12 @@ class GUI:
         
     
     def _initialize_start_screen(self) -> WidgetType:
-        welcome_label_line_1 = w.Label(value = 'Welcome to findmycells, glad you´re here! :-)')
+        welcome_label_line_1 = w.Label(value = 'Welcome to findmycells, glad youÂ´re here! :-)')
         welcome_label_line_2 = w.Label(value = 'Please start by selecting the root directory for your project below.')
-        welcome_label_line_3 = w.Label(value = 'When you´re happy with your selection, click "confirm" and we are ready to go!')
-        self.root_dir = FileChooser('/Users/dsege/Downloads/', show_only_dirs = True)
+        welcome_label_line_3 = w.Label(value = 'When youÂ´re happy with your selection, click "confirm" and we are ready to go!')
+        current_working_dir = os.getcwd()
+        #self.root_dir = FileChooser(current_working_dir, show_only_dirs = True)
+        self.root_dir = FileChooser('/mnt/c/Users/dsege/Downloads/fmc_test_project/', show_only_dirs = True)
         confirm_root_dir_selection = w.Button(description = 'confirm')
         confirm_root_dir_selection.on_click(self._confirm_root_dir_selection)
         return w.VBox([welcome_label_line_1, welcome_label_line_2, welcome_label_line_3, self.root_dir, confirm_root_dir_selection])
