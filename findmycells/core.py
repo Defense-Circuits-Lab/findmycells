@@ -86,6 +86,15 @@ class ProcessingObject(ABC):
     
     @abstractmethod
     def _processing_specific_preparations(self) -> None:
+        """
+        Allows to keep the __init__() method clear of any functions, which is 
+        required to be able to just instantiate a representative object to create
+        its GUI widget (using the GUIConfigs set as attribute). Will be called in
+        the prepare_for_processing() method and, thus, still enable processing step
+        specific computations before the strategies are executed. 
+        
+        Leave as "pass" if nothing needs to be done here.
+        """
         pass
     
     
