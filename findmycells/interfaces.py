@@ -11,6 +11,7 @@ from traitlets.traitlets import MetaHasTraits as WidgetType
 
 import os
 import pickle
+import random
 import pandas as pd
 from datetime import datetime
 import ipywidgets as w
@@ -22,6 +23,7 @@ from .configs import ProjectConfigs
 from .database import Database
 from .core import ProcessingStrategy, ProcessingObject
 from .preprocessing.specs import PreprocessingStrategy, PreprocessingObject
+from .segmentation.specs import SegmentationStrategy, SegmentationObject
 
 # %% ../nbs/03_interfaces.ipynb 6
 class API:
@@ -60,7 +62,7 @@ class API:
             preprocessing_object.run_all_strategies(strategies = strategies, strategy_configs = strategy_configs)
             preprocessing_object.save_preprocessed_images_on_disk()
             preprocessing_object.save_preprocessed_rois_in_database()
-            preprocessing_object.update_database()
+            preprocessing_object.update_database(mark_as_completed = True)
             del preprocessing_object
             if processing_configs['autosave'] == True:
                 self.save_status()
@@ -82,7 +84,7 @@ class API:
     
 
     def segment(self,
-                   strategies: List[PreprocessingStrategy],
+                   strategies: List[SegmentationStrategy],
                    strategy_configs: Optional[List[Dict]]=None,
                    processing_configs: Optional[Dict]=None,
                    file_ids: Optional[List[str]]=None
@@ -93,24 +95,82 @@ class API:
                                                                                        strategy_configs = strategy_configs,
                                                                                        processing_configs = processing_configs,
                                                                                        file_ids = file_ids)
-        # ToDo: split file_ids in batches if requested in processing_configs
+        file_ids_per_batch = self.split_file_ids_into_batches(file_ids = file_ids, batch_size = processing_configs['batch_size'])
+        if processing_configs['run_strategies_individually'] == True:
+            self._segment_running_strategies_individually(strategies = strategies,
+                                                          strategy_configs = strategy_configs,
+                                                          processing_configs = processing_configs,
+                                                          file_ids_per_batch = file_ids_per_batch)
+        else:
+            self._segment_running_strategies_consecutively(strategies = strategies,
+                                                           strategy_configs = strategy_configs,
+                                                           processing_configs = processing_configs,
+                                                           file_ids_per_batch = file_ids_per_batch)
+        if processing_configs['clear_tmp_data'] == True:
+            all_files_done = self._check_if_all_files_have_finished_current_processing_step(processing_step_id = processing_step_id)
+            if all_files_done == True:
+                segmentation_object = SegmentationObject()
+                dummy_file_id = file_ids_per_batch[0][0]
+                segmentation_object.prepare_for_processing(file_ids = [dummy_file_id], database = self.database)
+                segmentation_object.clear_all_tmp_data_in_seg_tool_dir()
+                del segmentation_object
+
         
-        for file_id in tqdm(file_ids, display = processing_configs['show_progress']):
+    def _segment_running_strategies_individually(self,
+                                                 strategies: List[SegmentationStrategy],
+                                                 strategy_configs: List[Dict],
+                                                 processing_configs: Dict,
+                                                 file_ids_per_batch: List[List[str]]
+                                                ) -> None:
+        total_strategy_count = len(strategies)
+        for i in tqdm(range(total_strategy_count - 1), display = processing_configs['show_progress']):
+            if processing_configs['show_progress'] == True:
+                print(f'Starting with segmentation strategy #{i+1}')
+            strategy, config = strategies[i], strategy_configs[i]
+            for batch_file_ids in tqdm(file_ids_per_batch, display = processing_configs['show_progress']):
+                if processing_configs['show_progress'] == True:
+                    print(f'Starting with batch #{file_ids_per_batch.index(batch_file_ids) + 1}')
+                segmentation_object = SegmentationObject()
+                segmentation_object.prepare_for_processing(file_ids = batch_file_ids, database = self.database)
+                segmentation_object.run_all_strategies(strategies = [strategy], strategy_configs = [config])
+                if i == total_strategy_count - 1: # if this is the last strategy that needs to be run
+                    segmentation_object.update_database(mark_as_completed = True)
+                else:
+                    segmentation_object.update_database(mark_as_completed = False)
+                del segmentation_object
+                if processing_configs['autosave'] == True:
+                    self.save_status()
+                    self.load_status()
+
+
+    def _segment_running_strategies_consecutively(self,
+                                                  strategies: List[SegmentationStrategy],
+                                                  strategy_configs: List[Dict],
+                                                  processing_configs: Dict,
+                                                  file_ids_per_batch: List[List[str]]
+                                                 ) -> None:
+        for batch_file_ids in tqdm(file_ids_per_batch, display = processing_configs['show_progress']):
             segmentation_object = SegmentationObject()
-            # Continue here
-            # information on previous implementation can be found in:
-            #   /tmp_nbs/03_api.ipynb - class: "Project", method "segment"
-            
-            segmentation_object.prepare_for_processing(file_ids = [file_id], database = self.database)
+            segmentation_object.prepare_for_processing(file_ids = batch_file_ids, database = self.database)
             segmentation_object.run_all_strategies(strategies = strategies, strategy_configs = strategy_configs)
-            segmentation_object.update_database()
+            segmentation_object.update_database(mark_as_completed = True)
             del segmentation_object
             if processing_configs['autosave'] == True:
                 self.save_status()
-                self.load_status()
-                
+                self.load_status()            
                 
 
+    def _check_if_all_files_have_finished_current_processing_step(self, processing_step_id: str) -> bool:
+        all_file_ids = self.database.file_infos['file_id']
+        file_ids_not_processed_yet = []
+        for file_id in all_file_ids:
+            if processing_step_id not in self.database.file_histories[file_id].completed_processing_steps.keys():
+                file_ids_not_processed_yet.append(file_id)
+            else:
+                if self.database.file_histories[file_id].completed_processing_steps[processing_step_id] == False:
+                    file_ids_not_processed_yet.append(file_id)
+        return len(file_ids_not_processed_yet) == 0
+    
     
     def save_status(self) -> None:
         date = f'{datetime.now():%Y_%m_%d}'
@@ -160,19 +220,29 @@ class API:
         
 
     def split_file_ids_into_batches(self, file_ids: List[str], batch_size: int) -> List[List[str]]:
-        if len(file_ids) % batch_size == 0:
-            total_batches = int(len(file_ids) / batch_size)
+        """
+        Splits a list ("file_ids") of file_id strings into nested lists of file_id strings,
+        where the maximum length of each nested list equals the integer passed as "batch_size".
+        If "batch_size" matches or exceeds the number of file_id strings passed in the original
+        list (i.e. length of "file_ids"), or if "batch_size" is 0, it will return a list with 
+        only a single nested list that again contains all file_id strings.
+        """
+        if batch_size == 0:
+            file_ids_per_batch = [file_ids]
         else:
-            total_batches = int(len(file_ids) / batch_size) + 1
-        file_ids_per_batch = []
-        for batch in range(total_batches):
-            if len(file_ids) >= batch_size:
-                sampled_file_ids = random.sample(file_ids, batch_size)
+            if len(file_ids) % batch_size == 0:
+                total_batches = int(len(file_ids) / batch_size)
             else:
-                sampled_file_ids = file_ids.copy()
-            file_ids_per_batch.append(sampled_file_ids)
-            for elem in sampled_file_ids:
-                file_ids.remove(elem)    
+                total_batches = int(len(file_ids) / batch_size) + 1
+            file_ids_per_batch = []
+            for batch in range(total_batches):
+                if len(file_ids) >= batch_size:
+                    sampled_file_ids = random.sample(file_ids, batch_size)
+                else:
+                    sampled_file_ids = file_ids.copy()
+                file_ids_per_batch.append(sampled_file_ids)
+                for elem in sampled_file_ids:
+                    file_ids.remove(elem)    
         return file_ids_per_batch
 
 
@@ -221,7 +291,7 @@ class API:
                                       processing_configs: Optional[Dict],
                                       file_ids: Optional[List[str]]
                                      ) -> None:
-        assert type(strategies) == list, '"strategies" has to ba a list of ProcessingStrategy classes of the respective processing step!'
+        assert type(strategies) == list, '"strategies" has to be a list of ProcessingStrategy classes of the respective processing step!'
         if strategy_configs != None:
             assert type(strategy_configs) == list, '"strategy_configs" has to be None or a list of the same length as "strategies"!'
             assert len(strategy_configs) == len(strategies), '"strategy_configs" has to be None or a list of the same length as "strategies"!'
@@ -570,18 +640,40 @@ class ProcessingStepPage(PageButtonBundle):
         
         
     def _run_clicked(self, b) -> None:
-        file_ids = self._get_file_ids()
-        strategies, strategy_configs = self._get_strategies_and_configs()
         self.run.disabled = True
         self.refine_processing_configs.disabled = True
+        self._determine_and_call_corresponding_api_function()
+        self.run.disabled = False
+        self.refine_processing_configs.disabled = False
+        
+        
+    
+    def _determine_and_call_corresponding_api_function(self) -> None:
+        file_ids = self._get_file_ids()
+        strategies, strategy_configs = self._get_strategies_and_configs()
+        if self.bundle_id == 'preprocessing':
+            self._run_preprocessing(file_ids = file_ids, strategies = strategies, strategy_configs = strategy_configs)
+        elif self.bundle_id == 'segmentation':
+            self._run_segmentation(file_ids = file_ids, strategies = strategies, strategy_configs = strategy_configs)
+        else:
+            raise NotImplementedError(f'API wrapper for {bundle_id} missing!')
+            
+            
+            
+    def _run_preprocessing(self, file_ids: List[str], strategies: List, strategy_configs: List[Dict]) -> None:        
         self.api.preprocess(strategies = strategies,
                             strategy_configs = strategy_configs,
                             processing_configs = self.processing_configs,
                             microscopy_reader_configs = None,
                             roi_reader_configs = None,
                             file_ids = file_ids)
-        self.run.disabled = False
-        self.refine_processing_configs.disabled = False
+        
+        
+    def _run_segmentation(self, file_ids: List[str], strategies: List, strategy_configs: List[Dict]) -> None:        
+        self.api.segment(strategies = strategies,
+                        strategy_configs = strategy_configs,
+                        processing_configs = self.processing_configs,
+                        file_ids = file_ids)
         
         
     def _get_file_ids(self) -> List[str]:

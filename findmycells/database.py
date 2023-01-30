@@ -66,7 +66,7 @@ class Database:
         self._find_or_create_subdir(target_name = 'trained_models',
                                     keywords = ['models'],
                                     parent_dir = self.project_configs.root_dir.joinpath(self.segmentation_tool_dir))
-        self._find_or_create_subdir(target_name = 'segmentation_tool_temp_dir',
+        self._find_or_create_subdir(target_name = 'segmentation_tool_temp',
                                     keywords = ['tmp', 'temp'],
                                     parent_dir = self.project_configs.root_dir.joinpath(self.segmentation_tool_dir))
                                                

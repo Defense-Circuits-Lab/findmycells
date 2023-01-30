@@ -9,8 +9,8 @@ from shapely.geometry import Polygon
 from typing import List, Dict
 from skimage.io import imsave
 
-from ..core import DefaultConfigs, ProcessingObject, ProcessingStrategy, DataLoader
-# from findmycells.database import Database
+from ..core import ProcessingObject, ProcessingStrategy, DataLoader
+from ..configs import DefaultConfigs
 from .. import readers
 
 # %% ../../nbs/05_preprocessing_00_specs.ipynb 4

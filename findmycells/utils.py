@@ -6,7 +6,7 @@ __all__ = ['list_dir_no_hidden', 'load_zstack_as_array_from_single_planes', 'unp
 
 # %% ../nbs/99_utils.ipynb 2
 from typing import List, Optional
-from pathlib import Path
+from pathlib import Path, PosixPath
 
 import numpy as np
 from skimage import io
@@ -15,7 +15,7 @@ from shapely.validation import make_valid
 
 
 # %% ../nbs/99_utils.ipynb 4
-def list_dir_no_hidden(path: Path, only_dirs: Optional[bool]=False, only_files: Optional[bool]=False) -> List:
+def list_dir_no_hidden(path: PosixPath, only_dirs: Optional[bool]=False, only_files: Optional[bool]=False) -> List[PosixPath]:
     if only_dirs == True:
         detected_paths = [elem for elem in path.iterdir() if (elem.is_dir() == True) & (elem.name.startswith('.') == False)]
     elif only_files == True:

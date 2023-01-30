@@ -8,6 +8,8 @@ from pathlib import Path, PosixPath
 from typing import Optional, Dict, Any, List, Tuple, Callable, Union
 from traitlets.traitlets import MetaHasTraits as WidgetType
 import ipywidgets as w
+from ipyfilechooser import FileChooser
+import os
 import inspect
 import pickle
 from datetime import datetime
@@ -91,7 +93,7 @@ class DefaultConfigs:
                  default_values: Dict[str, Any], # Keys are identifier of config options, values the corresponding default value
                  valid_types: Dict[str, List[type]], # Keys must match with keys of "default_values", values are lists of allowed types
                  valid_value_ranges: Optional[Dict[str, Tuple]]=None, # Required for every config option that allows floats or integers. Keys must match with keys of "default_values". Expected format: (start_idx, end_idx) or (start_idx, end_idx, step_size)
-                 valid_value_options: Optional[Dict[str, Tuple]]=None, # Required for every config option that allows strings. Keys must match with keys of "default_values". Expected format: ('option_a', 'option_b', ...)
+                 valid_value_options: Optional[Dict[str, Tuple]]=None, # Keys must match with keys of "default_values". Expected format: ('option_a', 'option_b', ...)
                 ) -> None:
         self._assert_valid_input(default_values, valid_types, valid_value_ranges, valid_value_options)
         self.values = default_values
@@ -130,8 +132,6 @@ class DefaultConfigs:
             if type(value) in [int, float]:
                 lower_border, upper_border = self.valid_ranges[key][:2]
                 assert lower_border <= value <= upper_border, f'Value for {key} is not within valid ranges!'
-            if type(value) in [str]:
-                assert value in self.valid_options[key], f'Value for {key} is not among valid options!'
                 
                 
     def fill_user_input_with_defaults_where_needed(self, user_input: Dict[str, Any]) -> Dict[str, Any]:
@@ -158,7 +158,7 @@ class DefaultConfigs:
             assert key in valid_types.keys(), 'The keys of the "default_values" and "valid_types" dictionaries must be identical!'
             assert type(value) in valid_types[key], 'All default value types must be defined in the corresponding list of valid types!'
         # Finally, confirm that ranges are provided for numerical configs,
-        # and options are defined for string-based configs:
+        # and that options are defined for string-based configs:
         for key, valid_value_types in valid_types.items():
             for valid_type in valid_value_types:
                 if valid_type in [float, int]:
@@ -169,12 +169,6 @@ class DefaultConfigs:
                                       ' increment step size like: (start_idx, end_idx, step_size). For '
                                       f'the key "{key}", however, you did not provide such a range!')
                     assert type(valid_value_ranges[key]) == tuple, assert_message
-                elif valid_type == str:
-                    assert type(valid_value_options) == dict, '"valid_value_options" has to be a dictionary (or None)!'
-                    assert_message = ('If "valid_types" includes "str", you also have to specify a tuple that '
-                                      'denotes the valid options in this format: ("option_a", "option_b", ...). '
-                                      f'For the key "{key}", however, you did not provide these options!')
-                    assert type(valid_value_options[key]) == tuple, assert_message
                 else:
                     continue
 
@@ -194,7 +188,8 @@ class GUIConfigs:
         widget_constructors = {'Checkbox': self._construct_a_checkbox,
                                'IntSlider': self._construct_an_intslider,
                                'FloatSlider': self._construct_a_floatslider,
-                               'Dropdown': self._construct_a_dropdown}
+                               'Dropdown': self._construct_a_dropdown,
+                               'FileChooser': self._construct_a_filechooser}
         return widget_constructors
     
     
@@ -317,6 +312,13 @@ class GUIConfigs:
                               layout = self.layout,
                               style = self.style)
         return w.HBox([dropdown])
+    
+    
+    def _construct_a_filechooser(self, key: str, default_configs: DefaultConfigs) -> WidgetType:
+        file_chooser = FileChooser(title = self.descriptions[key],
+                                   path = default_configs.values[key],
+                                   layout = self.layout)
+        return w.HBox([file_chooser])
 
 
     def _get_tooltip_if_present(self, key: str) -> Optional[str]:
