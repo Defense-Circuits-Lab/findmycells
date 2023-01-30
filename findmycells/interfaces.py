@@ -123,7 +123,7 @@ class API:
                                                  file_ids_per_batch: List[List[str]]
                                                 ) -> None:
         total_strategy_count = len(strategies)
-        for i in tqdm(range(total_strategy_count - 1), display = processing_configs['show_progress']):
+        for i in tqdm(range(total_strategy_count), display = processing_configs['show_progress']):
             if processing_configs['show_progress'] == True:
                 print(f'Starting with segmentation strategy #{i+1}')
             strategy, config = strategies[i], strategy_configs[i]

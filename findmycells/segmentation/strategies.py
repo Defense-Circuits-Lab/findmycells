@@ -212,7 +212,7 @@ class LosslessConversionOfDF2SemanticSegToInstanceSegWithCPStrat(SegmentationStr
         return processing_object
         
         
-    def _assert_all_semantic_segmentations_are_done() -> None:
+    def _assert_all_semantic_segmentations_are_done(self) -> None:
         #if not all(database.file_infos['semantic_segmentations_done']):
             #raise ValueError('Before you can proceed with instance segmentations, you have to finish semantic segmentation of all files first!')    
         # ToDo: Implementation with new file history pending!
@@ -270,7 +270,9 @@ class LosslessConversionOfDF2SemanticSegToInstanceSegWithCPStrat(SegmentationStr
 
     def _run_instance_segmentations(self, segmentation_object: SegmentationObject):
         database = segmentation_object.database
-        segmentation_tool_temp_dir_path = database.project_configs.root_dir.joinpath(database.segmentation_tool_temp_dir)
+        segmentation_tool_dir_path = database.project_configs.root_dir.joinpath(database.segmentation_tool_dir)
+        segmentation_tool_temp_dir_path = segmentation_tool_dir_path.joinpath(database.segmentation_tool_temp_dir)
+        print(segmentation_tool_temp_dir_path)
         zarr_group = zarr.open(segmentation_tool_temp_dir_path, mode='r')
         for image_filename in zarr_group['/smx'].__iter__():
             file_id = image_filename[:4]
