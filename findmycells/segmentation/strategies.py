@@ -102,7 +102,7 @@ class Deepflash2SemanticSegmentationStrat(SegmentationStrategy):
     def _copy_all_files_of_current_batch_to_temp_dir(self, database: Database, file_ids_in_batch: List[str]) -> None:
         root_dir_path = database.project_configs.root_dir
         segmentation_tool_dir = root_dir_path.joinpath(database.segmentation_tool_dir)
-        temp_copies_path = segmentation_tool_dir.joinpath('temp_copies_of_preprocessed_images')
+        temp_copies_path = segmentation_tool_dir.joinpath('copies_of_preprocessed_images')
         for file_id in file_ids_in_batch:
             preprocessed_images_dir = root_dir_path.joinpath(database.preprocessed_images_dir)
             files_to_segment = [filepath for filepath in utils.list_dir_no_hidden(preprocessed_images_dir) if filepath.name.startswith(file_id)]
@@ -131,7 +131,7 @@ class Deepflash2SemanticSegmentationStrat(SegmentationStrategy):
         from deepflash2.learner import EnsembleLearner
         segmentation_tool_dir_path = database.project_configs.root_dir.joinpath(database.segmentation_tool_dir)
         segmentation_tool_temp_dir_path = segmentation_tool_dir_path.joinpath(database.segmentation_tool_temp_dir)
-        image_dir = segmentation_tool_dir_path.joinpath('temp_copies_of_preprocessed_images')
+        image_dir = segmentation_tool_dir_path.joinpath('copies_of_preprocessed_images')
         ensemble_learner = EnsembleLearner(image_dir = image_dir,
                                            ensemble_path = database.segmentation_tool_configs['df2']['ensemble_path'],
                                            stats = database.segmentation_tool_configs['df2']['stats'])
@@ -148,7 +148,7 @@ class Deepflash2SemanticSegmentationStrat(SegmentationStrategy):
         current_semantic_masks_dir_path = segmentation_tool_dir_path.joinpath('masks')
         for mask_filepath in utils.list_dir_no_hidden(current_semantic_masks_dir_path):
             shutil.move(mask_filepath, semantic_segmentations_target_dir_path)
-        shutil.rmtree(segmentation_tool_dir_path.joinpath('temp_copies_of_preprocessed_images'))
+        shutil.rmtree(segmentation_tool_dir_path.joinpath('copies_of_preprocessed_images'))
 
 
     def _delete_temp_files_in_sys_tmp_dir(self, database: Database) -> None:

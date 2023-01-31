@@ -6,6 +6,7 @@ __all__ = ['SegmentationStrategy', 'SegmentationObject']
 # %% ../../nbs/06_segmentation_00_specs.ipynb 2
 from abc import abstractmethod
 from typing import Dict
+import shutil
 
 
 from ..core import ProcessingObject, ProcessingStrategy
