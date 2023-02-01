@@ -180,7 +180,7 @@ class LosslessConversionOfDF2SemanticSegToInstanceSegWithCPStrat(SegmentationStr
         valid_types = {'net_avg': [bool],
                        'model_type': [str],
                        'diameter': [float]}
-        valid_ranges = {'diameter': (0.0, 1_000.0, 0.1)}
+        valid_ranges = {'diameter': (0.0, 999_999.9, 0.1)}
         valid_options = {'model_type': ('nuclei', 'cyto')}
         default_configs = DefaultConfigs(default_values = default_values,
                                          valid_types = valid_types,
@@ -192,7 +192,7 @@ class LosslessConversionOfDF2SemanticSegToInstanceSegWithCPStrat(SegmentationStr
     def widget_names(self):
         return {'net_avg': 'Checkbox',
                 'model_type': 'Dropdown',
-                'diameter': 'FloatSlider'}
+                'diameter': 'BoundedFloatText'}
 
     @property
     def descriptions(self):
