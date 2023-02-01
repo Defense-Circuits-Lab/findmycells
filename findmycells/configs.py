@@ -189,7 +189,9 @@ class GUIConfigs:
                                'IntSlider': self._construct_an_intslider,
                                'FloatSlider': self._construct_a_floatslider,
                                'Dropdown': self._construct_a_dropdown,
-                               'FileChooser': self._construct_a_filechooser}
+                               'FileChooser': self._construct_a_filechooser,
+                               'BoundedIntText': self._construct_a_boundedinttext,
+                               'BoundedFloatText': self._construct_a_boundedfloattext}
         return widget_constructors
     
     
@@ -230,11 +232,8 @@ class GUIConfigs:
     def export_current_config_values(self) -> Dict:
         current_configs = {}
         for config_key in self.widget_names.keys():
-            config_widget = getattr(self, config_key)
-            if type(config_widget) == w.HBox: # Some widgets are embedded in HBox to avoid display of a vertical scrollbar
-                current_configs[config_key] = config_widget.children[0].value
-            else:
-                current_configs[config_key] = config_widget.value
+            hbox_containing_config_widget = getattr(self, config_key)
+            current_configs[config_key] = hbox_containing_config_widget.children[0].value
         return current_configs
     
             
@@ -257,11 +256,11 @@ class GUIConfigs:
     def _initialize_individual_widgets_as_attributes(self, strategy_description: str, default_configs: DefaultConfigs) -> None:
         self.strategy_description_label = w.HTML(value = strategy_description)
         for config_key, widget_name in self.widget_names.items():
-            widget_constructor = self.widget_constructors[widget_name]
-            widget = widget_constructor(key = config_key, default_configs = default_configs)
-            widget.layout = self.layout
-            widget.style = self.style
-            setattr(self, config_key, widget)
+            widget_constructor = self.widget_constructors[widget_name] # creates the widget and embeds it in an HBox to avoids visualization bugs
+            hbox_containing_config_widget = widget_constructor(key = config_key, default_configs = default_configs)
+            hbox_containing_config_widget.layout = self.layout
+            hbox_containing_config_widget.style = self.style
+            setattr(self, config_key, hbox_containing_config_widget)
 
 
     def _construct_a_checkbox(self, key: str, default_configs: DefaultConfigs) -> WidgetType:
@@ -327,6 +326,34 @@ class GUIConfigs:
         else:
             tooltip = None
         return tooltip
+    
+    
+    def _construct_a_boundedinttext(self, key: str, default_configs: DefaultConfigs) -> WidgetType:
+        step_size = default_configs.get_step_size_if_present(key = key)
+        tooltip = self._get_tooltip_if_present(key = key)
+        bounded_int_text = w.BoundedIntText(description = self.descriptions[key],
+                                            value = default_configs.values[key],
+                                            min = default_configs.valid_ranges[key][0],
+                                            max = default_configs.valid_ranges[key][1],
+                                            step = step_size,
+                                            tooltip = tooltip,
+                                            layout = self.layout,
+                                            style = self.style)
+        return w.HBox([bounded_int_text])
+
+
+    def _construct_a_boundedfloattext(self, key: str, default_configs: DefaultConfigs) -> WidgetType:
+        step_size = default_configs.get_step_size_if_present(key = key)
+        tooltip = self._get_tooltip_if_present(key = key)
+        bounded_float_text = w.BoundedFloatText(description = self.descriptions[key],
+                                                value = default_configs.values[key],
+                                                min = default_configs.valid_ranges[key][0],
+                                                max = default_configs.valid_ranges[key][1],
+                                                step = step_size,
+                                                tooltip = tooltip,
+                                                layout = self.layout,
+                                                style = self.style)
+        return w.HBox([bounded_float_text]) 
 
 
     def _combine_individual_widgets_in_vbox(self) -> WidgetType:
