@@ -411,7 +411,7 @@ class ApplyExclusionCriteriaStrat(PostprocessingStrategy):
     findmycells version. Importantly, if you would like to use this strategy, please
     make sure to run this strategy as the *last* postprocessing strategy, to ensure that 
     all other processing steps have been completed.
-    
+    \b
         - Minimum feature position relative to area ROI:
             If you provided ROIs that denote in which area of each image you'd like to 
             quantify the image features, you can use this criterion to specify when to
@@ -429,13 +429,13 @@ class ApplyExclusionCriteriaStrat(PostprocessingStrategy):
             Findmycells will always use the nearest classification. That means, if a feature was
             classified in one plane as "within" but only as "intersects" or even as "no 
             overlap" in the other planes, the entire 3D feature will be classified as "within".
-    
+    \b
         - Minimum feature size [px]:
             Every detected feature whose area is smaller than the specified pixel value will
             will be deleted from the segmentation masks. Note: if you are analyzing an image
             stack, this strategy will determine for each 3D feature the plane in which is has 
             the largest area & then apply this exclusion criterion based on this area value.
-              
+    \b
         - Minimum planes covered (only relevant for image stacks):
             Similarly to "minimum feature size", which checks for the expansion of your image
             features in x-y-dimensions, you can use this exclusion criterion to also check for

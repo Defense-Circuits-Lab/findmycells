@@ -175,6 +175,17 @@ class DefaultConfigs:
 # %% ../nbs/00_configs.ipynb 8
 class GUIConfigs:
     
+    """
+    Note for developers:
+        To visualize the descriptions of strategies in a more aesthetic manner, 
+        an additional "string command" is used. Wherever you find a "\b" in the
+        docstring of a strategy (which will eventually be converted into the 
+        displayed HTML description of what the strategy does and how it works in
+        the GUI and also in the online documentation), this will be interpreted as
+        a linebreak in the displayed HTML of the GUI. This conversion is done in the
+        "_convert_docstring_to_html()" method.
+    """
+    
     @property
     def layout(self) -> Dict:
         return {'width': '100%'}
@@ -254,17 +265,21 @@ class GUIConfigs:
             
     
     def _initialize_individual_widgets_as_attributes(self, strategy_description: str, default_configs: DefaultConfigs) -> None:
-        if type(strategy_description) != str:
-            strategy_description = ''
-        html_converted_strategy_description = strategy_description.replace('\n', '<br>')
-        html_converted_strategy_description = html_converted_strategy_description.replace('  ', '&emsp;')
-        self.strategy_description_label = w.HTML(value = html_converted_strategy_description)
+        self.strategy_description_html = self._convert_docstring_to_html(strategy_description = strategy_description)
         for config_key, widget_name in self.widget_names.items():
             widget_constructor = self.widget_constructors[widget_name] # creates the widget and embeds it in an HBox to avoids visualization bugs
             hbox_containing_config_widget = widget_constructor(key = config_key, default_configs = default_configs)
             hbox_containing_config_widget.layout = self.layout
             hbox_containing_config_widget.style = self.style
             setattr(self, config_key, hbox_containing_config_widget)
+            
+            
+    def _convert_docstring_to_html(self, strategy_description: str) -> WidgetType:
+        if type(strategy_description) != str:
+            strategy_description = ''
+        html_converted_strategy_description = strategy_description.replace('\b', '<br>')
+        html_converted_strategy_description = html_converted_strategy_description.replace('  ', '&emsp;')
+        return w.HTML(value = html_converted_strategy_description)
 
 
     def _construct_a_checkbox(self, key: str, default_configs: DefaultConfigs) -> WidgetType:
@@ -361,7 +376,7 @@ class GUIConfigs:
 
 
     def _combine_individual_widgets_in_vbox(self) -> WidgetType:
-        all_widgets = [self.strategy_description_label]
+        all_widgets = [self.strategy_description_html]
         for config_key in self.widget_names.keys():
             all_widgets.append(getattr(self, config_key))
         return w.VBox(all_widgets)
