@@ -254,7 +254,11 @@ class GUIConfigs:
             
     
     def _initialize_individual_widgets_as_attributes(self, strategy_description: str, default_configs: DefaultConfigs) -> None:
-        self.strategy_description_label = w.HTML(value = strategy_description)
+        if type(strategy_description) != str:
+            strategy_description = ''
+        html_converted_strategy_description = strategy_description.replace('\n', '<br>')
+        html_converted_strategy_description = html_converted_strategy_description.replace('  ', '&emsp;')
+        self.strategy_description_label = w.HTML(value = html_converted_strategy_description)
         for config_key, widget_name in self.widget_names.items():
             widget_constructor = self.widget_constructors[widget_name] # creates the widget and embeds it in an HBox to avoids visualization bugs
             hbox_containing_config_widget = widget_constructor(key = config_key, default_configs = default_configs)

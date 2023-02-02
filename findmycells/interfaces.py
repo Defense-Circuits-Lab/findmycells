@@ -24,9 +24,13 @@ from .database import Database
 from .core import ProcessingStrategy, ProcessingObject
 from .preprocessing.specs import PreprocessingStrategy, PreprocessingObject
 from .segmentation.specs import SegmentationStrategy, SegmentationObject
+from .postprocessing.specs import PostprocessingStrategy, PostprocessingObject
 
 # %% ../nbs/03_interfaces.ipynb 6
 class API:
+    
+    # ToDo: use ProcessingHandler as subclasses for each processing step to make API cleaner and easier to understand
+    # ToDo: this also requires to split the microscopy & roi reader stuff away from preprocessing (makes also more sense for GUI!)
     
     def __init__(self, project_root_dir: PosixPath) -> None:
         assert type(project_root_dir) == PosixPath, '"project_root_dir" must be pathlib.Path object referring to an existing directory.'
@@ -157,7 +161,33 @@ class API:
             del segmentation_object
             if processing_configs['autosave'] == True:
                 self.save_status()
-                self.load_status()            
+                self.load_status()
+                
+                
+    def postprocess(self,
+                    strategies: List[PostprocessingStrategy],
+                    strategy_configs: Optional[List[Dict]]=None,
+                    processing_configs: Optional[Dict]=None,
+                    file_ids: Optional[List[str]]=None
+                   ) -> None:
+        processing_step_id = 'postprocessing'
+        strategy_configs, processing_configs, file_ids = self._assert_and_update_input(processing_step_id = processing_step_id,
+                                                                                       strategies = strategies,
+                                                                                       strategy_configs = strategy_configs,
+                                                                                       processing_configs = processing_configs,
+                                                                                       file_ids = file_ids)
+        for file_id in tqdm(file_ids, display = processing_configs['show_progress']):
+            postprocessing_object = PostprocessingObject()
+            postprocessing_object.prepare_for_processing(file_ids = [file_id], database = self.database)
+            postprocessing_object.load_segmentations_masks_for_postprocessing(segmentations_to_use = processing_configs['segmentations_to_use'])
+            postprocessing_object.run_all_strategies(strategies = strategies, strategy_configs = strategy_configs)
+            postprocessing_object.save_postprocessed_segmentations()
+            postprocessing_object.update_database(mark_as_completed = True)
+            del postprocessing_object
+            if processing_configs['autosave'] == True:
+                self.save_status()
+                self.load_status()
+        
                 
 
     def _check_if_all_files_have_finished_current_processing_step(self, processing_step_id: str) -> bool:
