@@ -10,6 +10,7 @@ from pathlib import Path, PosixPath
 
 import numpy as np
 from skimage import io
+from skimage import measure
 from shapely.geometry import Polygon
 from shapely.validation import make_valid
 
@@ -25,7 +26,7 @@ def list_dir_no_hidden(path: PosixPath, only_dirs: Optional[bool]=False, only_fi
     return detected_paths
 
 # %% ../nbs/99_utils.ipynb 5
-def load_zstack_as_array_from_single_planes(path: Path, file_id: str, 
+def load_zstack_as_array_from_single_planes(path: PosixPath, file_id: str, 
                                             minx: Optional[int]=None, maxx: Optional[int]=None, 
                                             miny: Optional[int]=None, maxy: Optional[int]=None) -> np.ndarray:
     types = list(set([type(minx), type(maxx), type(miny), type(maxy)]))    
@@ -36,11 +37,11 @@ def load_zstack_as_array_from_single_planes(path: Path, file_id: str,
             raise TypeError("'minx', 'maxx', 'miny', and 'maxy' all have to be integers - or None if no cropping has to be done")
     else:
         cropping = False
-    filenames = [filename for filename in listdir_nohidden(path) if filename.startswith(file_id)]
-    cropped_zstack = list()
-    for single_plane_filename in filenames:
-        tmp_image = io.imread(path.joinpath(single_plane_filename))
-        if cropping:
+    matching_filepaths = [filepath for filepath in list_dir_no_hidden(path) if filepath.name.startswith(file_id)]
+    cropped_zstack = []
+    for single_plane_filepath in matching_filepaths:
+        tmp_image = io.imread(single_plane_filepath)
+        if cropping == True:
             tmp_image = tmp_image[minx:maxx, miny:maxy]
         cropped_zstack.append(tmp_image.copy())
         del tmp_image

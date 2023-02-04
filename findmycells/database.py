@@ -39,7 +39,6 @@ class Database:
         self._find_or_create_subdir(target_name = 'segmentation_tool', keywords = ['tool', 'Tool'])
         self._find_or_create_subdir(target_name = 'semantic_segmentations', keywords = ['semantic', 'Semantic'])
         self._find_or_create_subdir(target_name = 'instance_segmentations', keywords = ['instance', 'Instance'])
-        self._find_or_create_subdir(target_name = 'postprocessed_images', keywords = ['postprocessed', 'Postprocessed', 'post-processed'])
         self._find_or_create_subdir(target_name = 'quantified_segmentations', keywords = ['quantified', 'Quantified', 'quantification', 'Quantification'])
         self._find_or_create_subdir(target_name = 'results', keywords = ['results', 'Results'])
         self._find_or_create_subdir(target_name = 'inspection', keywords = ['inspect', 'Inspect'])

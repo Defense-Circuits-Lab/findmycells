@@ -25,6 +25,7 @@ from .core import ProcessingStrategy, ProcessingObject
 from .preprocessing.specs import PreprocessingStrategy, PreprocessingObject
 from .segmentation.specs import SegmentationStrategy, SegmentationObject
 from .postprocessing.specs import PostprocessingStrategy, PostprocessingObject
+from .quantification.specs import QuantificationStrategy, QuantificationObject
 
 # %% ../nbs/03_interfaces.ipynb 6
 class API:
@@ -187,7 +188,29 @@ class API:
             if processing_configs['autosave'] == True:
                 self.save_status()
                 self.load_status()
-        
+                
+
+    def quantify(self,
+                 strategies: List[QuantificationStrategy],
+                 strategy_configs: Optional[List[Dict]]=None,
+                 processing_configs: Optional[Dict]=None,#
+                 file_ids: Optional[List[str]]=None
+                ) -> None:
+        processing_step_id = 'quantification'
+        strategy_configs, processing_configs, file_ids = self._assert_and_update_input(processing_step_id = processing_step_id,
+                                                                                       strategies = strategies,
+                                                                                       strategy_configs = strategy_configs,
+                                                                                       processing_configs = processing_configs,
+                                                                                       file_ids = file_ids)
+        for file_id in tqdm(file_ids, display = processing_configs['show_progress']):
+            quantification_object = QuantificationObject()
+            quantification_object.prepare_for_processing(file_ids = [file_id], database = self.database)
+            quantification_object.run_all_strategies(strategies = strategies, strategy_configs = strategy_configs)
+            quantification_object.update_database(mark_as_completed = True)
+            del quantification_object
+            if processing_configs['autosave'] == True:
+                self.save_status()
+                self.load_status()
                 
 
     def _check_if_all_files_have_finished_current_processing_step(self, processing_step_id: str) -> bool:
@@ -685,8 +708,12 @@ class ProcessingStepPage(PageButtonBundle):
             self._run_preprocessing(file_ids = file_ids, strategies = strategies, strategy_configs = strategy_configs)
         elif self.bundle_id == 'segmentation':
             self._run_segmentation(file_ids = file_ids, strategies = strategies, strategy_configs = strategy_configs)
+        elif self.bundle_id == 'postprocessing':
+            self._run_postprocessing(file_ids = file_ids, strategies = strategies, strategy_configs = strategy_configs)
+        elif self.bundle_id == 'quantification':
+            self._run_quantification(file_ids = file_ids, strategies = strategies, strategy_configs = strategy_configs)
         else:
-            raise NotImplementedError(f'API wrapper for {bundle_id} missing!')
+            raise NotImplementedError(f'API wrapper for {self.bundle_id} missing!')
             
             
             
@@ -705,6 +732,20 @@ class ProcessingStepPage(PageButtonBundle):
                         processing_configs = self.processing_configs,
                         file_ids = file_ids)
         
+        
+    def _run_postprocessing(self, file_ids: List[str], strategies: List, strategy_configs: List[Dict]) -> None:        
+        self.api.postprocess(strategies = strategies,
+                             strategy_configs = strategy_configs,
+                             processing_configs = self.processing_configs,
+                             file_ids = file_ids)      
+        
+
+    def _run_quantification(self, file_ids: List[str], strategies: List, strategy_configs: List[Dict]) -> None:        
+        self.api.quantify(strategies = strategies,
+                          strategy_configs = strategy_configs,
+                          processing_configs = self.processing_configs,
+                          file_ids = file_ids) 
+    
         
     def _get_file_ids(self) -> List[str]:
         all_file_ids = self.api.database.file_infos['file_id']

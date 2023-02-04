@@ -177,13 +177,11 @@ class GUIConfigs:
     
     """
     Note for developers:
-        To visualize the descriptions of strategies in a more aesthetic manner, 
-        an additional "string command" is used. Wherever you find a "\b" in the
-        docstring of a strategy (which will eventually be converted into the 
-        displayed HTML description of what the strategy does and how it works in
-        the GUI and also in the online documentation), this will be interpreted as
-        a linebreak in the displayed HTML of the GUI. This conversion is done in the
-        "_convert_docstring_to_html()" method.
+        The docstrings of each processing strategy will also be used to display the 
+        description of each strategy in both the GUI and in the online hosted documentation.
+        To improve the layout of these displayed HTML elements, we introduced some 
+        custom "string commands". Their use is described in detail in the docstring of
+        the "_convert_docstring_to_html()" method of this class.
     """
     
     @property
@@ -275,10 +273,31 @@ class GUIConfigs:
             
             
     def _convert_docstring_to_html(self, strategy_description: str) -> WidgetType:
+        """
+        To visualize the description of each strategy in a proper way in the GUI, the online hosted
+        documentation, and in the docstrings, we added some custom "string commands". These allow us
+        to achieve some HTML formatting (required for both GUI and the documentation), while at they
+        don't interfere with the layout of the docstring. For this, the follwing keys were introduced:
+        
+        '\b': Every '\b' in the original docstring will be replaced by a '<br>' upon conversion of the
+        docstring into HTML, creating a linebreak. It will simply be ignored in the original docstring
+        and is therefore not visible.
+        
+        '\1' and '\2': To make indentation blocks possible, '\1' and '\2' were introduced. '\1' denotes
+        the beginning of an indentation block, whereas '\2' marks its end. Accordingly, '\1' will be 
+        converted into '<div style="margin-left: 2em;">', and '\2' will be converted into '</div>'.
+        They can also be used to stack indentations, simply by using multiple '\1's before closing
+        one after the other by adding correspondingly matching '\2's. Again, they will be ignored in
+        the original docstring and therefore not be visible.
+        
+        Note: This will only apply to the docstrings of processing strategies.
+        """
         if type(strategy_description) != str:
             strategy_description = ''
-        html_converted_strategy_description = strategy_description.replace('\b', '<br>')
-        html_converted_strategy_description = html_converted_strategy_description.replace('  ', '&emsp;')
+        partially_converted_description = strategy_description.replace('\1', '<div style="margin-left: 2em;">')
+        partially_converted_description = partially_converted_description.replace('\2', '</div>')
+        partially_converted_description = partially_converted_description.replace('\b', '<br>')
+        html_converted_strategy_description = partially_converted_description.replace('  ', '')
         return w.HTML(value = html_converted_strategy_description)
 
 

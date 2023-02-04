@@ -412,8 +412,8 @@ class ApplyExclusionCriteriaStrat(PostprocessingStrategy):
     make sure to run this strategy as the *last* postprocessing strategy, to ensure that 
     all other processing steps have been completed.
     \b
-        - Minimum feature position relative to area ROI:
-            If you provided ROIs that denote in which area of each image you'd like to 
+        \1- Minimum feature position relative to area ROI:
+            \1If you provided ROIs that denote in which area of each image you'd like to 
             quantify the image features, you can use this criterion to specify when to
             exclude detected features from the quantification. These are the options 
             you can chose from, in order of increasing distance of your feature from the
@@ -428,16 +428,16 @@ class ApplyExclusionCriteriaStrat(PostprocessingStrategy):
             a features` position can be classified differently depending on the image plane.
             Findmycells will always use the nearest classification. That means, if a feature was
             classified in one plane as "within" but only as "intersects" or even as "no 
-            overlap" in the other planes, the entire 3D feature will be classified as "within".
+            overlap" in the other planes, the entire 3D feature will be classified as "within".\2\2
     \b
-        - Minimum feature size [px]:
-            Every detected feature whose area is smaller than the specified pixel value will
+        \1- Minimum feature size [px]:
+            \1Every detected feature whose area is smaller than the specified pixel value will
             will be deleted from the segmentation masks. Note: if you are analyzing an image
             stack, this strategy will determine for each 3D feature the plane in which is has 
-            the largest area & then apply this exclusion criterion based on this area value.
+            the largest area & then apply this exclusion criterion based on this area value.\2\2
     \b
-        - Minimum planes covered (only relevant for image stacks):
-            Similarly to "minimum feature size", which checks for the expansion of your image
+        \1- Minimum planes covered (only relevant for image stacks):
+            \1Similarly to "minimum feature size", which checks for the expansion of your image
             features in x-y-dimensions, you can use this exclusion criterion to also check for
             a minimum size of your features in the z-dimension. The number you specify here
             will represent the minimum number of consecutive planes each image feature needs 
@@ -445,7 +445,7 @@ class ApplyExclusionCriteriaStrat(PostprocessingStrategy):
             be 3, all features that are only present in a single or in two consecutive planes
             will be deleted. Note: this exclusion criterion is, obviously, only relevant for
             projects that analyze image stacks. If you are working only with 2D images, this
-            value will be ignored and 1 will be used as default.
+            value will be ignored and 1 will be used as default.\2\2
     """
     
     @property
