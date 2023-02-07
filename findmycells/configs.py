@@ -26,7 +26,7 @@ class ProjectConfigs:
         self.root_dir = root_dir
         self.load_available_processing_modules()
         self._load_available_strategies_and_objects()
-        self._load_default_configs_of_available_data_readers()
+        self._load_available_data_readers_and_their_default_configs()
             
     
     def load_available_processing_modules(self) -> None:
@@ -36,7 +36,7 @@ class ProjectConfigs:
                 available_processing_modules[module_name] = module
         setattr(self, 'available_processing_modules', available_processing_modules)
         
-
+    """
     def _load_default_configs_of_available_data_readers(self) -> None:
         default_configs_of_available_data_readers = {}
         for reader_module_name, reader_module in inspect.getmembers(findmycells.readers, inspect.ismodule):
@@ -44,7 +44,19 @@ class ProjectConfigs:
                 if variable_name == 'DEFAULT_READER_CONFIGS':
                     default_configs_of_available_data_readers[reader_module_name] = default_reader_configs
         setattr(self, 'default_configs_of_available_data_readers', default_configs_of_available_data_readers)
-        
+    """ 
+    
+    def _load_available_data_readers_and_their_default_configs(self) -> None:
+        available_data_readers = {}
+        data_reader_default_configs = {}
+        for reader_specs_class_name, reader_specs_class in inspect.getmembers(findmycells.readers.specs, inspect.isclass):
+            if reader_specs_class_name.endswith('Specs'):
+                reader_specs = reader_specs_class()
+                available_data_readers[reader_specs.reader_type] = reader_specs_class
+                data_reader_default_configs[reader_specs.reader_type] = reader_specs.default_configs
+        setattr(self, 'available_data_readers', available_data_readers)
+        setattr(self, 'data_reader_default_configs', data_reader_default_configs)
+    
     
     def _load_available_strategies_and_objects(self) -> None:
         available_processing_objects = {}
@@ -73,11 +85,11 @@ class ProjectConfigs:
         
     
     def add_reader_configs(self, reader_type: str, configs: Optional[Dict[str, Any]]=None) -> None:
-        assert reader_type in self.default_configs_of_available_data_readers.keys(), '"reader_type" has to match with an available reader module!'
+        assert reader_type in self.available_data_readers.keys(), '"reader_type" has to match with an available data reader!'
         if configs == None:
             configs = {}
-        self.default_configs_of_available_data_readers[reader_type].assert_user_input(user_input = configs)
-        configs = self.default_configs_of_available_data_readers[reader_type].fill_user_input_with_defaults_where_needed(user_input = configs)
+        self.data_reader_default_configs[reader_type].assert_user_input(user_input = configs)
+        configs = self.data_reader_default_configs[reader_type].fill_user_input_with_defaults_where_needed(user_input = configs)
         setattr(self, reader_type, configs)
 
 # %% ../nbs/00_configs.ipynb 7
@@ -200,7 +212,8 @@ class GUIConfigs:
                                'Dropdown': self._construct_a_dropdown,
                                'FileChooser': self._construct_a_filechooser,
                                'BoundedIntText': self._construct_a_boundedinttext,
-                               'BoundedFloatText': self._construct_a_boundedfloattext}
+                               'BoundedFloatText': self._construct_a_boundedfloattext, 
+                               'IntRangeSlider': self._construct_an_intrangeslider}
         return widget_constructors
     
     
@@ -391,7 +404,14 @@ class GUIConfigs:
                                                 tooltip = tooltip,
                                                 layout = self.layout,
                                                 style = self.style)
-        return w.HBox([bounded_float_text]) 
+        return w.HBox([bounded_float_text])
+    
+    
+    def _construct_an_intrangeslider(self, key: str, default_configs: DefaultConfigs) -> WidgetType:
+        step_size = default_configs.get_step_size_if_present(key = key)
+        tooltip = self._get_tooltip_if_present(key = key)
+        int_range_slider = w.IntRangeSlider(description = self.descriptions[key],
+                                            value = default_configs.values[key])
 
 
     def _combine_individual_widgets_in_vbox(self) -> WidgetType:

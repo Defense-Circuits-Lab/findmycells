@@ -30,8 +30,6 @@ from .quantification.specs import QuantificationStrategy, QuantificationObject
 # %% ../nbs/03_interfaces.ipynb 6
 class API:
     
-    # ToDo: use ProcessingHandler as subclasses for each processing step to make API cleaner and easier to understand
-    # ToDo: this also requires to split the microscopy & roi reader stuff away from preprocessing (makes also more sense for GUI!)
     
     def __init__(self, project_root_dir: PosixPath) -> None:
         assert type(project_root_dir) == PosixPath, '"project_root_dir" must be pathlib.Path object referring to an existing directory.'
@@ -39,17 +37,63 @@ class API:
         self.project_configs = ProjectConfigs(root_dir = project_root_dir)
         self.database = Database(project_configs = self.project_configs)
         
-        
+    
     def update_database_with_current_source_files(self) -> None:
         self.database.compute_file_infos()
+        
+        
+    def set_microscopy_reader_configs(self,
+                                      microscopy_reader_configs: Optional[Dict]=None
+                                     ) -> None:
+        microscopy_reader_configs = self._assert_and_update_reader_configs_input(reader_type = 'microscopy_images',
+                                                                                 reader_configs = microscopy_reader_configs)
+        self.project_configs.add_reader_configs(reader_type = 'microscopy_images', reader_configs = microscopy_reader_configs)
+        
+        
+    def set_roi_reader_configs(self,
+                               roi_reader_configs: Optional[Dict]=None
+                              ) -> None:
+        roi_reader_configs = self._assert_and_update_reader_configs_input(reader_type = 'rois', reader_configs = roi_reader_configs)
+        self.project_configs.add_reader_configs(reader_type = 'rois', reader_configs = roi_reader_configs)
+    
+    
+    
+    def save_status(self) -> None:
+        date = f'{datetime.now():%Y_%m_%d}'
+        dbase_filename = f'{date}_findmycells_database.dbase'
+        self._save_attr_to_disk(attr_id = 'database', filename = dbase_filename, child_attr_ids_to_del = ['project_configs'])
+        configs_filename = f'{date}_findmycells_project.configs'
+        self._save_attr_to_disk(attr_id = 'project_configs', filename = configs_filename, child_attr_ids_to_del = ['available_processing_modules'])
+        
+        
+    def load_status(self,
+                    project_configs_filepath: Optional[PosixPath]=None,
+                    database_filepath: Optional[PosixPath]=None
+                   ) -> None:
+        if project_configs_filepath != None:
+            assert type(project_configs_filepath) == PosixPath, '"project_configs_filepath" must be pathlib.Path object referring to a .configs file.'
+            assert project_configs_filepath.suffix == '.configs', '"project_configs_filepath" must be pathlib.Path object referring to a .configs file.'
+        else:
+            project_configs_filepath = self._look_for_latest_status_file_in_dir(suffix = '.configs', dir_path = self.project_configs.root_dir)
+        if database_filepath != None:
+            assert type(database_filepath) == PosixPath, '"database_filepath" must be pathlib.Path object referring to a .dbase file'
+            assert database_filepath.suffix == '.dbase', '"database_filepath" must be pathlib.Path object referring to a .dbase file'
+        else:
+            database_filepath = self._look_for_latest_status_file_in_dir(suffix = '.dbase', dir_path = self.project_configs.root_dir)
+        if hasattr(self, 'project_configs'):
+            delattr(self, 'project_configs')
+        if hasattr(self, 'database'):
+            delattr(self, 'database')
+        self.project_configs = self._load_object_from_filepath(filepath = project_configs_filepath)
+        self.project_configs.load_available_processing_modules()
+        self.database = self._load_object_from_filepath(filepath = database_filepath)
+        setattr(self.database, 'project_configs', self.project_configs)
         
         
     def preprocess(self,
                    strategies: List[PreprocessingStrategy],
                    strategy_configs: Optional[List[Dict]]=None,
                    processing_configs: Optional[Dict]=None,
-                   microscopy_reader_configs: Optional[Dict]=None,
-                   roi_reader_configs: Optional[Dict]=None,
                    file_ids: Optional[List[str]]=None
                   ) -> None:
         processing_step_id = 'preprocessing'
@@ -58,8 +102,9 @@ class API:
                                                                                        strategy_configs = strategy_configs,
                                                                                        processing_configs = processing_configs,
                                                                                        file_ids = file_ids)
-        microscopy_reader_configs = self._assert_and_update_reader_configs_input(reader_type = 'microscopy_images', reader_configs = microscopy_reader_configs)
-        roi_reader_configs = self._assert_and_update_reader_configs_input(reader_type = 'rois', reader_configs = roi_reader_configs)
+        self._assert_reader_configs_are_present()
+        microscopy_reader_configs = getattr(self.project_configs, 'microscopy_images')
+        roi_reader_configs = getattr(self.project_configs, 'rois')
         for file_id in tqdm(file_ids, display = processing_configs['show_progress']):
             preprocessing_object = PreprocessingObject()
             preprocessing_object.prepare_for_processing(file_ids = [file_id], database = self.database)
@@ -71,23 +116,9 @@ class API:
             del preprocessing_object
             if processing_configs['autosave'] == True:
                 self.save_status()
-                self.load_status()
-                
-                
-    def _assert_and_update_reader_configs_input(self, reader_type: str, reader_configs: Optional[Dict]) -> Dict:            
-        if reader_configs == None:
-            if hasattr(self.project_configs, reader_type) == False:
-                self.project_configs.add_reader_configs(reader_type = reader_type)
-            reader_configs = getattr(self.project_configs, reader_type)
-        else:
-            assert type(reader_configs) == dict, f'"reader_configs" (data type: {reader_type}) has to be a dictionary!'
-            default_configs = self.project_configs.default_configs_of_available_data_readers[reader_type]
-            default_configs.assert_user_input(user_input = reader_configs)
-            reader_configs = default_configs.fill_user_input_with_defaults_where_needed(user_input = reader_configs)
-            self.project_configs.add_reader_configs(reader_type = reader_type, reader_configs = reader_configs)
-        return reader_configs
+                self.load_status()    
     
-
+    
     def segment(self,
                    strategies: List[SegmentationStrategy],
                    strategy_configs: Optional[List[Dict]]=None,
@@ -100,7 +131,7 @@ class API:
                                                                                        strategy_configs = strategy_configs,
                                                                                        processing_configs = processing_configs,
                                                                                        file_ids = file_ids)
-        file_ids_per_batch = self.split_file_ids_into_batches(file_ids = file_ids, batch_size = processing_configs['batch_size'])
+        file_ids_per_batch = self._split_file_ids_into_batches(file_ids = file_ids, batch_size = processing_configs['batch_size'])
         if processing_configs['run_strategies_individually'] == True:
             self._segment_running_strategies_individually(strategies = strategies,
                                                           strategy_configs = strategy_configs,
@@ -118,9 +149,77 @@ class API:
                 dummy_file_id = file_ids_per_batch[0][0]
                 segmentation_object.prepare_for_processing(file_ids = [dummy_file_id], database = self.database)
                 segmentation_object.clear_all_tmp_data_in_seg_tool_dir()
-                del segmentation_object
+                del segmentation_object    
+    
+    
+    def postprocess(self,
+                    strategies: List[PostprocessingStrategy],
+                    strategy_configs: Optional[List[Dict]]=None,
+                    processing_configs: Optional[Dict]=None,
+                    file_ids: Optional[List[str]]=None
+                   ) -> None:
+        processing_step_id = 'postprocessing'
+        strategy_configs, processing_configs, file_ids = self._assert_and_update_input(processing_step_id = processing_step_id,
+                                                                                       strategies = strategies,
+                                                                                       strategy_configs = strategy_configs,
+                                                                                       processing_configs = processing_configs,
+                                                                                       file_ids = file_ids)
+        for file_id in tqdm(file_ids, display = processing_configs['show_progress']):
+            postprocessing_object = PostprocessingObject()
+            postprocessing_object.prepare_for_processing(file_ids = [file_id], database = self.database)
+            postprocessing_object.load_segmentations_masks_for_postprocessing(segmentations_to_use = processing_configs['segmentations_to_use'])
+            postprocessing_object.run_all_strategies(strategies = strategies, strategy_configs = strategy_configs)
+            postprocessing_object.save_postprocessed_segmentations()
+            postprocessing_object.update_database(mark_as_completed = True)
+            del postprocessing_object
+            if processing_configs['autosave'] == True:
+                self.save_status()
+                self.load_status()    
+    
+    
+    def quantify(self,
+                 strategies: List[QuantificationStrategy],
+                 strategy_configs: Optional[List[Dict]]=None,
+                 processing_configs: Optional[Dict]=None,#
+                 file_ids: Optional[List[str]]=None
+                ) -> None:
+        processing_step_id = 'quantification'
+        strategy_configs, processing_configs, file_ids = self._assert_and_update_input(processing_step_id = processing_step_id,
+                                                                                       strategies = strategies,
+                                                                                       strategy_configs = strategy_configs,
+                                                                                       processing_configs = processing_configs,
+                                                                                       file_ids = file_ids)
+        for file_id in tqdm(file_ids, display = processing_configs['show_progress']):
+            quantification_object = QuantificationObject()
+            quantification_object.prepare_for_processing(file_ids = [file_id], database = self.database)
+            quantification_object.run_all_strategies(strategies = strategies, strategy_configs = strategy_configs)
+            quantification_object.update_database(mark_as_completed = True)
+            del quantification_object
+            if processing_configs['autosave'] == True:
+                self.save_status()
+                self.load_status()    
+    
 
-        
+    def _assert_reader_configs_are_present(self) -> None:
+        assert_message = ('You have to specify your {} reader configs first before running ".preprocess()".'
+                          'You can do this by running the ".set_{}_reader_configs()" method first!')
+        assert hasattr(self.project_configs, 'microscopy_images'), assert_message.format('microscopy image', 'microscopy')
+        assert hasattr(self.project_configs, 'rois'), assert_message.format('ROI', 'roi')
+                
+                
+    def _assert_and_update_reader_configs_input(self, reader_type: str, reader_configs: Optional[Dict]) -> Dict:            
+        if reader_configs == None:
+            if hasattr(self.project_configs, reader_type) == False:
+                self.project_configs.add_reader_configs(reader_type = reader_type)
+            reader_configs = getattr(self.project_configs, reader_type)
+        else:
+            assert type(reader_configs) == dict, f'"reader_configs" (data type: {reader_type}) has to be a dictionary!'
+            default_configs = self.project_configs.data_reader_default_configs[reader_type]
+            default_configs.assert_user_input(user_input = reader_configs)
+            reader_configs = default_configs.fill_user_input_with_defaults_where_needed(user_input = reader_configs)
+        return reader_configs
+    
+   
     def _segment_running_strategies_individually(self,
                                                  strategies: List[SegmentationStrategy],
                                                  strategy_configs: List[Dict],
@@ -164,54 +263,6 @@ class API:
                 self.save_status()
                 self.load_status()
                 
-                
-    def postprocess(self,
-                    strategies: List[PostprocessingStrategy],
-                    strategy_configs: Optional[List[Dict]]=None,
-                    processing_configs: Optional[Dict]=None,
-                    file_ids: Optional[List[str]]=None
-                   ) -> None:
-        processing_step_id = 'postprocessing'
-        strategy_configs, processing_configs, file_ids = self._assert_and_update_input(processing_step_id = processing_step_id,
-                                                                                       strategies = strategies,
-                                                                                       strategy_configs = strategy_configs,
-                                                                                       processing_configs = processing_configs,
-                                                                                       file_ids = file_ids)
-        for file_id in tqdm(file_ids, display = processing_configs['show_progress']):
-            postprocessing_object = PostprocessingObject()
-            postprocessing_object.prepare_for_processing(file_ids = [file_id], database = self.database)
-            postprocessing_object.load_segmentations_masks_for_postprocessing(segmentations_to_use = processing_configs['segmentations_to_use'])
-            postprocessing_object.run_all_strategies(strategies = strategies, strategy_configs = strategy_configs)
-            postprocessing_object.save_postprocessed_segmentations()
-            postprocessing_object.update_database(mark_as_completed = True)
-            del postprocessing_object
-            if processing_configs['autosave'] == True:
-                self.save_status()
-                self.load_status()
-                
-
-    def quantify(self,
-                 strategies: List[QuantificationStrategy],
-                 strategy_configs: Optional[List[Dict]]=None,
-                 processing_configs: Optional[Dict]=None,#
-                 file_ids: Optional[List[str]]=None
-                ) -> None:
-        processing_step_id = 'quantification'
-        strategy_configs, processing_configs, file_ids = self._assert_and_update_input(processing_step_id = processing_step_id,
-                                                                                       strategies = strategies,
-                                                                                       strategy_configs = strategy_configs,
-                                                                                       processing_configs = processing_configs,
-                                                                                       file_ids = file_ids)
-        for file_id in tqdm(file_ids, display = processing_configs['show_progress']):
-            quantification_object = QuantificationObject()
-            quantification_object.prepare_for_processing(file_ids = [file_id], database = self.database)
-            quantification_object.run_all_strategies(strategies = strategies, strategy_configs = strategy_configs)
-            quantification_object.update_database(mark_as_completed = True)
-            del quantification_object
-            if processing_configs['autosave'] == True:
-                self.save_status()
-                self.load_status()
-                
 
     def _check_if_all_files_have_finished_current_processing_step(self, processing_step_id: str) -> bool:
         all_file_ids = self.database.file_infos['file_id']
@@ -223,14 +274,7 @@ class API:
                 if self.database.file_histories[file_id].completed_processing_steps[processing_step_id] == False:
                     file_ids_not_processed_yet.append(file_id)
         return len(file_ids_not_processed_yet) == 0
-    
-    
-    def save_status(self) -> None:
-        date = f'{datetime.now():%Y_%m_%d}'
-        dbase_filename = f'{date}_findmycells_database.dbase'
-        self._save_attr_to_disk(attr_id = 'database', filename = dbase_filename, child_attr_ids_to_del = ['project_configs'])
-        configs_filename = f'{date}_findmycells_project.configs'
-        self._save_attr_to_disk(attr_id = 'project_configs', filename = configs_filename, child_attr_ids_to_del = ['available_processing_modules'])
+
         
     
     def _save_attr_to_disk(self, attr_id: str, filename: str, child_attr_ids_to_del: List[str]) -> None:
@@ -246,33 +290,9 @@ class API:
         filehandler = open(filepath, 'rb')
         loaded_object = pickle.load(filehandler)
         return loaded_object
-
-        
-    def load_status(self,
-                    project_configs_filepath: Optional[PosixPath]=None,
-                    database_filepath: Optional[PosixPath]=None
-                   ) -> None:
-        if project_configs_filepath != None:
-            assert type(project_configs_filepath) == PosixPath, '"project_configs_filepath" must be pathlib.Path object referring to a .configs file.'
-            assert project_configs_filepath.suffix == '.configs', '"project_configs_filepath" must be pathlib.Path object referring to a .configs file.'
-        else:
-            project_configs_filepath = self._look_for_latest_status_file_in_dir(suffix = '.configs', dir_path = self.project_configs.root_dir)
-        if database_filepath != None:
-            assert type(database_filepath) == PosixPath, '"database_filepath" must be pathlib.Path object referring to a .dbase file'
-            assert database_filepath.suffix == '.dbase', '"database_filepath" must be pathlib.Path object referring to a .dbase file'
-        else:
-            database_filepath = self._look_for_latest_status_file_in_dir(suffix = '.dbase', dir_path = self.project_configs.root_dir)
-        if hasattr(self, 'project_configs'):
-            delattr(self, 'project_configs')
-        if hasattr(self, 'database'):
-            delattr(self, 'database')
-        self.project_configs = self._load_object_from_filepath(filepath = project_configs_filepath)
-        self.project_configs.load_available_processing_modules()
-        self.database = self._load_object_from_filepath(filepath = database_filepath)
-        setattr(self.database, 'project_configs', self.project_configs)
         
 
-    def split_file_ids_into_batches(self, file_ids: List[str], batch_size: int) -> List[List[str]]:
+    def _split_file_ids_into_batches(self, file_ids: List[str], batch_size: int) -> List[List[str]]:
         """
         Splits a list ("file_ids") of file_id strings into nested lists of file_id strings,
         where the maximum length of each nested list equals the integer passed as "batch_size".
@@ -699,52 +719,21 @@ class ProcessingStepPage(PageButtonBundle):
         self.run.disabled = False
         self.refine_processing_configs.disabled = False
         
-        
     
     def _determine_and_call_corresponding_api_function(self) -> None:
         file_ids = self._get_file_ids()
         strategies, strategy_configs = self._get_strategies_and_configs()
         if self.bundle_id == 'preprocessing':
-            self._run_preprocessing(file_ids = file_ids, strategies = strategies, strategy_configs = strategy_configs)
+            corresponding_api_callable = self.api.preprocess
         elif self.bundle_id == 'segmentation':
-            self._run_segmentation(file_ids = file_ids, strategies = strategies, strategy_configs = strategy_configs)
+            corresponding_api_callable = self.api.segment
         elif self.bundle_id == 'postprocessing':
-            self._run_postprocessing(file_ids = file_ids, strategies = strategies, strategy_configs = strategy_configs)
+            corresponding_api_callable = self.api.postprocess
         elif self.bundle_id == 'quantification':
-            self._run_quantification(file_ids = file_ids, strategies = strategies, strategy_configs = strategy_configs)
+            corresponding_api_callable = self.api.quantify
         else:
             raise NotImplementedError(f'API wrapper for {self.bundle_id} missing!')
-            
-            
-            
-    def _run_preprocessing(self, file_ids: List[str], strategies: List, strategy_configs: List[Dict]) -> None:        
-        self.api.preprocess(strategies = strategies,
-                            strategy_configs = strategy_configs,
-                            processing_configs = self.processing_configs,
-                            microscopy_reader_configs = None,
-                            roi_reader_configs = None,
-                            file_ids = file_ids)
-        
-        
-    def _run_segmentation(self, file_ids: List[str], strategies: List, strategy_configs: List[Dict]) -> None:        
-        self.api.segment(strategies = strategies,
-                        strategy_configs = strategy_configs,
-                        processing_configs = self.processing_configs,
-                        file_ids = file_ids)
-        
-        
-    def _run_postprocessing(self, file_ids: List[str], strategies: List, strategy_configs: List[Dict]) -> None:        
-        self.api.postprocess(strategies = strategies,
-                             strategy_configs = strategy_configs,
-                             processing_configs = self.processing_configs,
-                             file_ids = file_ids)      
-        
-
-    def _run_quantification(self, file_ids: List[str], strategies: List, strategy_configs: List[Dict]) -> None:        
-        self.api.quantify(strategies = strategies,
-                          strategy_configs = strategy_configs,
-                          processing_configs = self.processing_configs,
-                          file_ids = file_ids) 
+        corresponding_api_callable(strategies, strategy_configs, self.processing_configs, file_ids)
     
         
     def _get_file_ids(self) -> List[str]:
@@ -763,6 +752,20 @@ class ProcessingStepPage(PageButtonBundle):
 
 # %% ../nbs/03_interfaces.ipynb 13
 class GUI:
+    
+    @property
+    def _expected_processing_step_modules(self) -> List[str]:
+        """
+        This list defines the processing steps for which ProcessingStepPages will be created
+        in the GUI version of findmycells. It will also be used to compare the elements of this
+        list to the list of automatically detected processing modules, which can be found in 
+        the "available_processing_modules" attribute of the ProcessingConfigs of the API. In case
+        that this list of expected modules is missing an element, it will print a warning to alert
+        the user / developer about this. The automatically created list could, unfortunately, not
+        be used, as the order of ProcessingStepPages (and the corresponding navigator buttons)
+        would not be correct.
+        """
+        return ['preprocessing', 'segmentation', 'postprocessing', 'quantification']
     
     def __init__(self) -> None:
         self.displayed_widget = self._initialize_start_screen()
@@ -804,15 +807,25 @@ class GUI:
                                           all_navigator_buttons = self.navigator_buttons,
                                           api = self.api)
         self.navigator_buttons.append(self.overview_page.navigator_button)
-        for available_processing_module_name in self.api.project_configs.available_processing_modules.keys():
-            processing_step_page = ProcessingStepPage(bundle_id = available_processing_module_name,
+        # ToDo: add reader configs here?
+        self._compare_expected_to_available_processing_modules()
+        for processing_step_module in self._expected_processing_step_modules:
+            processing_step_page = ProcessingStepPage(bundle_id = processing_step_module,
                                                       page_screen = self.page_screen,
                                                       all_navigator_buttons = self.navigator_buttons,
                                                       api = self.api)
             self.navigator_buttons.append(processing_step_page.navigator_button)
-            attr_id = f'{available_processing_module_name}_page'
+            attr_id = f'{processing_step_module}_page'
             setattr(self, attr_id, processing_step_page)
 
+            
+    def _compare_expected_to_available_processing_modules(self) -> None:
+        available_processing_modules = list(self.api.project_configs.available_processing_modules.keys())
+        for available_module in available_processing_modules:
+            if available_module not in self._expected_processing_step_modules:
+                print(f'Warning for developers: {available_module} is an available processing module of findmycells,'
+                       'which is not yet covered in the GUI! Please also add it to the "_expected_processing_step_modules"'
+                       'property of the GUI class in findmycells.interfaces.')
         
     def _refresh_displayed_widget(self, new_widget: WidgetType) -> None:
         self.displayed_widget.children = (new_widget, )
