@@ -265,12 +265,6 @@ class DataReader(ABC):
         pass
     
     
-    @property
-    @abstractmethod
-    def default_configs(self) -> DefaultConfigs:
-        pass
-    
-    
     @abstractmethod
     def read(self, filepath: Path, reader_configs: Dict) -> Any:
         """

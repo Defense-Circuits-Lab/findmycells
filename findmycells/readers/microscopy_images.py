@@ -26,10 +26,41 @@ class MicroscopyImageReaders(DataReader):
     [1, 1024, 1024, 1]    
     """
 
-
     def assert_correct_output_format(self, output: np.ndarray) -> None:
         assert type(output) == np.ndarray, 'The constructed output is not a numpy array!'
         assert len(output.shape) == 4, 'The shape of the to-be-returned array does not match the expected shape!'
+        
+        
+    def _get_color_channel_slice(self, reader_configs: Dict[str, Any]) -> slice:
+        if reader_configs['all_color_channels'] == True:
+            color_channel_slice = slice(None)
+        else:
+            if type(reader_configs['specific_color_channel_idxs_range']) == int:
+                lower_color_channel_idx = reader_configs['specific_color_channel_idxs_range']
+                upper_color_channel_idx = lower_color_channel_idx
+            else:
+                lower_color_channel_idx, upper_color_channel_idx = reader_configs['specific_color_channel_idxs_range']
+            # To ensure that we are not loosing a dimension when only a single idx shall be selected:
+            if lower_color_channel_idx == upper_color_channel_idx:
+                upper_color_channel_idx += 1
+            color_channel_slice = slice(lower_color_channel_idx, upper_color_channel_idx)
+        return color_channel_slice
+    
+    
+    def _get_plane_idx_slice(self, reader_configs: Dict[str, Any]) -> slice:
+        if reader_configs['all_planes'] == True:
+            plane_idx_slice = slice(None)
+        else:
+            if type(reader_configs['specific_plane_idxs_range']) == int:
+                lower_plane_idx = reader_configs['specific_plane_idxs_range']
+                upper_plane_idx = reader_configs['specific_plane_idxs_range']
+            else:
+                lower_plane_idx, upper_plane_idx = reader_configs['specific_plane_idxs_range']
+            # To ensure that we are not loosing a dimension when only a single idx shall be selected:
+            if lower_plane_idx == upper_plane_idx:
+                upper_plane_idx += 1
+            plane_idx_slice = slice(lower_plane_idx, upper_plane_idx)
+        return plane_idx_slice
 
 # %% ../../nbs/04_readers_01_microscopy_images.ipynb 5
 class CZIReader(MicroscopyImageReaders):
@@ -48,17 +79,16 @@ class CZIReader(MicroscopyImageReaders):
     def read(self,
              filepath: Path, # filepath to the microscopy image file
              reader_configs: Dict # a dictionary based on the DefaultConfigs specified in the MicroscopyReaderSpecs
-            ) -> np.ndarray: # numpy array with the structure: [imaging-planes, rows, columns, imaging-channel]     
-        # To ensure that we don´t lose a dimension if only a single color channel is to be selected:
-        if type(reader_configs['color_channel_idx']) == int:
-            reader_configs['color_channel_idx'] = slice(reader_configs['color_channel_idx'], reader_configs['color_channel_idx'] + 1)
+            ) -> np.ndarray: # numpy array with the structure: [imaging-planes, rows, columns, imaging-channel]
+        color_channel_slice = self._get_color_channel_slice(reader_configs = reader_configs)
+        plane_idx_slice = self._get_plane_idx_slice(reader_configs = reader_configs)
         read_image_using_configs = czifile.imread(filepath)[reader_configs['version_idx'],
                                                             reader_configs['tile_row_idx'], 
                                                             reader_configs['tile_col_idx'], 
-                                                            reader_configs['plane_idx'], 
+                                                            plane_idx_slice, 
                                                             :, 
                                                             :, 
-                                                            reader_configs['color_channel_idx']]
+                                                            color_channel_slice]
         return read_image_using_configs
 
 # %% ../../nbs/04_readers_01_microscopy_images.ipynb 6
@@ -80,10 +110,8 @@ class RegularImageFiletypeReader(MicroscopyImageReaders):
              reader_configs: Dict # a dictionary based on the DefaultConfigs specified in the MicroscopyReaderSpecs
             ) -> np.ndarray: # numpy array with the structure: [imaging-planes, rows, columns, imaging-channel]
         image_with_correct_format = self._attempt_to_load_image_at_correct_format(filepath = filepath)
-        # To ensure that we don´t losse a dimension if only a single color channel is to be selected:
-        if type(reader_configs['color_channel_idx']) == int:
-            reader_configs['color_channel_idx'] = slice(reader_configs['color_channel_idx'], reader_configs['color_channel_idx'] + 1)
-        read_image_using_configs = image_with_correct_format[:, :, :, reader_configs['color_channel_idx']]
+        color_channel_slice = self._get_color_channel_slice(reader_configs = reader_configs)
+        read_image_using_configs = image_with_correct_format[:, :, :, color_channel_slice]
         return read_image_using_configs 
     
     

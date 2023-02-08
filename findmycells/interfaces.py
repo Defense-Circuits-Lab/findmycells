@@ -422,6 +422,7 @@ class PageButtonBundle(ABC):
         self.all_navigator_buttons = all_navigator_buttons
         self.api = api
         self.navigator_button = self._initialize_navigator_button()
+        self.displayed_output = w.Output()
         self.page_content = self._initialize_page_content()
         
         
@@ -435,7 +436,7 @@ class PageButtonBundle(ABC):
         for button in self.all_navigator_buttons:
             button.style.button_color = 'gray'
         self.navigator_button.style.button_color = 'skyblue'
-        self.gui_page_screen.children = (self.page_content, )
+        self.gui_page_screen.children = (self.page_content, self.displayed_output)
 
 # %% ../nbs/03_interfaces.ipynb 11
 class OverviewPage(PageButtonBundle):
@@ -449,16 +450,41 @@ class OverviewPage(PageButtonBundle):
                                               '"project files" tab before you can get started.'))
         project_files_tab_widget = self._initialize_project_files_tab_widget()
         save_load_project_tab_widget = self._initialize_save_load_project_tab_widget()
+        data_reader_tab_widget = self._initialize_data_reader_tab_widget()
         browse_file_histories_tab_widget = self._initialize_browse_file_histories_tab_widget()
         self._bind_buttons_to_functions()
-        tabs = w.Tab([save_load_project_tab_widget, 
-                      project_files_tab_widget, 
-                      browse_file_histories_tab_widget], selected_index = 1)
-        tabs.set_title(0, 'save & load project')
-        tabs.set_title(1, 'project files')
+        tabs = w.Tab([project_files_tab_widget, 
+                      data_reader_tab_widget,
+                      browse_file_histories_tab_widget,
+                      save_load_project_tab_widget], selected_index = 0)
+        tabs.set_title(0, 'project files')
+        tabs.set_title(1, 'data import settings')
         tabs.set_title(2, 'browser file histories')
+        tabs.set_title(3, 'save & load project')
         page_content_widget = w.VBox([overview_intro_text, tabs])
         return page_content_widget
+        
+        
+    def _initialize_data_reader_tab_widget(self) -> WidgetType:
+        intro_text = w.HTML(value = ('Please use the following widgets to specify the settigns of how '
+                                     'data (i.e. microscopy images and, if available, ROI-files) shall '
+                                     'be imported into your findmycells project:'))
+        microscopy_images_reader_settings_widget = self._initialize_data_reader_settings_widget(reader_type = 'microscopy_images')
+        rois_reader_settings_widget = self._initialize_data_reader_settings_widget(reader_type = 'rois')
+        data_reader_accordion = w.Accordion([microscopy_images_reader_settings_widget, rois_reader_settings_widget])
+        data_reader_accordion.set_title(0, 'Microscopy images import settings')
+        data_reader_accordion.set_title(0, 'ROI-files import settings')
+        return w.VBox([intro_text, data_reader_accordion])
+        
+        
+    def _initialize_data_reader_settings_widget(self, reader_type: str) -> WidgetType:
+        reader_specs = self.api.project_configs.available_data_readers[reader_type]()
+        reader_specs.initialize_gui_configs_and_widget()
+        confirm_reader_settings_button = w.Button(description = 'confirm settings')
+        setattr(self, f'{reader_type}_reader_specs', reader_specs)
+        setattr(self, f'confirm_{reader_type}_reader_settings_button', confirm_reader_settings_button)
+        return w.VBox([reader_specs.widget, confirm_reader_settings_button])       
+        
         
         
     def _initialize_project_files_tab_widget(self) -> WidgetType:
@@ -582,6 +608,23 @@ class OverviewPage(PageButtonBundle):
         self.save_project_button.on_click(self._save_project_button_clicked)
         self.load_project_button.on_click(self._load_project_button_clicked)
         self.display_file_history_button.on_click(self._display_file_history_button_clicked)
+        self.confirm_microscopy_images_reader_settings_button.on_click(self._confirm_microscopy_images_reader_settings_button_clicked)
+        self.confirm_rois_reader_settings_button.on_click(self._confirm_rois_reader_settings_button_clicked)
+        
+        
+    def _confirm_rois_reader_settings_button_clicked(self, b) -> None:
+        roi_reader_configs = self.rois_reader_specs.export_current_gui_config_values()
+        self.api.set_roi_reader_configs(roi_reader_configs = roi_reader_configs)
+        self.confirm_rois_reader_settings_button.description = 'refine settings'
+        with self.displayed_output:
+            print('ROI-file import settings successfully updated!')
+        
+    def _confirm_microscopy_images_reader_settings_button_clicked(self, b) -> None:
+        microscopy_reader_configs = self.microscopy_images_reader_specs.export_current_gui_config_values()
+        self.api.set_microscopy_reader_configs(microscopy_reader_configs = microscopy_reader_configs)
+        self.confirm_microscopy_images_reader_settings_button.description = 'refine settings'
+        with self.displayed_output:
+            print('Microscopy image import settings successfully updated!')
         
         
     def _update_project_files_button_clicked(self, b) -> None:
@@ -733,7 +776,9 @@ class ProcessingStepPage(PageButtonBundle):
             corresponding_api_callable = self.api.quantify
         else:
             raise NotImplementedError(f'API wrapper for {self.bundle_id} missing!')
-        corresponding_api_callable(strategies, strategy_configs, self.processing_configs, file_ids)
+        with self.displayed_output:
+            self.displayed_output.clear_output()
+            corresponding_api_callable(strategies, strategy_configs, self.processing_configs, file_ids)
     
         
     def _get_file_ids(self) -> List[str]:

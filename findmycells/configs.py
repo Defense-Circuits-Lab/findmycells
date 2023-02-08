@@ -84,13 +84,13 @@ class ProjectConfigs:
         setattr(self, processing_step_id, configs)
         
     
-    def add_reader_configs(self, reader_type: str, configs: Optional[Dict[str, Any]]=None) -> None:
+    def add_reader_configs(self, reader_type: str, reader_configs: Optional[Dict[str, Any]]=None) -> None:
         assert reader_type in self.available_data_readers.keys(), '"reader_type" has to match with an available data reader!'
-        if configs == None:
-            configs = {}
-        self.data_reader_default_configs[reader_type].assert_user_input(user_input = configs)
-        configs = self.data_reader_default_configs[reader_type].fill_user_input_with_defaults_where_needed(user_input = configs)
-        setattr(self, reader_type, configs)
+        if reader_configs == None:
+            reader_configs = {}
+        self.data_reader_default_configs[reader_type].assert_user_input(user_input = reader_configs)
+        reader_configs = self.data_reader_default_configs[reader_type].fill_user_input_with_defaults_where_needed(user_input = reader_configs)
+        setattr(self, reader_type, reader_configs)
 
 # %% ../nbs/00_configs.ipynb 7
 class DefaultConfigs:
@@ -411,7 +411,14 @@ class GUIConfigs:
         step_size = default_configs.get_step_size_if_present(key = key)
         tooltip = self._get_tooltip_if_present(key = key)
         int_range_slider = w.IntRangeSlider(description = self.descriptions[key],
-                                            value = default_configs.values[key])
+                                            value = default_configs.values[key],
+                                            min = default_configs.valid_ranges[key][0],
+                                            max = default_configs.valid_ranges[key][1],
+                                            step = step_size,
+                                            tooltip = tooltip,
+                                            layout = self.layout,
+                                            style = self.style)
+        return w.HBox([int_range_slider])
 
 
     def _combine_individual_widgets_in_vbox(self) -> WidgetType:

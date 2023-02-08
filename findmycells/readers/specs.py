@@ -83,7 +83,7 @@ class MicroscopyReaderSpecs(ReaderSpecsABC):
     
     @property
     def reader_widget_description(self) -> str:
-        descripion = """
+        description = """
         The following widgets help you in loading your microscopy image data into findmycells, 
         while also aiming at limiting the required computing and memory resources. Therfore, 
         you have the choice to select precisely those color channels or plane indices, which 
@@ -139,13 +139,15 @@ class MicroscopyReaderSpecs(ReaderSpecsABC):
                           'version_idx': 0,
                           'tile_row_idx': 0,
                           'tile_col_idx': 0}
+        
         valid_types = {'all_color_channels': [bool],
                        'specific_color_channel_idxs_range': [tuple], # a tuple of integers
-                       'all_planes': True,
+                       'all_planes': [bool],
                        'specific_plane_idxs_range': [tuple], # a tuple of integers
                        'version_idx': [int],
                        'tile_row_idx': [int],
                        'tile_col_idx': [int]}
+        
         valid_ranges = {'specific_color_channel_idxs_range': (0, 3, 1), # are more possible? most implementations currently assume single color or RGB
                         'specific_plane_idxs_range': (0, 100, 1), # more should usually not be required?
                         'version_idx': (0, 999, 1), # 999 just to put an upper limit
@@ -157,13 +159,30 @@ class MicroscopyReaderSpecs(ReaderSpecsABC):
 # %% ../../nbs/04_readers_00_specs.ipynb 6
 class ROIReaderSpecs(ReaderSpecsABC):
     
+    """
+    findmycells enables analyses of multiple ROIs in the image data. To do so, they will be matched based on their ID that will
+    be retrieved from the ROI file. Some softwares that create these ROI-files, however, create default IDs for the individual
+    ROIs that will interfere with this matching. For instance, in Fiji / ImageJ2, created ROIs get its centroid (?) pixel 
+    coordinates as default ID (e.g. something like "523-378"). Since such default IDs most likely won´t be consistent throughout
+    your entire image dataset, findmycells provides you with two options to adress this:
+    a) You can set 'load_roi_ids_from_file' to False (default): 
+      This will cause findmycells to ignore the IDs of the ROIs that are saved in the provided ROI file and assign them with 
+      new IDs starting at "000". Note: Essentially, this requires you to have always the same type of ROIs present in the 
+      exact same order in all your ROI-files. It is therefore only recommended if you have just a single ROI you´d like to analyze.
+    b) You can set 'load_roi_ids_from_file' to True (recommended if you have more than a single ROI):
+      This will enforce that findmycells uses the IDs that each ROI was saved with. Therefore, it requires that you use consistent
+      naming of the ROIs with your preferred software. For instance, if you´re using Fiji / ImageJ2, you can rename each ROI in the
+      ROIManager (e.g. "CA3", "vlPAG", or "ipsilateral_SNc"). Analyses and quantifications will then be matched and pooled across
+      all ROIs with the respective IDs (e.g. all "CA3" ROIs).
+    """
+    
     @property
     def reader_type(self) -> str:
         return 'rois'
     
     @property
     def reader_widget_description(self) -> str:
-        descripion = """
+        description = """
         The following widgets allow you to specify where findmycells shall analyze
         your images. You can either provide files that denote the areas of each image
         that shall be analyzed & quantified (from here on referred to as ROI-files),
@@ -181,14 +200,12 @@ class ROIReaderSpecs(ReaderSpecsABC):
     
     @property
     def widget_names(self):
-        widget_names = {'whole_image_as_roi': 'Checkbox',
-                        'load_roi_ids_from_file': 'Checkbox'}
+        widget_names = {'load_roi_ids_from_file': 'Checkbox'}
         return widget_names
 
     @property
     def descriptions(self):
-        descriptions = {'whole_image_as_roi': 'load provided ROI files (= checked) or analyze whole images (= unchecked)',
-                        'load_roi_ids_from_file': 'load (= checked) or ingore (= unchecked) ROI IDs from file'}
+        descriptions = {'load_roi_ids_from_file': 'load (= checked) or ingore (= unchecked) ROI IDs from file'}
         return descriptions
     
     @property
@@ -198,9 +215,7 @@ class ROIReaderSpecs(ReaderSpecsABC):
     
     @property
     def default_configs(self) -> DefaultConfigs:
-        default_values = {'whole_image_as_roi': False,
-                          'load_roi_ids_from_file': True}
-        valid_types = {'whole_image_as_roi': [bool],
-                       'load_roi_ids_from_file': [bool]}     
+        default_values = {'load_roi_ids_from_file': True}
+        valid_types = {'load_roi_ids_from_file': [bool]}     
         default_configs = DefaultConfigs(default_values = default_values, valid_types = valid_types)
         return default_configs
