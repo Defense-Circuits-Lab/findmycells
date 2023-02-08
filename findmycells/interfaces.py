@@ -826,8 +826,8 @@ class GUI:
                                        'Once you made your selection & are happy with it - click the "launch project" '
                                        'button to launch your project:'))        
         current_working_dir = os.getcwd()
-        #self.root_dir_chooser = FileChooser(current_working_dir, show_only_dirs = True)
-        self.root_dir_chooser = FileChooser('/mnt/c/Users/dsege/Downloads/fmc_test_project/', show_only_dirs = True)
+        self.root_dir_chooser = FileChooser(current_working_dir, show_only_dirs = True)
+        #self.root_dir_chooser = FileChooser('/mnt/c/Users/dsege/Downloads/fmc_test_project/', show_only_dirs = True)
         self.welcome_page_output = w.Output()
         confirm_root_dir_selection_button = w.Button(description = 'launch project', icon = 'rocket', layout = {'width': '25%'})
         confirm_root_dir_selection_button.on_click(self._confirm_root_dir_selection)
