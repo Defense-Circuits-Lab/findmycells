@@ -473,7 +473,7 @@ class OverviewPage(PageButtonBundle):
         rois_reader_settings_widget = self._initialize_data_reader_settings_widget(reader_type = 'rois')
         data_reader_accordion = w.Accordion([microscopy_images_reader_settings_widget, rois_reader_settings_widget])
         data_reader_accordion.set_title(0, 'Microscopy images import settings')
-        data_reader_accordion.set_title(0, 'ROI-files import settings')
+        data_reader_accordion.set_title(1, 'ROI-files import settings')
         return w.VBox([intro_text, data_reader_accordion])
         
         
@@ -817,22 +817,38 @@ class GUI:
         
     
     def _initialize_start_screen(self) -> WidgetType:
-        welcome_label_line_1 = w.Label(value = 'Welcome to findmycells, glad you´re here! :-)')
-        welcome_label_line_2 = w.Label(value = 'Please start by selecting the root directory for your project below.')
-        welcome_label_line_3 = w.Label(value = 'When you´re happy with your selection, click "confirm" and we are ready to go!')
+        welcome_html = w.HTML(value = ('<br><br>'
+                                       '<div style="font-size: 26px" align="center">'
+                                       '<b>Welcome to <i>findmycells</i> - glad you´re here! :-)</b>'
+                                       '</div><br><br>'
+                                       '<div style="font-size: 16px" align="center">'
+                                       'Please start by selecting the root directory for your project below. '
+                                       'Once you made your selection & are happy with it - click the "launch project" '
+                                       'button to launch your project:'))        
         current_working_dir = os.getcwd()
-        #self.root_dir = FileChooser(current_working_dir, show_only_dirs = True)
-        self.root_dir = FileChooser('/mnt/c/Users/dsege/Downloads/fmc_test_project/', show_only_dirs = True)
-        confirm_root_dir_selection = w.Button(description = 'confirm')
-        confirm_root_dir_selection.on_click(self._confirm_root_dir_selection)
-        return w.VBox([welcome_label_line_1, welcome_label_line_2, welcome_label_line_3, self.root_dir, confirm_root_dir_selection])
+        #self.root_dir_chooser = FileChooser(current_working_dir, show_only_dirs = True)
+        self.root_dir_chooser = FileChooser('/mnt/c/Users/dsege/Downloads/fmc_test_project/', show_only_dirs = True)
+        self.welcome_page_output = w.Output()
+        confirm_root_dir_selection_button = w.Button(description = 'launch project', icon = 'rocket', layout = {'width': '25%'})
+        confirm_root_dir_selection_button.on_click(self._confirm_root_dir_selection)
+        return w.VBox([welcome_html, self.root_dir_chooser, confirm_root_dir_selection_button, self.welcome_page_output],
+                      layout = {'align_items': 'center'})
    
     
     def _confirm_root_dir_selection(self, b) -> None:
-        selected_root_dir_path = Path(self.root_dir.value)
-        assert selected_root_dir_path.is_dir()
-        self.api = API(project_root_dir = selected_root_dir_path)
-        self._initialize_main_screen()
+        if self.root_dir_chooser.value == None:
+            with self.welcome_page_output:
+                self.welcome_page_output.clear_output()
+                print(('Whoooops - seems like you have not yet made your selection! '
+                       'This requires you to click twice on the "select" button. Once '
+                       'to open the file explorer widget, and a second time to collapse '
+                       'it again. After your second click, you should see the path you '
+                       'selected displayed above in green. Once this is the case, please '
+                       'click the "launch project" button again.'))
+        else:
+            selected_root_dir_path = Path(self.root_dir_chooser.value)
+            self.api = API(project_root_dir = selected_root_dir_path)
+            self._initialize_main_screen()
         
         
     def _initialize_main_screen(self) -> None:
