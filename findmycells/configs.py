@@ -393,7 +393,8 @@ class GUIConfigs:
 
 
     def _combine_individual_widgets_in_vbox(self) -> WidgetType:
-        all_widgets = [self.info_html]
+        spacer = w.Label(value = '', layout = {'height': '20px'})
+        all_widgets = [self.info_html, spacer]
         for config_key in self.widget_names.keys():
             all_widgets.append(getattr(self, config_key))
         return w.VBox(all_widgets)

@@ -22,9 +22,8 @@ class ReaderSpecsABC(ABC):
     @abstractmethod
     def reader_widget_description(self) -> str:
         """
-        Description that will be converted into HTML and displayed in the GUI
-        right above the constructed widgets. Should therefore explain everything
-        relevant for the user to understand the configuration options.
+        HTML syntax supported, as it will be used as "value" when constructing 
+        an ipytwidgets.HTML object.
         """
         pass
     
@@ -84,22 +83,22 @@ class MicroscopyReaderSpecs(ReaderSpecsABC):
     @property
     def reader_widget_description(self) -> str:
         description = """
+        <br>
+        <div style="font-size: 13"> <b>User info:</b></div>
+        <br>
         The following widgets help you in loading your microscopy image data into findmycells, 
         while also aiming at limiting the required computing and memory resources. Therfore, 
         you have the choice to select precisely those color channels or plane indices, which 
-        shall be analyzed, but also to load all channels & planes, if necessary.
-        You also have the chance to test different settings until you found those that fit 
-        your demands. For this, please specify your first combination of values and confirm them
-        by clicking the "confirm microscopy reader settings" button. After also specifying ROI
-        reader settings, simply head over to the "preprocess" page using the navigation buttons 
-        in the top bar & preprocess a single file of your data. We recommend limiting the use of 
-        preprocessing strategies for instance to the "convert to 8-bit" strategy, to get the best
-        impression of what of your image data was loaded. You can inspect the preprocessed images
-        in the "preprocessed_images" folder, which was created in your specified project root 
-        directory. Feel free to head back to this page to refine the microscopy or ROI reader
-        configurations & then preprocess the same file again to see the changes 
-        (remember checking the "overwrite" checkbox when running the preprocessing). You can repeat
-        this process until you found the right configurations for your project.
+        shall be analyzed.
+        <br>
+        Not sure in which color channel index you can find your color of interest? Or you 
+        want to try different options? Simply specify any combination that seems good to you 
+        and see how your images will be loaded by heading over to the "preprocessing" step. 
+        Feel free to use your favorite combination of preprocessing methods, or just go for 
+        a plain conversion into 8-bit & then check the preprocessed images in the 
+        "preprocessed_images" directory, which was created in the root directory you specified.
+        If something does not look quite right just yet, simply come back here and re-iterate 
+        this process until you're happy with the result.
         """
         return description    
     
@@ -183,18 +182,21 @@ class ROIReaderSpecs(ReaderSpecsABC):
     @property
     def reader_widget_description(self) -> str:
         description = """
-        The following widgets allow you to specify where findmycells shall analyze
-        your images. You can either provide files that denote the areas of each image
-        that shall be analyzed & quantified (from here on referred to as ROI-files),
-        or simply chose to analyze the entire image. Findmycells also supports the
-        analysis of multiple ROIs per image. To ensure that the quantifications are
-        done correctly, we recommend that you specify the corresponding ID of each ROI
-        using the tool you used to create the ROI-files (e.g. Fiji). Findmycells will
-        then match the quantification results based on the provided ROI IDs. For instance,
-        if you have a microscopy image that shows the entire hippocampus, you may provide
-        ROI files that contain ROIs with the IDs "DG", "CA3", and "CA1". Findmycells will
-        then run the quantifications separately for each region and, importantly, not every
-        image needs to contain all three ROIs.
+        <br>
+        <div style="font-size: 13"> <b>User info:</b></div>
+        <br>
+        More often than not, you may be interested to quantify your specific image feature of interest 
+        only in a very specific area of your image (or, <b>R</b>egion <b>O</b>f <b>I</b>nterest - ROI). 
+        <i>findmycells</i> supports both: the quantification of image features in the entire image, 
+        or precisely in one - or even multiple - specified ROI(s).<br>
+        Interested in running whole image analysis? Well, simply make sure that "quantify whole image" 
+        is checked, and your good to go!<br>
+        Instead want to quantify the features in specifc ROIs? Not much harder! Please follow our examples 
+        of how to create ROI-files, for instance using ImageJ2 (= Fiji). In case you want to quantify 
+        multiple ROIs, please make sure to also check "load ROI IDs from file". <i>findmycells</i> will 
+        then use this information and pool quantifaction across ROIs with the (exact!) same ID. Note: 
+        This also applies if you have multiple different ROIs in your project, even if they are not 
+        present in the same image.
         """
         return description
     
