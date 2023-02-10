@@ -65,7 +65,7 @@ class ReaderSpecsABC(ABC):
         gui_configs = GUIConfigs(widget_names = self.widget_names,
                                  descriptions = self.descriptions,
                                  tooltips = self.tooltips)
-        gui_configs.construct_widget(strategy_description = self.reader_widget_description,
+        gui_configs.construct_widget(info_text = self.reader_widget_description,
                                      default_configs = self.default_configs)
         setattr(self, 'gui_configs', gui_configs)
         self.widget = self.gui_configs.strategy_widget

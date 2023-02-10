@@ -102,7 +102,10 @@ class ProcessingObject(ABC):
         gui_configs = GUIConfigs(widget_names = self.widget_names,
                                  descriptions = self.descriptions,
                                  tooltips = self.tooltips)
-        gui_configs.construct_widget(strategy_description = 'General processing configurations for this step:',
+        info_text = ('<div style="font-size: 16px">'
+                     '<b>General processing configurations:</b>'
+                     '</div>')
+        gui_configs.construct_widget(info_text = info_text,
                                      default_configs = self.default_configs)
         setattr(self, 'gui_configs', gui_configs)
         self.widget = self.gui_configs.strategy_widget
@@ -228,7 +231,8 @@ class ProcessingStrategy(ABC):
         gui_configs = GUIConfigs(widget_names = self.widget_names,
                                  descriptions = self.descriptions,
                                  tooltips = self.tooltips)
-        gui_configs.construct_widget(strategy_description = self.__doc__,
+        docstring_in_html_syntax = self._convert_docstring_to_html_syntax()
+        gui_configs.construct_widget(info_text = docstring_in_html_syntax,
                                      default_configs = self.default_configs)
         setattr(self, 'gui_configs', gui_configs)
         self.widget = self.gui_configs.strategy_widget
@@ -246,6 +250,34 @@ class ProcessingStrategy(ABC):
                                                     processing_strategy_name = self.strategy_name,
                                                     strategy_configs = strategy_configs_with_updates)
         return processing_object
+
+
+    def _convert_docstring_to_html_syntax(self) -> str:
+        """
+        To visualize the description of each strategy in a proper way in the GUI, the online hosted
+        documentation, and in the docstrings, we added some custom "string commands". These allow us
+        to achieve some HTML formatting (required for both GUI and the documentation), while they
+        don't interfere with the layout of the docstring. For this, the follwing keys were introduced:
+        
+        '\b': Every '\b' in the original docstring will be replaced by a '<br>' upon conversion of the
+        docstring into HTML, creating a linebreak. It will simply be ignored in the original docstring
+        and is therefore not visible.
+        
+        '\1' and '\2': To make indentation blocks possible, '\1' and '\2' were introduced. '\1' denotes
+        the beginning of an indentation block, whereas '\2' marks its end. Accordingly, '\1' will be 
+        converted into '<div style="margin-left: 2em;">', and '\2' will be converted into '</div>'.
+        They can also be used to stack indentations, simply by using multiple '\1's before closing
+        one after the other by adding correspondingly matching '\2's. Again, they will be ignored in
+        the original docstring and therefore not be visible.
+        """
+        docstring = self.__doc__
+        if docstring == None:
+            docstring = ''
+        partially_converted_docstring = docstring.replace('\1', '<div style="margin-left: 2em;">')
+        partially_converted_docstring = partially_converted_docstring.replace('\2', '</div>')
+        partially_converted_docstring = partially_converted_docstring.replace('\b', '<br>')
+        html_converted_docstring = partially_converted_docstring.replace('  ', '')
+        return html_converted_docstring
 
 # %% ../nbs/02_core.ipynb 16
 class DataReader(ABC):

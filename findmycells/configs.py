@@ -260,11 +260,11 @@ class GUIConfigs:
     
             
     def construct_widget(self,
-                         strategy_description: str,
-                         default_configs: DefaultConfigs
+                         info_text: str,
+                         default_configs: DefaultConfigs,
                         ) -> None:
         self._assert_matching_keys_with_default_configs(default_configs = default_configs)
-        self._initialize_individual_widgets_as_attributes(strategy_description = strategy_description, default_configs = default_configs)
+        self._initialize_individual_widgets_as_attributes(info_text = info_text, default_configs = default_configs)
         self.strategy_widget = self._combine_individual_widgets_in_vbox()
     
     
@@ -275,43 +275,14 @@ class GUIConfigs:
             assert key in default_configs.values.keys(), assert_message
             
     
-    def _initialize_individual_widgets_as_attributes(self, strategy_description: str, default_configs: DefaultConfigs) -> None:
-        self.strategy_description_html = self._convert_docstring_to_html(strategy_description = strategy_description)
+    def _initialize_individual_widgets_as_attributes(self, info_text: str, default_configs: DefaultConfigs) -> None:
+        self.info_html = w.HTML(value = info_text)
         for config_key, widget_name in self.widget_names.items():
             widget_constructor = self.widget_constructors[widget_name] # creates the widget and embeds it in an HBox to avoids visualization bugs
             hbox_containing_config_widget = widget_constructor(key = config_key, default_configs = default_configs)
             hbox_containing_config_widget.layout = self.layout
             hbox_containing_config_widget.style = self.style
             setattr(self, config_key, hbox_containing_config_widget)
-            
-            
-    def _convert_docstring_to_html(self, strategy_description: str) -> WidgetType:
-        """
-        To visualize the description of each strategy in a proper way in the GUI, the online hosted
-        documentation, and in the docstrings, we added some custom "string commands". These allow us
-        to achieve some HTML formatting (required for both GUI and the documentation), while at they
-        don't interfere with the layout of the docstring. For this, the follwing keys were introduced:
-        
-        '\b': Every '\b' in the original docstring will be replaced by a '<br>' upon conversion of the
-        docstring into HTML, creating a linebreak. It will simply be ignored in the original docstring
-        and is therefore not visible.
-        
-        '\1' and '\2': To make indentation blocks possible, '\1' and '\2' were introduced. '\1' denotes
-        the beginning of an indentation block, whereas '\2' marks its end. Accordingly, '\1' will be 
-        converted into '<div style="margin-left: 2em;">', and '\2' will be converted into '</div>'.
-        They can also be used to stack indentations, simply by using multiple '\1's before closing
-        one after the other by adding correspondingly matching '\2's. Again, they will be ignored in
-        the original docstring and therefore not be visible.
-        
-        Note: This will only apply to the docstrings of processing strategies.
-        """
-        if type(strategy_description) != str:
-            strategy_description = ''
-        partially_converted_description = strategy_description.replace('\1', '<div style="margin-left: 2em;">')
-        partially_converted_description = partially_converted_description.replace('\2', '</div>')
-        partially_converted_description = partially_converted_description.replace('\b', '<br>')
-        html_converted_strategy_description = partially_converted_description.replace('  ', '')
-        return w.HTML(value = html_converted_strategy_description)
 
 
     def _construct_a_checkbox(self, key: str, default_configs: DefaultConfigs) -> WidgetType:
@@ -422,7 +393,7 @@ class GUIConfigs:
 
 
     def _combine_individual_widgets_in_vbox(self) -> WidgetType:
-        all_widgets = [self.strategy_description_html]
+        all_widgets = [self.info_html]
         for config_key in self.widget_names.keys():
             all_widgets.append(getattr(self, config_key))
         return w.VBox(all_widgets)
