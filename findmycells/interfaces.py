@@ -581,24 +581,41 @@ class OverviewPage(PageButtonBundle):
     
         
     def _initialize_browse_file_histories_tab_widget(self) -> WidgetType:
+        """
+        The options of the two dropdowns will be specified / updated when the following buttons are clicked: 
+            - self.file_histories_id_dropdown: self.update_project_files_button
+            - self.processing_step_id_dropdown: self.display_file_history_button
+        The outputs created here will be used to display the following information:
+            - self.file_infos_output: displays the file_infos (i.e. project level overview) of the selected file ID
+            - self.file_history_output: displays the .tracked_history property of the corresponding FileHistory object of the selected file ID
+            - self.processing_step_details_output: displays the detailed logs of the selected processing step
+        """
         intro_text = w.HTML(value = ('Findmycells keeps a detailed track of how and when your '
-                                     'files are processed. Using the widget below, you are '
+                                     'files are processed. Using the widgets below, you are '
                                      'able to browser through this history for all files in your '
-                                     'project. Note: Unfortunately, this interactive widget is '
-                                     'not yet implemented in your current version. Nevertheless, '
-                                     'findmycells already tracks the processing history of your '
-                                     'files and if you have some experience with python, you can '
-                                     'access them at: self.api.database.file_histories, where '
-                                     '"self" refers to the GUI object you have instantiated.'))
+                                     'project.'))   
         self.file_histories_id_dropdown = w.Dropdown(description = 'History of file ID:', 
                                                      style = {'description_width': 'initial'},
                                                      layout = {'width': '66%'})
         self.display_file_history_button = w.Button(description = 'show history', layout = {'width': '33%'})
         dropdown_button_hbox = w.HBox([self.file_histories_id_dropdown, self.display_file_history_button])
+        self.file_infos_output = w.Output()
         self.file_history_output = w.Output()
+        genereal_file_history_widgets = w.VBox([w.HBox([self.file_histories_id_dropdown, self.display_file_history_button]),
+                                                self.file_infos_output, 
+                                                self.file_history_output])
+        self.processing_step_id_dropdown = w.Dropdown(description = 'Processing step ID:', 
+                                                      style = {'description_width': 'initial'},
+                                                      layout = {'width': '66%'})
+        self.display_processing_step_details_button = w.Button(description = 'show detailed processing settings', 
+                                                             style = {'description_width': 'initial'},
+                                                             layout = {'width': '33%'})
+        self.processing_step_details_output = w.Output()
+        detailed_processing_history_widgets = w.VBox([w.HBox([self.processing_step_id_dropdown, self.display_processing_step_details_button]),
+                                                      self.processing_step_details_output])
         browse_file_hostories_tab_widget = w.VBox([intro_text,
-                                                   dropdown_button_hbox,
-                                                   self.file_history_output])
+                                                   genereal_file_history_widgets,
+                                                   detailed_processing_history_widgets])
         return browse_file_hostories_tab_widget
                                       
         
@@ -610,6 +627,7 @@ class OverviewPage(PageButtonBundle):
         self.display_file_history_button.on_click(self._display_file_history_button_clicked)
         self.confirm_microscopy_images_reader_settings_button.on_click(self._confirm_microscopy_images_reader_settings_button_clicked)
         self.confirm_rois_reader_settings_button.on_click(self._confirm_rois_reader_settings_button_clicked)
+        self.display_processing_step_details_button.on_click(self._display_processing_step_details_button_clicked)
         
         
     def _confirm_rois_reader_settings_button_clicked(self, b) -> None:
@@ -657,17 +675,40 @@ class OverviewPage(PageButtonBundle):
         
     
     def _display_file_history_button_clicked(self, b) -> None:
-        # ToDo: 
-        #   Needs to be implemented. File histories are implemented, yet
-        #   it needs to be checked how to best visualize them, as they 
-        #   consist of two parts, a pd.DataFrame that tracks the general
-        #   processing information (what strategy was run when & was a 
-        #   given processing step completed), and a dictionary that lists
-        #   the exact parameters (user settings and determined by fmc) 
-        #   for each processing step individually
+        selected_file_id = self.file_histories_id_dropdown.value
+        self._display_file_infos(file_id = selected_file_id)
+        self._display_file_history(file_id = selected_file_id)
+        self._update_processing_step_id_dropdown_options(file_id = selected_file_id)
+        
+        
+    def _display_file_infos(self, file_id: str) -> None:
+        file_infos = self.api.database.get_file_infos(file_id = file_id)
+        file_infos_df = pd.DataFrame(data = file_infos)
+        with self.file_infos_output:
+            self.file_infos_output.clear_output()
+            display(file_infos_df)
+            
+            
+    def _display_file_history(self, file_id: str) -> None:
         with self.file_history_output:
             self.file_history_output.clear_output()
-            print('Not implemented yet!')
+            display(self.api.database.file_histories[file_id].tracked_history)
+    
+    
+    def _update_processing_step_id_dropdown_options(self, file_id: str) -> None:
+        processing_step_ids = list(self.api.database.file_histories[file_id].tracked_history['processing_step_id'].values)
+        if len(processing_step_ids) > 0:
+            self.processing_step_id_dropdown.options = processing_step_ids
+            
+            
+    def _display_processing_step_details_button_clicked(self, b) -> None:
+        file_id = self.file_histories_id_dropdown.value
+        processing_step_id = self.processing_step_id_dropdown.value
+        processing_step_settings = self.api.database.file_histories[file_id].tracked_settings[processing_step_id]
+        processing_step_settings_df = pd.DataFrame(data = processing_step_settings)
+        with self.processing_step_details_output:
+            self.processing_step_details_output.clear_output()
+            display(processing_step_settings_df)
 
 # %% ../nbs/03_interfaces.ipynb 12
 class ProcessingStepPage(PageButtonBundle):
@@ -826,8 +867,8 @@ class GUI:
                                        'Once you made your selection & are happy with it - click the "launch project" '
                                        'button to launch your project:'))        
         current_working_dir = os.getcwd()
-        self.root_dir_chooser = FileChooser(current_working_dir, show_only_dirs = True)
-        #self.root_dir_chooser = FileChooser('/mnt/c/Users/dsege/Downloads/fmc_test_project/', show_only_dirs = True)
+        #self.root_dir_chooser = FileChooser(current_working_dir, show_only_dirs = True)
+        self.root_dir_chooser = FileChooser('/mnt/c/Users/dsege/Downloads/fmc_test_project/', show_only_dirs = True)
         self.welcome_page_output = w.Output()
         confirm_root_dir_selection_button = w.Button(description = 'launch project', icon = 'rocket', layout = {'width': '25%'})
         confirm_root_dir_selection_button.on_click(self._confirm_root_dir_selection)
