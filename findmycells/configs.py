@@ -27,6 +27,7 @@ class ProjectConfigs:
         self.load_available_processing_modules()
         self._load_available_strategies_and_objects()
         self._load_available_data_readers_and_their_default_configs()
+        self._load_available_inspection_methods()
             
     
     def load_available_processing_modules(self) -> None:
@@ -35,6 +36,14 @@ class ProjectConfigs:
             if hasattr(module, 'specs') & hasattr(module, 'strategies'):
                 available_processing_modules[module_name] = module
         setattr(self, 'available_processing_modules', available_processing_modules)
+        
+        
+    def _load_available_inspection_methods(self) -> None:
+        available_inspection_methods = []
+        for class_name, obj in inspect.getmembers(findmycells.inspection.methods, inspect.isclass):
+            if (class_name.startswith('Inspect') == True) & (class_name.startswith('Inspection') == False):
+                available_inspection_methods.append(obj)
+        setattr(self, 'available_inspection_methods', available_inspection_methods)
         
     """
     def _load_default_configs_of_available_data_readers(self) -> None:
@@ -213,7 +222,8 @@ class GUIConfigs:
                                'FileChooser': self._construct_a_filechooser,
                                'BoundedIntText': self._construct_a_boundedinttext,
                                'BoundedFloatText': self._construct_a_boundedfloattext, 
-                               'IntRangeSlider': self._construct_an_intrangeslider}
+                               'IntRangeSlider': self._construct_an_intrangeslider,
+                               'Text': self._construct_a_text}
         return widget_constructors
     
     
@@ -390,6 +400,16 @@ class GUIConfigs:
                                             layout = self.layout,
                                             style = self.style)
         return w.HBox([int_range_slider])
+    
+    
+    def _construct_a_text(self, key: str, default_configs: DefaultConfigs) -> WidgetType:
+        tooltip = self._get_tooltip_if_present(key = key)
+        text = w.Text(description = self.descriptions[key],
+                      placeholder = default_configs.values[key],
+                      tooltip = tooltip,
+                      layout = self.layout,
+                      style = self.style)
+        return w.HBox([text])
 
 
     def _combine_individual_widgets_in_vbox(self) -> WidgetType:
