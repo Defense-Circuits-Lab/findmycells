@@ -583,7 +583,7 @@ class ApplyExclusionCriteriaStrat(PostprocessingStrategy):
         elif strategy_configs['min_relative_position'] == 'touches':
             allowed_relative_positions = ['within', 'intersects', 'touches']
         else:
-            allowed_relative_positions = ['within', 'intersects', 'touches', 'no overlap']
+            allowed_relative_positions = ['within', 'intersects', 'touches', 'no_overlap']
         total_planes = postprocessing_object.postprocessed_segmentations.shape[0]
         if total_planes == 1:
             min_planes_covered = 1
