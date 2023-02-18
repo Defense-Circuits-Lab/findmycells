@@ -86,9 +86,9 @@ class Deepflash2SemanticSegmentationStrat(SegmentationStrategy):
         else:
             path_to_models = strategy_configs['path_to_models']
         if hasattr(database, 'segmentation_tool_configs') == False:
-            database.segmentation_tool_configs = {'df2': dict()}
+            database.segmentation_tool_configs = {'df2': {}}
         elif 'df2' not in database.segmentation_tool_configs.keys():
-            database.segmentation_tool_configs['df2'] = dict()
+            database.segmentation_tool_configs['df2'] = {}
         database.segmentation_tool_configs['df2']['ensemble_path'] = path_to_models
         n_models_found = len([elem for elem in utils.list_dir_no_hidden(path_to_models) if elem.name.endswith('.pth')])
         database.segmentation_tool_configs['df2']['n_models'] = n_models_found
@@ -147,6 +147,9 @@ class Deepflash2SemanticSegmentationStrat(SegmentationStrategy):
         segmentation_tool_dir_path = database.project_configs.root_dir.joinpath(database.segmentation_tool_dir)      
         current_semantic_masks_dir_path = segmentation_tool_dir_path.joinpath('masks')
         for mask_filepath in utils.list_dir_no_hidden(current_semantic_masks_dir_path):
+            target_filepath = semantic_segmentations_target_dir_path.joinpath(mask_filepath.name)
+            if target_filepath.is_file() == True:
+                target_filepath.delete()
             shutil.move(mask_filepath, semantic_segmentations_target_dir_path)
         shutil.rmtree(segmentation_tool_dir_path.joinpath('copies_of_preprocessed_images'))
 
@@ -206,30 +209,50 @@ class LosslessConversionOfDF2SemanticSegToInstanceSegWithCPStrat(SegmentationStr
     
     
     def run(self, processing_object: SegmentationObject, strategy_configs: Dict) -> SegmentationObject:
-        self._assert_all_semantic_segmentations_are_done()
-        processing_object.database = self._add_cellpose_as_segmentation_tool(database = processing_object.database, strategy_configs = strategy_configs)        
+        processing_object.database = self._add_cellpose_as_segmentation_tool(database = processing_object.database,
+                                                                             strategy_configs = strategy_configs)        
         self._run_instance_segmentations(segmentation_object = processing_object)
         return processing_object
         
         
-    def _assert_all_semantic_segmentations_are_done(self) -> None:
-        #if not all(database.file_infos['semantic_segmentations_done']):
-            #raise ValueError('Before you can proceed with instance segmentations, you have to finish semantic segmentation of all files first!')    
-        # ToDo: Implementation with new file history pending!
-        pass
+    def _assert_all_semantic_segmentations_are_done(self, database: Database) -> None:
+        all_file_ids = database.file_infos['file_id']
+        file_ids_without_semantic_segmentations = []
+        for file_id in all_file_ids:
+            executed_processing_strats = list(database.file_histories[file_id].tracked_history['processing_strategy'].values)
+            if 'Deepflash2SemanticSegmentationStrat' not in executed_processing_strats:
+                file_ids_without_semantic_segmentations.append(file_id)
+                continue
+            else:
+                processing_strat_idx = executed_processing_strats.index('Deepflash2SemanticSegmentationStrat')
+                if database.file_histories[file_id].tracked_settings[processing_strat_idx]['semantic_segmentations_done'] == False:
+                    file_ids_without_semantic_segmentations.append(file_id)
+        not_all_semantic_segmentations_done_error_message = ('You can only use the in-built function to calculate the appropriate '
+                                                             'diameter for cellpose for your data, if you have created the semantic '
+                                                             'segmentations of all files already. However, you are currently still '
+                                                             'missing the semantic segmentations of the following file IDs: '
+                                                             f'{file_ids_without_semantic_segmentations}. Therefore, you have now two '
+                                                             'options. 1) You simply finish all semantic segmentations first, or 2) '
+                                                             'you specify the diameter cellpose is supposed to use. Note: if you '
+                                                             'added both segmentation methods (deepflash2 and cellpose) to your '
+                                                             'processing methods in findmycells, make sure to keep "process strategy-wise" '
+                                                             'checked and to select all file IDs.')
+        assert len(file_ids_without_semantic_segmentations) == 0, not_all_semantic_segmentations_done_error_message
+
     
     def _add_cellpose_as_segmentation_tool(self, database: Database, strategy_configs: Dict) -> Database:
         semantic_masks_dir = database.project_configs.root_dir.joinpath(database.semantic_segmentations_dir)
         if hasattr(database, 'segmentation_tool_configs') == False:
-            database.segmentation_tool_configs = {'cp': dict()}
+            database.segmentation_tool_configs = {'cp': {}}
         elif 'cp' not in database.segmentation_tool_configs.keys():
-            database.segmentation_tool_configs['cp'] = dict()
-        database.segmentation_tool_configs['cp']['net_avg'] = True
-        database.segmentation_tool_configs['cp']['model_type'] = 'nuclei'
-        if 'diameter' not in database.segmentation_tool_configs['cp'].keys():
+            database.segmentation_tool_configs['cp'] = {}
+        database.segmentation_tool_configs['cp']['net_avg'] = strategy_configs['net_avg']
+        database.segmentation_tool_configs['cp']['model_type'] = strategy_configs['model_type']
+        if strategy_configs['diameter'] == 0:
+            self._assert_all_semantic_segmentations_are_done(database = database)
             database.segmentation_tool_configs['cp']['diameter'] = self._compute_cellpose_diameter(semantic_masks_dir = semantic_masks_dir)
-        elif strategy_configs['diameter'] == 0:
-            database.segmentation_tool_configs['cp']['diameter'] = self._compute_cellpose_diameter(semantic_masks_dir = semantic_masks_dir)        
+        else:
+            database.segmentation_tool_configs['cp']['diameter'] = strategy_configs['diameter']
         return database
 
 
