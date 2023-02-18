@@ -202,12 +202,14 @@ class ROIReaderSpecs(ReaderSpecsABC):
     
     @property
     def widget_names(self):
-        widget_names = {'load_roi_ids_from_file': 'Checkbox'}
+        widget_names = {'create_rois': 'Checkbox',
+                        'load_roi_ids_from_file': 'Checkbox'}
         return widget_names
 
     @property
     def descriptions(self):
-        descriptions = {'load_roi_ids_from_file': 'load (= checked) or ingore (= unchecked) ROI IDs from file'}
+        descriptions = {'create_rois': 'Don`t use ROI files, and analyze whole images instead',
+                        'load_roi_ids_from_file': 'load (= checked) or ingore (= unchecked) ROI IDs from ROI file or image name'}
         return descriptions
     
     @property
@@ -217,7 +219,9 @@ class ROIReaderSpecs(ReaderSpecsABC):
     
     @property
     def default_configs(self) -> DefaultConfigs:
-        default_values = {'load_roi_ids_from_file': True}
-        valid_types = {'load_roi_ids_from_file': [bool]}     
+        default_values = {'create_rois': False,
+                          'load_roi_ids_from_file': True}
+        valid_types = {'create_rois': [bool],
+                       'load_roi_ids_from_file': [bool]}     
         default_configs = DefaultConfigs(default_values = default_values, valid_types = valid_types)
         return default_configs
