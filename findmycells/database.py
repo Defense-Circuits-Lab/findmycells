@@ -106,20 +106,23 @@ class Database:
         microscopy_images_dir_path = self.project_configs.root_dir.joinpath(self.microscopy_images_dir)
         for main_group_id_subdir_path in utils.list_dir_no_hidden(path = microscopy_images_dir_path, only_dirs = True):
             tmp_subgroup_subdir_paths = utils.list_dir_no_hidden(path = main_group_id_subdir_path, only_dirs = True)
-            assert len(tmp_subgroup_subdir_paths) > 0, f'Invalid microscopy images subdir structure! Expected at least one subdirectory in {main_group_id_subdir_path}.'
+            subgroup_dirs_missing_message = f'Invalid microscopy images subdir structure! Expected at least one subdirectory in {main_group_id_subdir_path}.'
+            assert len(tmp_subgroup_subdir_paths) > 0, subgroup_dirs_missing_message
             for subgroup_id_subdir_path in tmp_subgroup_subdir_paths:
                 tmp_subject_subdir_paths = utils.list_dir_no_hidden(path = subgroup_id_subdir_path, only_dirs = True)
-                assert len(tmp_subject_subdir_paths) > 0, f'Invalid microscopy images subdir structure! Expected at least one subdirectory in {subgroup_id_subdir_path}.'
+                subject_subdirs_missing_message = f'Invalid microscopy images subdir structure! Expected at least one subdirectory in {subgroup_id_subdir_path}.'
+                assert len(tmp_subject_subdir_paths) > 0, subject_subdirs_missing_message
                 for subject_id_subdir_path in tmp_subject_subdir_paths:
                     tmp_hemisphere_subdir_paths = utils.list_dir_no_hidden(path = subject_id_subdir_path, only_dirs = True)
-                    assert len(tmp_subject_subdir_paths) > 0, f'Invalid microscopy images subdir structure! Expected at least one subdirectory in {subject_id_subdir_path}.'
+                    hemisphere_subdirs_missing_message = f'Invalid microscopy images subdir structure! Expected at least one subdirectory in {subject_id_subdir_path}.'
+                    assert len(tmp_subject_subdir_paths) > 0, hemisphere_subdirs_missing_message
                     for hemisphere_id_subdir_path in tmp_hemisphere_subdir_paths:
-                        valid_hemisphere_id = hemisphere_id_subdir_path.name in ['ipsilateral', 'ipsi', 'Ipsilateral', 'Ipsi',
-                                                                                  'contralateral', 'contra', 'Contralateral', 'Contra',
-                                                                                  'any', 'Any', 'undefiened', 'Undefiened', 'unidentified', 'Unidentified']
-                        assert valid_hemisphere_id == True, f'"{hemisphere_id_subdir_path.name}" ({hemisphere_id_subdir_path}) is not a valid hemisphere id!'
-                        #any_file_present = len(utils.list_dir_no_hidden(path = hemisphere_id_subdir_path, only_files = True)) > 0
-                        #assert any_file_present == True, f'Invalid microscopy images subdir structure! Expected at least one file in {hemisphere_id_subdir_path}.'
+                        valid_hemisphere_id_options = ['ipsilateral', 'ipsi', 'Ipsilateral', 'Ipsi',
+                                                       'contralateral', 'contra', 'Contralateral', 'Contra',
+                                                       'any', 'Any', 'undefined', 'Undefined', 'unidentified', 'Unidentified']
+                        valid_hemisphere_id = hemisphere_id_subdir_path.name in valid_hemisphere_id_options
+                        invalid_hemisphere_id_message = f'{hemisphere_id_subdir_path} is not a valid hemisphere subdirectory! Valid options are: {valid_hemisphere_id_options}.'
+                        assert valid_hemisphere_id == True, invalid_hemisphere_id_message
                            
                             
     def _create_representative_microscopy_image_subdir_tree(self) -> None:
@@ -192,10 +195,10 @@ class Database:
         
     def _get_next_available_file_id(self) -> str:
         if len(self.file_infos['file_id']) > 0:
-            file_id = max([int(file_id_str) for file_id_str in self.file_infos['file_id']]) + 1
+            next_available_file_id = max([int(file_id_str) for file_id_str in self.file_infos['file_id']]) + 1
         else:
-            file_id = 0
-        return str(file_id).zfill(4)
+            next_available_file_id = 0
+        return str(next_available_file_id).zfill(4)
                                                
     
     
@@ -245,9 +248,14 @@ class Database:
                                                
         
     def _identify_removed_files(self) -> None:
-        pass
+        file_ids_to_remove = []
+        for index, microscopy_filepath in enumerate(self.file_infos['microscopy_filepath']):
+            if microscopy_filepath.is_file() == False:
+                file_ids_to_remove.append(self.file_infos['file_id'][index])
+        for file_id in file_ids_to_remove:
+            self.remove_file_id_from_project(file_id = file_id)
+                
 
-    
     def get_file_infos(self, file_id: str) -> Dict:
         assert file_id in self.file_infos['file_id'], f'The file_id you passed ({file_id}) is not a valid file_id!'
         index = self.file_infos['file_id'].index(file_id)
@@ -316,7 +324,53 @@ class Database:
 
 
     def remove_file_id_from_project(self, file_id: str) -> None:
-        raise NotImplementedError()
+        self._remove_file_id_from_file_infos(file_id = file_id)
+        self._remove_file_id_from_file_histories(file_id = file_id)
+        self._remove_file_id_from_area_rois(file_id = file_id)
+        self._remove_file_id_from_quantification_results(file_id = file_id)
+        self._delete_all_associated_files_from_processing_subdirs(file_id = file_id)
+
+        
+    def _remove_file_id_from_file_infos(self, file_id: str) -> None:
+        index = self.file_infos['file_id'].index(file_id)
+        for key in self.file_infos.keys():
+            self.file_infos[key].pop(index)
+    
+    
+    def _remove_file_id_from_file_histories(self, file_id: str) -> None:
+        if hasattr(self, 'file_histories') == True:
+            self.file_histories.pop(file_id)
+       
+    
+    def _remove_file_id_from_area_rois(self, file_id: str) -> None:
+        if hasattr(self, 'area_rois_for_quantification') == True:
+            if file_id in self.area_rois_for_quantification.keys():
+                self.area_rois_for_quantification.pop(file_id)
+        
+        
+    def _remove_file_id_from_quantification_results(self, file_id: str) -> None:
+        if hasattr(self, 'quantification_results') == True:
+            for quantification_strategy_class_name in self.quantification_results.keys():
+                if file_id in self.quantification_results[quantification_strategy_class_name].keys():
+                    self.quantification_results[quantification_strategy_class_name].pop(file_id)
+                    
+                    
+    def _delete_all_associated_files_from_processing_subdirs(self, file_id: str) -> None:
+        for processing_subdir_attr_id in ['preprocessed_images', 'semantic_segmentations', 'instance_segmentations']:
+            processing_subdir_str = getattr(self, processing_subdir_attr_id)
+            processing_subdir_path = self.project_configs.root_dir.joinpath(processing_subdir_str)
+            self._delete_matching_files_from_subdir(subdir_path = processing_subdir_path, file_id = file_id)
+        quantified_segmentations_subdir_path = self.project_configs.root_dir.joinpath(self.quantified_segmentations)
+        all_area_id_subdir_paths = utils.list_dir_no_hidden(path = quantified_segmentations_subdir_path, only_dirs = True)
+        for area_id_subdir_path in all_area_id_subdir_paths:
+            self._delete_matching_files_from_subdir(subdir_path = area_id_subdir_path, file_id = file_id)
+            
+            
+    def _delete_matching_files_from_subdir(self, subdir_path: PosixPath, file_id: str) -> None:
+        all_filepaths_in_subdir = utils.list_dir_no_hidden(path = subdir_path, only_files = True)
+        associated_filepaths = [filepath for filepath in all_filepaths_in_subdir if filepath.name.startswith(file_id)]
+        for filepath_to_delete in associated_filepaths:
+            filepath_to_delete.delete()
 
 # %% ../nbs/01_database.ipynb 5
 class FileHistory:
