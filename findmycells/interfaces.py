@@ -27,6 +27,7 @@ from .segmentation.specs import SegmentationStrategy, SegmentationObject
 from .postprocessing.specs import PostprocessingStrategy, PostprocessingObject
 from .quantification.specs import QuantificationStrategy, QuantificationObject
 from .inspection.methods import InspectionMethod
+from . import utils
 
 # %% ../nbs/03_interfaces.ipynb 6
 class API:
@@ -204,10 +205,11 @@ class API:
     def initialize_inspection(self,
                               inspection_method_class: InspectionMethod,
                               file_id: str,
-                              area_roi_id: str
+                              area_roi_id: str,
+                              plane_idx: Optional[int]=None,
                              ) -> InspectionMethod:
         inspection_method_obj = inspection_method_class()
-        inspection_method_obj.load_data(file_id = file_id, area_roi_id = area_roi_id, database = self.database)
+        inspection_method_obj.load_data(file_id = file_id, area_roi_id = area_roi_id, database = self.database, plane_idx = plane_idx)
         return inspection_method_obj
     
     
@@ -715,7 +717,7 @@ class SettingsPage(PageButtonBundle):
     def _update_inspection_page(self) -> None:
         self.inspection_page.file_id_selection_slider.options = self.api.database.file_infos['file_id']
         if hasattr(self.api.database, 'area_rois_for_quantification') == True:
-            self.inspection_page._update_area_roi_id_options(change = {'new': self.inspection_page.file_id_selection_slider.value})
+            self.inspection_page._update_area_roi_id_and_plane_idx_options(change = {'new': self.inspection_page.file_id_selection_slider.value})
         
     
     def _display_file_history_button_clicked(self, b) -> None:
@@ -911,23 +913,28 @@ class InspectionPage(PageButtonBundle):
             file_id_options = []
         self.file_id_selection_slider = w.SelectionSlider(description = 'File ID to inspect:', 
                                                           options = file_id_options,
-                                                          layout = {'width': '50%'},
+                                                          layout = {'width': '90%'},
                                                           style = {'description_width': 'initial'})
         self.area_roi_id_dropdown = w.Dropdown(description = 'Area ROI ID to inspect:',
-                                               options = ['Please select a fild ID first!'],
+                                               options = ['Please select a file ID first!'],
                                                layout = {'width': '35%'},
                                                style = {'description_width': 'initial'})
+        self.plane_idx_dropdown = w.Dropdown(description = 'Which plane(s) to inspect:',
+                                             options = ['Please select a file ID first!'],
+                                             layout = {'width': '35%'},
+                                             style = {'description_width': 'initial'})
         self.confirm_and_load_or_reset_button = w.Button(description = 'confirm',
                                                          layout = {'width': '15%'},
                                                          tooltip = 'Depending on the image size, this might take a moment')
         confirm_method_file_and_area_roi_id_box = w.VBox([w.HBox([self.inspection_method_dropdown]),
-                                                          w.HBox([self.file_id_selection_slider,
-                                                                  self.area_roi_id_dropdown, 
+                                                          w.HBox([self.file_id_selection_slider]),
+                                                          w.HBox([self.area_roi_id_dropdown, 
+                                                                  self.plane_idx_dropdown,
                                                                   self.confirm_and_load_or_reset_button])
                                                              ])
         self._bind_initial_button_and_event_handler()
         if hasattr(self.api.database, 'area_rois_for_quantification') == True:
-            self._update_area_roi_id_options(change = {'new': self.file_id_selection_slider.value})
+            self._update_area_roi_id_and_plane_idx_options(change = {'new': self.file_id_selection_slider.value})
         return confirm_method_file_and_area_roi_id_box
         
 
@@ -941,14 +948,19 @@ class InspectionPage(PageButtonBundle):
     
     
     def _bind_initial_button_and_event_handler(self) -> None:
-        self.file_id_selection_slider.observe(self._update_area_roi_id_options, names='value')
+        self.file_id_selection_slider.observe(self._update_area_roi_id_and_plane_idx_options, names='value')
         self.confirm_and_load_or_reset_button.on_click(self._confirm_and_load_or_reset_button_clicked)
         
         
-    def _update_area_roi_id_options(self, change) -> None:
+    def _update_area_roi_id_and_plane_idx_options(self, change) -> None:
         selected_file_id = change['new']
         available_area_roi_ids = list(self.api.database.area_rois_for_quantification[selected_file_id]['all_planes'].keys())
         self.area_roi_id_dropdown.options = available_area_roi_ids
+        preprocessed_images_dir = self.api.database.project_configs.root_dir.joinpath(self.api.database.preprocessed_images_dir)
+        total_planes = len(utils.list_dir_no_hidden(path = preprocessed_images_dir, only_files = True))
+        available_plane_idxs = [('all planes', None)] + [(idx, idx) for idx in range(total_planes)]
+        self.plane_idx_dropdown.options = available_plane_idxs
+        self.plane_idx_dropdown.value = None
         
         
     def _confirm_and_load_or_reset_button_clicked(self, b) -> None:
@@ -956,26 +968,29 @@ class InspectionPage(PageButtonBundle):
             self.inspection_method_dropdown.disabled = True
             self.file_id_selection_slider.disabled = True
             self.area_roi_id_dropdown.disabled = True
+            self.plane_idx_dropdown.disabled = True
             self.confirm_and_load_or_reset_button.description = 'reset'
             self.inspection_method_obj = self._initialize_inspection_method_object()
             self.extended_inspection_configs_widget = self._initialize_extended_inspection_configs_widget()
             self.page_content.children = self.page_content.children + (self.extended_inspection_configs_widget, )
         else:
-            print('starting to reset')
             self.inspection_method_dropdown.disabled = False
             self.file_id_selection_slider.disabled = False
             self.area_roi_id_dropdown.disabled = False
-            print('reset all disabled widgets')
+            self.plane_idx_dropdown.disabled = False
             self.confirm_and_load_or_reset_button.description = 'confirm'
-            print('reset button description')
-            self.page_content.children = (self.page_content.children[0], )
-            print('reset children')
+            self.page_content.children = self.page_content.children[0:3]
+            if hasattr(self, 'inspection_method_obj') == True:
+                delattr(self, 'inspection_method_obj')
+            if hasattr(self, 'extended_inspection_configs_widget') == True:
+                delattr(self, 'extended_inspection_configs_widget')
             
             
     def _initialize_inspection_method_object(self) -> InspectionMethod:
         inspection_method_obj = self.api.initialize_inspection(inspection_method_class = self.inspection_method_dropdown.value,
                                                                file_id = self.file_id_selection_slider.value,
-                                                               area_roi_id = self.area_roi_id_dropdown.value)
+                                                               area_roi_id = self.area_roi_id_dropdown.value,
+                                                               plane_idx = self.plane_idx_dropdown.value)
         inspection_method_obj.build_widget_for_remaining_conifgs()
         return inspection_method_obj
      
@@ -986,7 +1001,9 @@ class InspectionPage(PageButtonBundle):
         confirm_all_configs_and_run_inspection_button = w.Button(description = 'confirm all settings and run inspection', 
                                                                  icon = 'search', layout = {'width': '40%'})
         confirm_all_configs_and_run_inspection_button.on_click(self._confirm_all_configs_and_run_inspection_button_clicked)
-        return w.VBox([coords_selection_widgets,
+        return w.VBox([GUI_SPACER,
+                       coords_selection_widgets,
+                       GUI_SPACER,
                        self.inspection_method_obj.widget,
                        confirm_all_configs_and_run_inspection_button])        
         
@@ -1078,7 +1095,7 @@ class GUI:
                                        'button to launch your project:'))        
         current_working_dir = os.getcwd()
         #self.root_dir_chooser = FileChooser(current_working_dir, show_only_dirs = True)
-        self.root_dir_chooser = FileChooser('/mnt/c/Users/dsege/Downloads/fmc_test_project_2D/', show_only_dirs = True)
+        self.root_dir_chooser = FileChooser('/mnt/c/Users/dsege/Downloads/fmc_test_project_3D/', show_only_dirs = True)
         self.welcome_page_output = w.Output()
         confirm_root_dir_selection_button = w.Button(description = 'launch project', icon = 'rocket', layout = {'width': '25%'})
         confirm_root_dir_selection_button.on_click(self._confirm_root_dir_selection)
