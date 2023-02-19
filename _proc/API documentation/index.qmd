@@ -1,0 +1,11 @@
+---
+order: 1
+title: API documentation
+listing:
+  fields: [title, description]
+  type: table
+  sort-ui: false
+  filter-ui: false
+---
+
+The following table lists all submodules of *findmycells* in alphabetical order. Please note that the displayed list is only for overview purposes and does neither represent the correct arrangement of the submodules, nor (neccessarily) the exact name of the submodule. These information, however, can be found right at the top of each of the individual submodule pages that are linked via the following table.

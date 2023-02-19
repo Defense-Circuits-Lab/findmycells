@@ -1,0 +1,27 @@
+website:
+  sidebar:
+    contents:
+      - index.ipynb
+      - 00_configs.ipynb
+      - 01_database.ipynb
+      - 02_core.ipynb
+      - 03_interfaces.ipynb
+      - 09_inspection_00_methods.ipynb
+      - 99_utils.ipynb
+      - api_tutorial.ipynb
+      - section: data readers
+        contents:
+          - data readers/04_readers_00_specs.ipynb
+          - data readers/04_readers_01_microscopy_images.ipynb
+          - data readers/04_readers_02_rois.ipynb
+      - section: processing submodules
+        contents:
+          - processing submodules/index.qmd
+          - processing submodules/05_preprocessing_00_specs.ipynb
+          - processing submodules/05_preprocessing_01_strategies.ipynb
+          - processing submodules/06_segmentation_00_specs.ipynb
+          - processing submodules/06_segmentation_01_strategies.ipynb
+          - processing submodules/07_postprocessing_00_specs.ipynb
+          - processing submodules/07_postprocessing_01_strategies.ipynb
+          - processing submodules/08_quantification_00_specs.ipynb
+          - processing submodules/08_quantification_01_strategies.ipynb

@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.280">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>findmycells - API documentation</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-listing/list.min.js"></script>
+<script src="../site_libs/quarto-listing/quarto-listing.js"></script>
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+<script>
+
+  window.document.addEventListener("DOMContentLoaded", function (_event) {
+    const listingTargetEl = window.document.querySelector('#listing-listing .list');
+    if (!listingTargetEl) {
+      // No listing discovered, do not attach.
+      return; 
+    }
+
+    const options = {
+      valueNames: ['listing-title','listing-description',{ data: ['index'] },{ data: ['categories'] },{ data: ['listing-date-sort'] },{ data: ['listing-title-sort'] }],
+      
+      searchColumns: ["listing-title","listing-author"],
+    };
+
+    window['quarto-listings'] = window['quarto-listings'] || {};
+    window['quarto-listings']['listing-listing'] = new List('listing-listing', options);
+
+    if (window['quarto-listing-loaded']) {
+      window['quarto-listing-loaded']();
+    }
+  });
+
+  window.addEventListener('hashchange',() => {
+    if (window['quarto-listing-loaded']) {
+      window['quarto-listing-loaded']();
+    }
+  })
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<link rel="stylesheet" href="../styles.css">
+<meta property="og:title" content="findmycells - API documentation">
+<meta property="og:description" content="The following table lists all submodules of findmycells in alphabetical order.">
+<meta property="og:site-name" content="findmycells">
+<meta name="twitter:title" content="findmycells - API documentation">
+<meta name="twitter:description" content="The following table lists all submodules of findmycells in alphabetical order.">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">findmycells</span>
+    </a>
+  </div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+    <div class="container-fluid d-flex justify-content-between">
+      <h1 class="quarto-secondary-nav-title">API documentation</h1>
+      <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">findmycells</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api_tutorial.html" class="sidebar-item-text sidebar-link">API tutorials</a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">API documentation</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/index.html" class="sidebar-item-text sidebar-link active">API documentation</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/configs.html" class="sidebar-item-text sidebar-link">configs</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/database.html" class="sidebar-item-text sidebar-link">database</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/core.html" class="sidebar-item-text sidebar-link">core</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/interfaces.html" class="sidebar-item-text sidebar-link">interfaces</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/preprocessing_00_specs.html" class="sidebar-item-text sidebar-link">preprocessing subclasses</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/preprocessing_01_strategies.html" class="sidebar-item-text sidebar-link">preprocessing options</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/segmentation_00_specs.html" class="sidebar-item-text sidebar-link">segmentation subclasses</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/segmentation_01_strategies.html" class="sidebar-item-text sidebar-link">segmentation strategies</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/postprocessing_00_specs.html" class="sidebar-item-text sidebar-link">postprocessing subclasses</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/postprocessing_01_strategies.html" class="sidebar-item-text sidebar-link">postprocessing options</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/quantification_00_specs.html" class="sidebar-item-text sidebar-link">quantification subclasses</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/quantification_01_strategies.html" class="sidebar-item-text sidebar-link">quantification strategies</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/inspection_00_methods.html" class="sidebar-item-text sidebar-link">inspection</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/utils.html" class="sidebar-item-text sidebar-link">utility functions</a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="false">data readers</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/data readers/readers_00_specs.html" class="sidebar-item-text sidebar-link">Specification of default values of available data readers</a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">API documentation</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">data readers</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/data readers/readers_01_microscopy_images.html" class="sidebar-item-text sidebar-link">microscopy image data readers</a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">API documentation</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">data readers</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API documentation/data readers/readers_02_rois.html" class="sidebar-item-text sidebar-link">ROI readers</a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title d-none d-lg-block">API documentation</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<p>The following table lists all submodules of <em>findmycells</em> in alphabetical order. Please note that the displayed list is only for overview purposes and does neither represent the correct arrangement of the submodules, nor (neccessarily) the exact name of the submodule. These information, however, can be found right at the top of each of the individual submodule pages that are linked via the following table.</p>
+
+
+
+
+<div class="quarto-listing quarto-listing-container-table" id="listing-listing">
+
+<table class="quarto-listing-table table">
+<thead>
+<tr>
+<th>
+Title
+</th>
+<th>
+Description
+</th>
+</tr>
+</thead>
+<tbody class="list">
+<tr data-index="0" data-listing-file-modified-sort="1676820074505" data-listing-reading-time-sort="0.115" data-listing-title-sort="Processing step specific submodules" data-listing-filename-sort="index.qmd">
+<td class="listing-title">
+<a href="../API documentation/processing submodules/index.html" class="title">Processing step specific submodules</a>
+</td>
+<td class="listing-description">
+The…<em></em>
+</td>
+</tr>
+<tr data-index="1" data-listing-file-modified-sort="1676821336455" data-listing-reading-time-sort="0.595" data-listing-title-sort="configs" data-listing-filename-sort="00_configs.ipynb">
+<td class="listing-title">
+<a href="../API documentation/configs.html" class="title">configs</a>
+</td>
+<td class="listing-description">
+Defines several classes that handle the different configuration levels and options
+</td>
+</tr>
+<tr data-index="2" data-listing-file-modified-sort="1676820581435" data-listing-reading-time-sort="0.05" data-listing-title-sort="preprocessing related subclasses" data-listing-filename-sort="05_preprocessing_00_specs.ipynb">
+<td class="listing-title">
+<a href="../API documentation/processing submodules/preprocessing_00_specs.html" class="title">preprocessing related subclasses</a>
+</td>
+<td class="listing-description">
+This module implements the preprocessing-related subclasses of <code>ProcessingStrategy</code> and <code>ProcessingObject</code>
+</td>
+</tr>
+<tr data-index="3" data-listing-file-modified-sort="1676821453045" data-listing-reading-time-sort="0.885" data-listing-title-sort="core" data-listing-filename-sort="02_core.ipynb">
+<td class="listing-title">
+<a href="../API documentation/core.html" class="title">core</a>
+</td>
+<td class="listing-description">
+Defines central classes that are re-used throughout the <em>findmycells</em> package
+</td>
+</tr>
+<tr data-index="4" data-listing-file-modified-sort="1676820581395" data-listing-reading-time-sort="0.05" data-listing-title-sort="preprocessing strategies" data-listing-filename-sort="05_preprocessing_01_strategies.ipynb">
+<td class="listing-title">
+<a href="../API documentation/processing submodules/preprocessing_01_strategies.html" class="title">preprocessing strategies</a>
+</td>
+<td class="listing-description">
+This module defines all available preprocessing strategies (= preprocessing options)
+</td>
+</tr>
+<tr data-index="5" data-listing-file-modified-sort="1676821559795" data-listing-reading-time-sort="0.05" data-listing-title-sort="database" data-listing-filename-sort="01_database.ipynb">
+<td class="listing-title">
+<a href="../API documentation/database.html" class="title">database</a>
+</td>
+<td class="listing-description">
+Defines a database and file history tracker that stores all relevant information of your <em>findmycells</em> project
+</td>
+</tr>
+<tr data-index="6" data-listing-file-modified-sort="1676820581385" data-listing-reading-time-sort="0.05" data-listing-title-sort="segmentation related subclasses" data-listing-filename-sort="06_segmentation_00_specs.ipynb">
+<td class="listing-title">
+<a href="../API documentation/processing submodules/segmentation_00_specs.html" class="title">segmentation related subclasses</a>
+</td>
+<td class="listing-description">
+This module implements the segmentation-related subclasses of <code>ProcessingStrategy</code> and <code>ProcessingObject</code>
+</td>
+</tr>
+<tr data-index="7" data-listing-file-modified-sort="1676821724155" data-listing-reading-time-sort="0.54" data-listing-title-sort="inspection" data-listing-filename-sort="09_inspection_00_methods.ipynb">
+<td class="listing-title">
+<a href="../API documentation/inspection_00_methods.html" class="title">inspection</a>
+</td>
+<td class="listing-description">
+Defines all available methods that you can use to interactively inspect the final segmentation results
+</td>
+</tr>
+<tr data-index="8" data-listing-file-modified-sort="1676820581455" data-listing-reading-time-sort="0.05" data-listing-title-sort="segmentation strategies" data-listing-filename-sort="06_segmentation_01_strategies.ipynb">
+<td class="listing-title">
+<a href="../API documentation/processing submodules/segmentation_01_strategies.html" class="title">segmentation strategies</a>
+</td>
+<td class="listing-description">
+This module defines all available segmentation strategies (= segmentation options)
+</td>
+</tr>
+<tr data-index="9" data-listing-file-modified-sort="1676821923405" data-listing-reading-time-sort="0.47" data-listing-title-sort="interfaces" data-listing-filename-sort="03_interfaces.ipynb">
+<td class="listing-title">
+<a href="../API documentation/interfaces.html" class="title">interfaces</a>
+</td>
+<td class="listing-description">
+Defines the top-level API and the GUI of <em>findmycells</em>
+</td>
+</tr>
+<tr data-index="10" data-listing-file-modified-sort="1676820581315" data-listing-reading-time-sort="0.05" data-listing-title-sort="postprocessing related subclasses" data-listing-filename-sort="07_postprocessing_00_specs.ipynb">
+<td class="listing-title">
+<a href="../API documentation/processing submodules/postprocessing_00_specs.html" class="title">postprocessing related subclasses</a>
+</td>
+<td class="listing-description">
+This module implements the postprocessing-related subclasses of <code>ProcessingStrategy</code> and <code>ProcessingObject</code>
+</td>
+</tr>
+<tr data-index="11" data-listing-file-modified-sort="1676820581505" data-listing-reading-time-sort="0.05" data-listing-title-sort="postprocessing strategies" data-listing-filename-sort="07_postprocessing_01_strategies.ipynb">
+<td class="listing-title">
+<a href="../API documentation/processing submodules/postprocessing_01_strategies.html" class="title">postprocessing strategies</a>
+</td>
+<td class="listing-description">
+This module defines all available postprocessing strategies (= postprocessing options)
+</td>
+</tr>
+<tr data-index="12" data-listing-file-modified-sort="1676821932985" data-listing-reading-time-sort="0.05" data-listing-title-sort="postprocessing subclasses" data-listing-filename-sort="07_postprocessing_00_specs.ipynb">
+<td class="listing-title">
+<a href="../API documentation/postprocessing_00_specs.html" class="title">postprocessing subclasses</a>
+</td>
+<td class="listing-description">
+Extends the classes defined in core for the postprocessing-specific requirements
+</td>
+</tr>
+<tr data-index="13" data-listing-file-modified-sort="1676822010605" data-listing-reading-time-sort="0.05" data-listing-title-sort="postprocessing options" data-listing-filename-sort="07_postprocessing_01_strategies.ipynb">
+<td class="listing-title">
+<a href="../API documentation/postprocessing_01_strategies.html" class="title">postprocessing options</a>
+</td>
+<td class="listing-description">
+Defines all options you can use for postprocessing of your segmentation data
+</td>
+</tr>
+<tr data-index="14" data-listing-file-modified-sort="1676820581325" data-listing-reading-time-sort="0.05" data-listing-title-sort="quantification related subclasses" data-listing-filename-sort="08_quantification_00_specs.ipynb">
+<td class="listing-title">
+<a href="../API documentation/processing submodules/quantification_00_specs.html" class="title">quantification related subclasses</a>
+</td>
+<td class="listing-description">
+This module implements the quantification-related subclasses of <code>ProcessingStrategy</code> and <code>ProcessingObject</code>
+</td>
+</tr>
+<tr data-index="15" data-listing-file-modified-sort="1676822079425" data-listing-reading-time-sort="0.05" data-listing-title-sort="preprocessing subclasses" data-listing-filename-sort="05_preprocessing_00_specs.ipynb">
+<td class="listing-title">
+<a href="../API documentation/preprocessing_00_specs.html" class="title">preprocessing subclasses</a>
+</td>
+<td class="listing-description">
+Extends the classes defined in core for the preprocessing-specific requirements
+</td>
+</tr>
+<tr data-index="16" data-listing-file-modified-sort="1676820581375" data-listing-reading-time-sort="0.05" data-listing-title-sort="quantification strategies" data-listing-filename-sort="08_quantification_01_strategies.ipynb">
+<td class="listing-title">
+<a href="../API documentation/processing submodules/quantification_01_strategies.html" class="title">quantification strategies</a>
+</td>
+<td class="listing-description">
+This module defines all available quantification strategies (= quantification options)
+</td>
+</tr>
+<tr data-index="17" data-listing-file-modified-sort="1676822146565" data-listing-reading-time-sort="0.05" data-listing-title-sort="preprocessing options" data-listing-filename-sort="05_preprocessing_01_strategies.ipynb">
+<td class="listing-title">
+<a href="../API documentation/preprocessing_01_strategies.html" class="title">preprocessing options</a>
+</td>
+<td class="listing-description">
+Defines all options you can use for preprocessing of your image data
+</td>
+</tr>
+<tr data-index="18" data-listing-file-modified-sort="1676822196795" data-listing-reading-time-sort="0.05" data-listing-title-sort="quantification subclasses" data-listing-filename-sort="08_quantification_00_specs.ipynb">
+<td class="listing-title">
+<a href="../API documentation/quantification_00_specs.html" class="title">quantification subclasses</a>
+</td>
+<td class="listing-description">
+Extends the classes defined in core for the quantification-specific requirements
+</td>
+</tr>
+<tr data-index="19" data-listing-file-modified-sort="1676822236275" data-listing-reading-time-sort="0.05" data-listing-title-sort="quantification strategies" data-listing-filename-sort="08_quantification_01_strategies.ipynb">
+<td class="listing-title">
+<a href="../API documentation/quantification_01_strategies.html" class="title">quantification strategies</a>
+</td>
+<td class="listing-description">
+Defines all options you can use for quantification of your postprocessed segmentation data
+</td>
+</tr>
+<tr data-index="20" data-listing-file-modified-sort="1676822267665" data-listing-reading-time-sort="0.05" data-listing-title-sort="segmentation subclasses" data-listing-filename-sort="06_segmentation_00_specs.ipynb">
+<td class="listing-title">
+<a href="../API documentation/segmentation_00_specs.html" class="title">segmentation subclasses</a>
+</td>
+<td class="listing-description">
+Extends the classes defined in core for the segmentation-specific requirements
+</td>
+</tr>
+<tr data-index="21" data-listing-file-modified-sort="1676822300555" data-listing-reading-time-sort="0.05" data-listing-title-sort="segmentation strategies" data-listing-filename-sort="06_segmentation_01_strategies.ipynb">
+<td class="listing-title">
+<a href="../API documentation/segmentation_01_strategies.html" class="title">segmentation strategies</a>
+</td>
+<td class="listing-description">
+Defines all options you can use for segmentation of your preprocessed image data
+</td>
+</tr>
+<tr data-index="22" data-listing-file-modified-sort="1676822395005" data-listing-reading-time-sort="0.05" data-listing-title-sort="utility functions" data-listing-filename-sort="99_utils.ipynb">
+<td class="listing-title">
+<a href="../API documentation/utils.html" class="title">utility functions</a>
+</td>
+<td class="listing-description">
+Defines several general purpose functions that are used throughout <em>findmycells</em>
+</td>
+</tr>
+<tr data-index="23" data-listing-file-modified-sort="1676820581385" data-listing-reading-time-sort="0.05" data-listing-title-sort="ROI readers" data-listing-filename-sort="04_readers_02_rois.ipynb">
+<td class="listing-title">
+<a href="../API documentation/data readers/readers_02_rois.html" class="title">ROI readers</a>
+</td>
+<td class="listing-description">
+This module contains all code responsible for reading region of interests (ROI) files:
+</td>
+</tr>
+<tr data-index="24" data-listing-file-modified-sort="1676820581415" data-listing-reading-time-sort="0.05" data-listing-title-sort="Specification of default values of available data readers" data-listing-filename-sort="04_readers_00_specs.ipynb">
+<td class="listing-title">
+<a href="../API documentation/data readers/readers_00_specs.html" class="title">Specification of default values of available data readers</a>
+</td>
+<td class="listing-description">
+This module specifies the default values of the available data readers, their descriptions, and their widgets:
+</td>
+</tr>
+<tr data-index="25" data-listing-file-modified-sort="1676820581405" data-listing-reading-time-sort="0.05" data-listing-title-sort="microscopy image data readers" data-listing-filename-sort="04_readers_01_microscopy_images.ipynb">
+<td class="listing-title">
+<a href="../API documentation/data readers/readers_01_microscopy_images.html" class="title">microscopy image data readers</a>
+</td>
+<td class="listing-description">
+This module contains all code responsible for reading microscopy image files:
+</td>
+</tr>
+</tbody>
+
+</table>
+<div class="listing-no-matching d-none">
+No matching items
+</div>
+</div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

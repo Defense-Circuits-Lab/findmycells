@@ -1,0 +1,88 @@
+[
+  {
+    "listing": "/preprocessing/index.html",
+    "items": [
+      "/preprocessing/preprocessing_01_strategies.html",
+      "/preprocessing/preprocessing_00_specs.html"
+    ]
+  },
+  {
+    "listing": "/processing submodules/index.html",
+    "items": [
+      "/processing submodules/preprocessing_00_specs.html",
+      "/processing submodules/preprocessing_01_strategies.html",
+      "/processing submodules/segmentation_00_specs.html",
+      "/processing submodules/segmentation_01_strategies.html",
+      "/processing submodules/postprocessing_00_specs.html",
+      "/processing submodules/postprocessing_01_strategies.html",
+      "/processing submodules/quantification_00_specs.html",
+      "/processing submodules/quantification_01_strategies.html"
+    ]
+  },
+  {
+    "listing": "/API documentation/processing submodules/index.html",
+    "items": [
+      "/API documentation/processing submodules/preprocessing_00_specs.html",
+      "/API documentation/processing submodules/preprocessing_01_strategies.html",
+      "/API documentation/processing submodules/segmentation_00_specs.html",
+      "/API documentation/processing submodules/segmentation_01_strategies.html",
+      "/API documentation/processing submodules/postprocessing_00_specs.html",
+      "/API documentation/processing submodules/postprocessing_01_strategies.html",
+      "/API documentation/processing submodules/quantification_00_specs.html",
+      "/API documentation/processing submodules/quantification_01_strategies.html"
+    ]
+  },
+  {
+    "listing": "/API documentation/index.html",
+    "items": [
+      "/API documentation/processing submodules/index.html",
+      "/API documentation/configs.html",
+      "/API documentation/processing submodules/preprocessing_00_specs.html",
+      "/API documentation/core.html",
+      "/API documentation/processing submodules/preprocessing_01_strategies.html",
+      "/API documentation/database.html",
+      "/API documentation/processing submodules/segmentation_00_specs.html",
+      "/API documentation/inspection_00_methods.html",
+      "/API documentation/processing submodules/segmentation_01_strategies.html",
+      "/API documentation/interfaces.html",
+      "/API documentation/processing submodules/postprocessing_00_specs.html",
+      "/API documentation/processing submodules/postprocessing_01_strategies.html",
+      "/API documentation/postprocessing_00_specs.html",
+      "/API documentation/postprocessing_01_strategies.html",
+      "/API documentation/processing submodules/quantification_00_specs.html",
+      "/API documentation/preprocessing_00_specs.html",
+      "/API documentation/processing submodules/quantification_01_strategies.html",
+      "/API documentation/preprocessing_01_strategies.html",
+      "/API documentation/quantification_00_specs.html",
+      "/API documentation/quantification_01_strategies.html",
+      "/API documentation/segmentation_00_specs.html",
+      "/API documentation/segmentation_01_strategies.html",
+      "/API documentation/utils.html",
+      "/API documentation/data readers/readers_02_rois.html",
+      "/API documentation/data readers/readers_00_specs.html",
+      "/API documentation/data readers/readers_01_microscopy_images.html"
+    ]
+  },
+  {
+    "listing": "/api/index.html",
+    "items": [
+      "/api/configs.html",
+      "/api/core.html",
+      "/api/database.html",
+      "/api/inspection_00_methods.html",
+      "/api/interfaces.html",
+      "/api/postprocessing_00_specs.html",
+      "/api/postprocessing_01_strategies.html",
+      "/api/preprocessing_00_specs.html",
+      "/api/preprocessing_01_strategies.html",
+      "/api/quantification_00_specs.html",
+      "/api/quantification_01_strategies.html",
+      "/api/readers_00_specs.html",
+      "/api/readers_01_microscopy_images.html",
+      "/api/readers_02_rois.html",
+      "/api/segmentation_00_specs.html",
+      "/api/segmentation_01_strategies.html",
+      "/api/utils.html"
+    ]
+  }
+]
