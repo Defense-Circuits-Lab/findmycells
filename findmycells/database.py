@@ -357,10 +357,10 @@ class Database:
                     
     def _delete_all_associated_files_from_processing_subdirs(self, file_id: str) -> None:
         for processing_subdir_attr_id in ['preprocessed_images', 'semantic_segmentations', 'instance_segmentations']:
-            processing_subdir_str = getattr(self, processing_subdir_attr_id)
-            processing_subdir_path = self.project_configs.root_dir.joinpath(processing_subdir_str)
+            processing_subdir_name = getattr(self, f'{processing_subdir_attr_id}_dir')
+            processing_subdir_path = self.project_configs.root_dir.joinpath(processing_subdir_name)
             self._delete_matching_files_from_subdir(subdir_path = processing_subdir_path, file_id = file_id)
-        quantified_segmentations_subdir_path = self.project_configs.root_dir.joinpath(self.quantified_segmentations)
+        quantified_segmentations_subdir_path = self.project_configs.root_dir.joinpath(self.quantified_segmentations_dir)
         all_area_id_subdir_paths = utils.list_dir_no_hidden(path = quantified_segmentations_subdir_path, only_dirs = True)
         for area_id_subdir_path in all_area_id_subdir_paths:
             self._delete_matching_files_from_subdir(subdir_path = area_id_subdir_path, file_id = file_id)

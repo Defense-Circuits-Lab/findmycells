@@ -652,8 +652,10 @@ class SettingsPage(PageButtonBundle):
         return browse_file_hostories_tab_widget
     
     
-    def link_inspection_page_to_enable_updates(self, inspection_page: PageButtonBundle) -> None:
-        self.inspection_page = inspection_page
+    def add_link_to_other_page_button_bundle(self, page_button_bundle: PageButtonBundle) -> None:
+        if hasattr(self, 'links_to_other_pages') == False:
+            setattr(self, 'links_to_other_pages', {})
+        self.links_to_other_pages[page_button_bundle.bundle_id] = page_button_bundle
                                       
         
     def _bind_buttons_to_functions(self) -> None:
@@ -674,6 +676,7 @@ class SettingsPage(PageButtonBundle):
         with self.displayed_output:
             print('ROI-file import settings successfully updated!')
         
+        
     def _confirm_microscopy_images_reader_settings_button_clicked(self, b) -> None:
         microscopy_reader_configs = self.microscopy_images_reader_specs.export_current_gui_config_values()
         self.api.set_microscopy_reader_configs(microscopy_reader_configs = microscopy_reader_configs)
@@ -687,7 +690,9 @@ class SettingsPage(PageButtonBundle):
         self.api.database.compute_file_infos()
         self._update_options_for_file_histories_id_dropdown()
         self._display_current_project_files_button_clicked('simulate a click')
-        self._update_inspection_page()
+        self._broadcast_update_to_inspection_page()
+        self._broadcast_update_to_processing_pages()
+    
     
     def _update_options_for_file_histories_id_dropdown(self) -> None:
         self.file_histories_id_dropdown.options = self.api.database.file_infos['file_id']
@@ -711,14 +716,24 @@ class SettingsPage(PageButtonBundle):
     
     def _load_project_button_clicked(self, b) -> None:
         self.api.load_status()
-        self._update_inspection_page()
+        self._update_options_for_file_histories_id_dropdown()
+        self._display_current_project_files_button_clicked('simulate a click')
+        self._broadcast_update_to_inspection_page()
+        self._broadcast_update_to_processing_pages()
         
         
-    def _update_inspection_page(self) -> None:
-        self.inspection_page.file_id_selection_slider.options = self.api.database.file_infos['file_id']
+    def _broadcast_update_to_inspection_page(self) -> None:
+        inspection_page = self.links_to_other_pages['inspection']
+        inspection_page.file_id_selection_slider.options = self.api.database.file_infos['file_id']
         if hasattr(self.api.database, 'area_rois_for_quantification') == True:
-            self.inspection_page._update_area_roi_id_and_plane_idx_options(change = {'new': self.inspection_page.file_id_selection_slider.value})
+            inspection_page._update_area_roi_id_and_plane_idx_options(change = {'new': inspection_page.file_id_selection_slider.value})
         
+        
+    def _broadcast_update_to_processing_pages(self) -> None:
+        for bundle_id, processing_page in self.links_to_other_pages.items():
+            if bundle_id != 'inspection':
+                processing_page.update_file_ids_range()
+                
     
     def _display_file_history_button_clicked(self, b) -> None:
         selected_file_id = self.file_histories_id_dropdown.value
@@ -816,9 +831,15 @@ class ProcessingStepPage(PageButtonBundle):
         
     def _initialize_trigger_widget_elements(self) -> None:
         all_file_ids = self.api.database.file_infos['file_id']
+        if len(all_file_ids) == 0:
+            options = ['Please load files to your project first']
+            value = ('Please load files to your project first', 'Please load files to your project first')
+        else:
+            options = all_file_ids
+            value = (all_file_ids[0], all_file_ids[-1])
         self.file_ids_range = w.SelectionRangeSlider(description = 'Select range of file IDs to process: ',
-                                                     options = all_file_ids,
-                                                     value = (all_file_ids[0], all_file_ids[-1]),
+                                                     options = options,
+                                                     value = value,
                                                      layout = {'width': '75%'},
                                                      style = {'description_width': 'initial'})
         self.run = w.Button(description = f'Launch {self.bundle_id}',
@@ -896,6 +917,16 @@ class ProcessingStepPage(PageButtonBundle):
         strategies = list(strategies)
         strategy_configs = list(strategy_configs)
         return strategies, strategy_configs
+    
+    
+    def update_file_ids_range(self) -> None:
+        all_project_file_ids = self.api.database.file_infos['file_id']
+        if len(all_project_file_ids) > 0:                    
+            self.file_ids_range.options = all_project_file_ids
+            self.file_ids_range.value = (all_project_file_ids[0], all_project_file_ids[-1])
+        else:
+            options = ['Please load files to your project first']
+            value = ('Please load files to your project first', 'Please load files to your project first')
 
 # %% ../nbs/03_interfaces.ipynb 14
 class InspectionPage(PageButtonBundle):
@@ -907,12 +938,13 @@ class InspectionPage(PageButtonBundle):
                                                      options = options,
                                                      layout = {'width': '100%'},
                                                      style = {'description_width': 'initial'})
-        if hasattr(self.api.database, 'file_infos') == True:
-            file_id_options = self.api.database.file_infos['file_id']
+        all_file_ids = self.api.database.file_infos['file_id']
+        if len(all_file_ids) == 0:
+            options = ['Please load files to your project first']
         else:
-            file_id_options = []
+            options = all_file_ids
         self.file_id_selection_slider = w.SelectionSlider(description = 'File ID to inspect:', 
-                                                          options = file_id_options,
+                                                          options = options,
                                                           layout = {'width': '90%'},
                                                           style = {'description_width': 'initial'})
         self.area_roi_id_dropdown = w.Dropdown(description = 'Area ROI ID to inspect:',
@@ -953,14 +985,15 @@ class InspectionPage(PageButtonBundle):
         
         
     def _update_area_roi_id_and_plane_idx_options(self, change) -> None:
-        selected_file_id = change['new']
-        available_area_roi_ids = list(self.api.database.area_rois_for_quantification[selected_file_id]['all_planes'].keys())
-        self.area_roi_id_dropdown.options = available_area_roi_ids
-        preprocessed_images_dir = self.api.database.project_configs.root_dir.joinpath(self.api.database.preprocessed_images_dir)
-        total_planes = len(utils.list_dir_no_hidden(path = preprocessed_images_dir, only_files = True))
-        available_plane_idxs = [('all planes', None)] + [(idx, idx) for idx in range(total_planes)]
-        self.plane_idx_dropdown.options = available_plane_idxs
-        self.plane_idx_dropdown.value = None
+        if hasattr(self.api.database, 'area_rois_for_quantification') == True:
+            selected_file_id = change['new']
+            available_area_roi_ids = list(self.api.database.area_rois_for_quantification[selected_file_id]['all_planes'].keys())
+            self.area_roi_id_dropdown.options = available_area_roi_ids
+            preprocessed_images_dir = self.api.database.project_configs.root_dir.joinpath(self.api.database.preprocessed_images_dir)
+            total_planes = len(utils.list_dir_no_hidden(path = preprocessed_images_dir, only_files = True))
+            available_plane_idxs = [('all planes', None)] + [(idx, idx) for idx in range(total_planes)]
+            self.plane_idx_dropdown.options = available_plane_idxs
+            self.plane_idx_dropdown.value = None
         
         
     def _confirm_and_load_or_reset_button_clicked(self, b) -> None:
@@ -1121,9 +1154,7 @@ class GUI:
         
     def _initialize_main_screen(self) -> None:
         self.page_screen = w.VBox()
-        self.api.update_database_with_current_source_files()
         self._initialize_page_bundles()
-
         navigator_bar = w.HBox(self.navigator_buttons, layout = {'align_items': 'center'})
         self.main_screen = w.VBox([navigator_bar, self.page_screen], layout = {'width': '100%'})
         self._refresh_displayed_widget(new_widget = self.main_screen)
@@ -1146,12 +1177,13 @@ class GUI:
             self.navigator_buttons.append(processing_step_page.navigator_button)
             attr_id = f'{processing_step_module}_page'
             setattr(self, attr_id, processing_step_page)
+            self.settings_page.add_link_to_other_page_button_bundle(page_button_bundle = processing_step_page)
         self.inspection_page = InspectionPage(bundle_id = 'inspection',
                                               page_screen = self.page_screen,
                                               all_navigator_buttons = self.navigator_buttons,
                                               api = self.api)
         self.navigator_buttons.append(self.inspection_page.navigator_button)
-        self.settings_page.link_inspection_page_to_enable_updates(inspection_page = self.inspection_page)
+        self.settings_page.add_link_to_other_page_button_bundle(page_button_bundle = self.inspection_page)
 
             
     def _compare_expected_to_available_processing_modules(self) -> None:
