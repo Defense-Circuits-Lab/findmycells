@@ -724,9 +724,7 @@ class SettingsPage(PageButtonBundle):
         
     def _broadcast_update_to_inspection_page(self) -> None:
         inspection_page = self.links_to_other_pages['inspection']
-        inspection_page.file_id_selection_slider.options = self.api.database.file_infos['file_id']
-        if hasattr(self.api.database, 'area_rois_for_quantification') == True:
-            inspection_page._update_area_roi_id_and_plane_idx_options(change = {'new': inspection_page.file_id_selection_slider.value})
+        inspection_page.update_file_id_selection_slider()
         
         
     def _broadcast_update_to_processing_pages(self) -> None:
@@ -984,6 +982,17 @@ class InspectionPage(PageButtonBundle):
         self.confirm_and_load_or_reset_button.on_click(self._confirm_and_load_or_reset_button_clicked)
         
         
+    def update_file_id_selection_slider(self) -> None:
+        all_project_file_ids = self.api.database.file_infos['file_id']
+        if len(all_project_file_ids) > 0:                    
+            self.file_id_selection_slider.options = all_project_file_ids
+            self.file_id_selection_slider.value = all_project_file_ids[0]
+            self._update_area_roi_id_and_plane_idx_options(change = {'new': inspection_page.file_id_selection_slider.value})
+        else:
+            self.file_id_selection_slider.options = ['Please load files to your project first']
+            self.file_id_selection_slider.value = 'Please load files to your project first'
+            
+            
     def _update_area_roi_id_and_plane_idx_options(self, change) -> None:
         if hasattr(self.api.database, 'area_rois_for_quantification') == True:
             selected_file_id = change['new']
