@@ -19,6 +19,11 @@ import findmycells
 # %% ../nbs/api/00_configs.ipynb 6
 class ProjectConfigs:
     
+    """
+    In addition to the `Database` of *findmycells*, this class stores most of the
+    configuration data of a findmycells project.
+    """
+    
     
     def __init__(self, root_dir: PosixPath) -> None:
         assert type(root_dir) == PosixPath, '"root_dir" must be pathlib.Path referring to an existing directory.'
@@ -31,6 +36,15 @@ class ProjectConfigs:
             
     
     def load_available_processing_modules(self) -> None:
+        """
+        Screens the findmycells package for all available processing modules. 
+        Processing modules will be recognized if it contain a "specs" and a "strategies" 
+        submodule. For developers who would like to add a new processing module, 
+        please check out one of the implemented ones (e.g. findmycells.preprocessing) 
+        to see how this can be done. The list of detected processing modules will be used 
+        for instance by the `GUI` to automatically create a `ProcessingStepPage` in the 
+        GUI for each available processing module.
+        """
         available_processing_modules = {}
         for module_name, module in inspect.getmembers(findmycells, inspect.ismodule):
             if hasattr(module, 'specs') & hasattr(module, 'strategies'):
@@ -74,7 +88,15 @@ class ProjectConfigs:
         self.available_processing_strategies = available_processing_strategies
             
             
-    def add_processing_step_configs(self, processing_step_id: str, configs: Optional[Dict[str, Any]]=None) -> None:
+    def add_processing_step_configs(self, 
+                                    processing_step_id: str, 
+                                    configs: Optional[Dict[str, Any]]=None
+                                   ) -> None:
+        """
+        Allows the user to add configs for a specific processing step and ensures 
+        that the specified config input is valid and - in case any (or even all) values 
+        are missing - fills them with the respective defined default values.
+        """
         assert processing_step_id in self.available_processing_modules.keys(), '"processing_step_id" has to match with an available processing module!'
         if configs == None:
             configs = {}
@@ -85,6 +107,11 @@ class ProjectConfigs:
         
     
     def add_reader_configs(self, reader_type: str, reader_configs: Optional[Dict[str, Any]]=None) -> None:
+        """
+        Similarly to adding configs for a specific processing step, this method allows the 
+        user to specify the configurations for a given reader type. Likewise, it will also 
+        ensure valid input and replace missing values with defaults.
+        """
         assert reader_type in self.available_data_readers.keys(), '"reader_type" has to match with an available data reader!'
         if reader_configs == None:
             reader_configs = {}
@@ -92,13 +119,15 @@ class ProjectConfigs:
         reader_configs = self.data_reader_default_configs[reader_type].fill_user_input_with_defaults_where_needed(user_input = reader_configs)
         setattr(self, reader_type, reader_configs)
 
-# %% ../nbs/api/00_configs.ipynb 7
+# %% ../nbs/api/00_configs.ipynb 12
 class DefaultConfigs:
     
     """
-    This class has to be specified as an attribute in several classes throughout findmycells
+    This class has to be specified as an attribute in several classes throughout *findmycells*
     and allows / ensures that each novel class defines its own set of default config values. 
-    Moreover, the 'valid_types' dictionary also defines which types of values are allowed.
+    Moreover, the 'valid_types' dictionary also defines which types of values are allowed. 
+    It`s used as a way to ensure that the input made by the user for any configuration parameter 
+    is of the valid type, or within a certain range or among a certain set of options, if applicable.
     """
     
     def __init__(self, 
@@ -137,6 +166,11 @@ class DefaultConfigs:
     
     
     def assert_user_input(self, user_input: Dict[str, Any]) -> None:
+        """
+        Allows to quickly raise an assertion error if the user specified any invalid 
+        config parameter or value, instead of first starting the processing and only 
+        cause an error later on after potentially several minutes of computation time.
+        """
         assert type(user_input) == dict, '"user_input" has to be a dictionary!'
         for key, value in user_input.items():
             assert key in self.values.keys(), f'User input key "{key}" does not match with default value keys!'
@@ -147,6 +181,11 @@ class DefaultConfigs:
                 
                 
     def fill_user_input_with_defaults_where_needed(self, user_input: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        If any (or even all) of the required config parameters were not provided by the user, 
+        default values will be added and the filled configs will be returned. This ensures that 
+        always all config parameters are present - if provided by the user or not.
+        """
         for key, default_value in self.values.items():
             if key not in user_input.keys():
                 user_input[key] = default_value
@@ -184,7 +223,7 @@ class DefaultConfigs:
                 else:
                     continue
 
-# %% ../nbs/api/00_configs.ipynb 8
+# %% ../nbs/api/00_configs.ipynb 20
 class GUIConfigs:
     
     """
@@ -253,6 +292,11 @@ class GUIConfigs:
     
     
     def export_current_config_values(self) -> Dict:
+        """
+        Enables to read out all current widget settings by the `GUI`, which 
+        then matches the format required to be passed for instance as 
+        processing_configs or as strategy_configs to the `API`.
+        """
         current_configs = {}
         for config_key in self.widget_names.keys():
             hbox_containing_config_widget = getattr(self, config_key)
@@ -261,9 +305,16 @@ class GUIConfigs:
     
             
     def construct_widget(self,
-                         info_text: str,
+                         info_text: str, # will ultimately be converted into an HTML widget and, therefore, supports HTML syntax
                          default_configs: DefaultConfigs,
                         ) -> None:
+        """
+        Allows to construct the individual widgets and put them together to construct 
+        the entire widget as intended. The full widget will be stored as an attribute 
+        at self.strategy_widget. (Could be renamed in a future version, as it is no longer 
+        used only to build widgets for the individual processing strategies, but is much 
+        more used for all sort of widgets throughout *findmycells*)
+        """
         self._assert_matching_keys_with_default_configs(default_configs = default_configs)
         self._initialize_individual_widgets_as_attributes(info_text = info_text, default_configs = default_configs)
         self.strategy_widget = self._combine_individual_widgets_in_vbox()
