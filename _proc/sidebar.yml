@@ -1,0 +1,28 @@
+website:
+  sidebar:
+    contents:
+      - index.ipynb
+      - section: api
+        contents:
+          - api/index.qmd
+          - api/00_configs.ipynb
+          - api/01_core.ipynb
+          - api/02_database.ipynb
+          - api/03_interfaces.ipynb
+          - api/04_readers_00_specs.ipynb
+          - api/04_readers_01_microscopy_images.ipynb
+          - api/04_readers_02_rois.ipynb
+          - api/05_preprocessing_00_specs.ipynb
+          - api/05_preprocessing_01_strategies.ipynb
+          - api/06_segmentation_00_specs.ipynb
+          - api/06_segmentation_01_strategies.ipynb
+          - api/07_postprocessing_00_specs.ipynb
+          - api/07_postprocessing_01_strategies.ipynb
+          - api/08_quantification_00_specs.ipynb
+          - api/08_quantification_01_strategies.ipynb
+          - api/09_inspection_00_methods.ipynb
+          - api/99_utils.ipynb
+      - section: tutorials
+        contents:
+          - tutorials/api_tutorial.ipynb
+          - tutorials/gui_tutorial.ipynb
