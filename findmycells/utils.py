@@ -2,7 +2,7 @@
 
 # %% auto 0
 __all__ = ['list_dir_no_hidden', 'load_zstack_as_array_from_single_planes', 'unpad_x_y_dims_in_3d_array',
-           'get_polygon_from_instance_segmentation']
+           'get_polygon_from_instance_segmentation', 'download_sample_data']
 
 # %% ../nbs/api/99_utils.ipynb 2
 from typing import List, Optional
@@ -14,6 +14,9 @@ from skimage import measure
 from shapely.geometry import Polygon
 from shapely.validation import make_valid
 
+import wget
+from zipfile import ZipFile
+import shutil
 
 # %% ../nbs/api/99_utils.ipynb 4
 def list_dir_no_hidden(path: PosixPath, only_dirs: Optional[bool]=False, only_files: Optional[bool]=False) -> List[PosixPath]:
@@ -61,3 +64,24 @@ def get_polygon_from_instance_segmentation(single_plane: np.ndarray, label_id: i
     if roi.is_valid == False:
         roi = make_valid(roi)
     return roi
+
+# %% ../nbs/api/99_utils.ipynb 8
+def download_sample_data(destination_dir_path: PosixPath) -> None:
+    """
+    Test data for findmycells can be found here: https://zenodo.org/record/7655292#.Y_LI1R-ZNhE
+    DOI: 10.5281/zenodo.7655292
+    """
+    assert_failed_message = ('"destination_dir_path" has to be a pathlib.Path object pointing to '
+                             f'an existing directory, not {destination_dir_path}.')
+    assert destination_dir_path.is_dir(), assert_failed_message
+    wget.download(url = 'https://zenodo.org/record/7655292/files/cfos_ensemble.zip?download=1',
+                  out = destination_dir_path.joinpath('ensemble.zip'))
+    wget.download(url = 'https://zenodo.org/record/7655292/files/cfos_fmc_test_project.zip?download=1',
+                  out = destination_dir_path.joinpath('test_project.zip'))
+    with ZipFile(destination_dir_path.joinpath('ensemble.zip'), 'r') as zObject:
+        zObject.extractall()
+    with ZipFile(destination_dir_path.joinpath('test_project.zip'), 'r') as zObject:
+        zObject.extractall()
+    target_dir_path = destination_dir_path.joinpath('cfos_fmc_test_project', 'segmentation_tool', 'trained_models')
+    for model_filepath in destination_dir_path.joinpath('cfos_ensemble').iterdir():
+        shutil.move(model_filepath, target_dir_path)
