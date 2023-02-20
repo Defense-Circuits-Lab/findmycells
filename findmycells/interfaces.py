@@ -785,19 +785,90 @@ class SettingsPage(PageButtonBundle):
     
     
     def _initialize_guide_accordion_widget(self) -> WidgetType:
-        # ToDo: write detailed description of directory tree
-        # ToDo: add sample image of how this could look like
-        # ToDo: what to do for walkthrough through data
-        # ToDo: hint that just clicking the button with an empty microscopy dir launches sample tree
-        general_info = w.HTML(value = 'space for some general infos')
-        detailed_infos = w.HTML(value = 'all details come here')
-        sample_image = w.HTML(value = 'this shall be replaced by the sample image')
-        whole_guide = w.VBox([general_info, 
-                              detailed_infos,
-                              sample_image])
+        
+        detailed_info = self._create_detailed_info_html()
+        dir_tree_out = w.Output()
+        with dir_tree_out:
+            self._print_sample_dir_tree()
+        whole_guide = w.VBox([detailed_info, 
+                              dir_tree_out])
         guide_accordion = w.Accordion([whole_guide], selected_index = None)
         guide_accordion.set_title(0, 'expand me if you need a detailed guide to prepare your data!')
         return guide_accordion
+    
+    
+    def _create_detailed_info_html(self) -> WidgetType:
+        text = """
+        Now, please grab some snacks, as the following piece of information is quite important, 
+        but unfortunately also quite a bit to read - bare with us!<br>
+        <br>
+        Before we can continue with our project in the GUI, we first have to add all our data 
+        to the project. This needs to be done by adding the image data in a very specific 
+        structure to the "microscopy_images" subdirectory. This structure consists of three 
+        subdirectory levels that correspond to different metadata information of your experiment:<br>
+        <br>
+        - 1st level: main group IDs<br>
+        - 2nd level: subgroup IDs<br>
+        - 3rd level: subject IDs<br>
+        <br>
+        Simply start by creating one folder for each of your main experimental groups 
+        (for instance "wildtype" and "transgenic", not limited to any specific number) 
+        inside of the "microscopy_images" subdirectory. Now, into each of these main group 
+        folders, you have to add a folder for each experimental subgroup within this main group. 
+        This can be for instance different timepoints (e.g. "week_01" and "week_04"; again, not 
+        limited to any number). However, this may of course not be applicable for all experimental 
+        designs. Sometimes, you may simply not have any subgroups within your main groups. 
+        Nevertheless, this subdirectory level is **required**. In such a case, simply add a single 
+        directory and feel free to give it any name (note, that also in the sample dataset, there 
+        will only be a single subgroup ID folder). Finally, in each of these subgroup folders, 
+        please create a folder for each experimental subject from which you acquired the image 
+        data (unique IDs required!). Into each of these subject ID folders, you can now add all 
+        corresponding image files. Phew - done!<br>
+        <br>
+        Please have a look a the following tree to see an example of how this could look like. 
+        Note, that there is no specific number of images required in each of the subject folders, 
+        that the images in the different subject folders can even have the same names, and that 
+        subject IDs have to be unique. Obviously, subject folders places inside the "wildtypes" 
+        main groub directory, are consequently considered to belong to this main group (and 
+        likewise to the respective subgroup).
+        """
+        return w.HTML(value = text)
+
+        
+    def _print_sample_dir_tree(self) -> None:
+        print(('project_root_dir:\n'
+               '│ \n'
+               '└── microscopy_images:\n'
+               '    │ \n'
+               '    ├── wildtypes:\n'
+               '    │   ├── week_01:\n'
+               '    │   │   ├── mouse_01:\n'
+               '    │   │   │   └── image_01.png\n'
+               '    │   │   │   └── image_02.png\n'
+               '    │   │   └── mouse_02:\n'
+               '    │   │       └── image_01.png\n'
+               '    │   │       └── image_02.png\n'
+               '    │   │       └── image_04.png\n'
+               '    │   └── week_04:\n'     
+               '    │       └── mouse_03:\n'
+               '    │           └── image_08.png\n'
+               '    │ \n'
+               '    └── transgenics:\n'
+               '        ├── week_01:\n'
+               '        │   ├── mouse_04:\n'
+               '        │   │   └── image_01.png\n'
+               '        │   │   └── image_05.png\n'
+               '        │   └── mouse_05:\n'
+               '        │       └── image_01.png\n'
+               '        │       └── image_02.png\n'
+               '        └── week_04:\n'     
+               '            ├── mouse_06:\n'
+               '            │   └── image_01.png\n'
+               '            │   └── image_02.png\n'
+               '            │   └── image_03.png\n'
+               '            └── mouse_07:\n'
+               '                └── image_01.png\n'
+               '                └── image_08.png\n'))
         
         
     def _initialize_save_load_project_tab_widget(self) -> WidgetType:
