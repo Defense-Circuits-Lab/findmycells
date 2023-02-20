@@ -7,8 +7,8 @@ website:
         contents:
           - api/index.qmd
           - api/00_configs.ipynb
-          - api/01_database.ipynb
-          - api/02_core.ipynb
+          - api/01_core.ipynb
+          - api/02_database.ipynb
           - api/03_interfaces.ipynb
           - api/04_readers_00_specs.ipynb
           - api/04_readers_01_microscopy_images.ipynb

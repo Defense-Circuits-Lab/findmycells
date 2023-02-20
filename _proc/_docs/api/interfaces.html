@@ -122,6 +122,10 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     "search-submit-button-title": "Submit"
   }
 }</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+<script src="https://unpkg.com/@jupyter-widgets/html-manager@*/dist/embed-amd.js" crossorigin="anonymous"></script>
 
 
 <link rel="stylesheet" href="../styles.css">
@@ -192,12 +196,12 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../api/database.html" class="sidebar-item-text sidebar-link">database</a>
+  <a href="../api/core.html" class="sidebar-item-text sidebar-link">core</a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../api/core.html" class="sidebar-item-text sidebar-link">core</a>
+  <a href="../api/database.html" class="sidebar-item-text sidebar-link">database</a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -281,17 +285,30 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#application-programming-interface-api" id="toc-application-programming-interface-api" class="nav-link active" data-scroll-target="#application-programming-interface-api">Application programming interface (API)</a>
+  <li><a href="#top-level-api" id="toc-top-level-api" class="nav-link active" data-scroll-target="#top-level-api">Top-level API:</a>
   <ul class="collapse">
   <li><a href="#api" id="toc-api" class="nav-link" data-scroll-target="#api">API</a></li>
+  <li><a href="#api.update_database_with_current_source_files" id="toc-api.update_database_with_current_source_files" class="nav-link" data-scroll-target="#api.update_database_with_current_source_files">API.update_database_with_current_source_files</a></li>
+  <li><a href="#api.set_microscopy_reader_configs" id="toc-api.set_microscopy_reader_configs" class="nav-link" data-scroll-target="#api.set_microscopy_reader_configs">API.set_microscopy_reader_configs</a></li>
+  <li><a href="#api.set_roi_reader_configs" id="toc-api.set_roi_reader_configs" class="nav-link" data-scroll-target="#api.set_roi_reader_configs">API.set_roi_reader_configs</a></li>
+  <li><a href="#api.preprocess" id="toc-api.preprocess" class="nav-link" data-scroll-target="#api.preprocess">API.preprocess</a></li>
+  <li><a href="#api.segment" id="toc-api.segment" class="nav-link" data-scroll-target="#api.segment">API.segment</a></li>
+  <li><a href="#api.postprocess" id="toc-api.postprocess" class="nav-link" data-scroll-target="#api.postprocess">API.postprocess</a></li>
+  <li><a href="#api.quantify" id="toc-api.quantify" class="nav-link" data-scroll-target="#api.quantify">API.quantify</a></li>
+  <li><a href="#api.initialize_inspection" id="toc-api.initialize_inspection" class="nav-link" data-scroll-target="#api.initialize_inspection">API.initialize_inspection</a></li>
+  <li><a href="#api.inspect" id="toc-api.inspect" class="nav-link" data-scroll-target="#api.inspect">API.inspect</a></li>
+  <li><a href="#api.save_status" id="toc-api.save_status" class="nav-link" data-scroll-target="#api.save_status">API.save_status</a></li>
+  <li><a href="#api.load_status" id="toc-api.load_status" class="nav-link" data-scroll-target="#api.load_status">API.load_status</a></li>
   </ul></li>
   <li><a href="#graphical-user-interface" id="toc-graphical-user-interface" class="nav-link" data-scroll-target="#graphical-user-interface">Graphical user interface</a>
   <ul class="collapse">
+  <li><a href="#strategyconfigurator" id="toc-strategyconfigurator" class="nav-link" data-scroll-target="#strategyconfigurator">StrategyConfigurator</a></li>
   <li><a href="#pagebuttonbundle" id="toc-pagebuttonbundle" class="nav-link" data-scroll-target="#pagebuttonbundle">PageButtonBundle</a></li>
   <li><a href="#settingspage" id="toc-settingspage" class="nav-link" data-scroll-target="#settingspage">SettingsPage</a></li>
   <li><a href="#processingsteppage" id="toc-processingsteppage" class="nav-link" data-scroll-target="#processingsteppage">ProcessingStepPage</a></li>
   <li><a href="#inspectionpage" id="toc-inspectionpage" class="nav-link" data-scroll-target="#inspectionpage">InspectionPage</a></li>
   <li><a href="#gui" id="toc-gui" class="nav-link" data-scroll-target="#gui">GUI</a></li>
+  <li><a href="#launch_gui" id="toc-launch_gui" class="nav-link" data-scroll-target="#launch_gui">launch_gui</a></li>
   </ul></li>
   </ul>
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/Defense-Circuits-Lab/findmycells/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
@@ -322,175 +339,243 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </header>
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
-<section id="application-programming-interface-api" class="level1">
-<h1>Application programming interface (API)</h1>
-<p>The following class defines the API of findmycells, which represents the intended way of how users interact with and use findmycells, if they are not using the graphical user interface (GUI; defined below).</p>
+<section id="top-level-api" class="level1">
+<h1>Top-level API:</h1>
+<p>The following class defines the top-level API of <em>findmycells</em>, which represents the intended way of how users interact with and use <em>findmycells</em>. Also when the graphical user interface is used, the corresponding inputs will communicate with the <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/interfaces.html#api"><code>API</code></a>.</p>
 <hr>
-<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L33" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L34" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="api" class="level3">
 <h3 class="anchored" data-anchor-id="api">API</h3>
 <blockquote class="blockquote">
 <pre><code> API (project_root_dir:pathlib.PosixPath)</code></pre>
 </blockquote>
-<p>Initialize self. See help(type(self)) for accurate signature.</p>
+<p>Intended way of how users interact with <em>findmycells</em>. For a more detailed guide on how this interface shall be used, please check out the available API tutorial(s) on the documentation website of <em>findmycells</em>.</p>
+<p><strong>Associated public methods</strong>:</p>
+<hr>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L50" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="api.update_database_with_current_source_files" class="level3">
+<h3 class="anchored" data-anchor-id="api.update_database_with_current_source_files">API.update_database_with_current_source_files</h3>
+<blockquote class="blockquote">
+<pre><code> API.update_database_with_current_source_files ()</code></pre>
+</blockquote>
+<p>Checks the subdirectory in the project root directory that contains the microscopy images for newly added or removed files.</p>
+<hr>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L58" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="api.set_microscopy_reader_configs" class="level3">
+<h3 class="anchored" data-anchor-id="api.set_microscopy_reader_configs">API.set_microscopy_reader_configs</h3>
+<blockquote class="blockquote">
+<pre><code> API.set_microscopy_reader_configs
+                                    (microscopy_reader_configs:Optional[Di
+                                    ct]=None)</code></pre>
+</blockquote>
+<p>Asserts a valid input and then communicates the configs for how microscopy image data shall be imported to the <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/configs.html#projectconfigs"><code>ProjectConfigs</code></a>. Has to be run before any processing can be done.</p>
+<hr>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L70" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="api.set_roi_reader_configs" class="level3">
+<h3 class="anchored" data-anchor-id="api.set_roi_reader_configs">API.set_roi_reader_configs</h3>
+<blockquote class="blockquote">
+<pre><code> API.set_roi_reader_configs (roi_reader_configs:Optional[Dict]=None)</code></pre>
+</blockquote>
+<p>Asserts a valid input and then communicates the configs for how ROI files shall be imported to the <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/configs.html#projectconfigs"><code>ProjectConfigs</code></a>. Has to be run before any processing can be done.</p>
+<hr>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L123" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="api.preprocess" class="level3">
+<h3 class="anchored" data-anchor-id="api.preprocess">API.preprocess</h3>
+<blockquote class="blockquote">
+<pre><code> API.preprocess
+                 (strategies:List[findmycells.preprocessing.specs.Preproce
+                 ssingStrategy],
+                 strategy_configs:Optional[List[Dict]]=None,
+                 processing_configs:Optional[Dict]=None,
+                 file_ids:Optional[List[str]]=None)</code></pre>
+</blockquote>
+<p>Run specified preprocessing methods on all selected file IDs, using the processing configuration settings as well as the individual configuration settings for each preprocessing strategy (= preprocessing method).</p>
+<hr>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L157" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="api.segment" class="level3">
+<h3 class="anchored" data-anchor-id="api.segment">API.segment</h3>
+<blockquote class="blockquote">
+<pre><code> API.segment
+              (strategies:List[findmycells.segmentation.specs.Segmentation
+              Strategy], strategy_configs:Optional[List[Dict]]=None,
+              processing_configs:Optional[Dict]=None,
+              file_ids:Optional[List[str]]=None)</code></pre>
+</blockquote>
+<p>Run specified segmentation methods on all selected file IDs, using the processing configuration settings as well as the individual configuration settings for each segmentation strategy (= segmentation method).</p>
+<hr>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L195" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="api.postprocess" class="level3">
+<h3 class="anchored" data-anchor-id="api.postprocess">API.postprocess</h3>
+<blockquote class="blockquote">
+<pre><code> API.postprocess (strategies:List[findmycells.postprocessing.specs.Postpro
+                  cessingStrategy],
+                  strategy_configs:Optional[List[Dict]]=None,
+                  processing_configs:Optional[Dict]=None,
+                  file_ids:Optional[List[str]]=None)</code></pre>
+</blockquote>
+<p>Run specified postprocessing methods on all selected file IDs, using the processing configuration settings as well as the individual configuration settings for each postprocessing strategy (= postprocessing method).</p>
+<hr>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L225" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="api.quantify" class="level3">
+<h3 class="anchored" data-anchor-id="api.quantify">API.quantify</h3>
+<blockquote class="blockquote">
+<pre><code> API.quantify (strategies:List[findmycells.quantification.specs.Quantifica
+               tionStrategy], strategy_configs:Optional[List[Dict]]=None,
+               processing_configs:Optional[Dict]=None,
+               file_ids:Optional[List[str]]=None)</code></pre>
+</blockquote>
+<p>Run specified quantification methods on all selected file IDs, using the processing configuration settings as well as the individual configuration settings for each quantification strategy (= quantification method).</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>strategies</td>
+<td>typing.List[findmycells.quantification.specs.QuantificationStrategy]</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>strategy_configs</td>
+<td>typing.Optional[typing.List[typing.Dict]]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>processing_configs</td>
+<td>typing.Optional[typing.Dict]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>file_ids</td>
+<td>typing.Optional[typing.List[str]]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>None</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L253" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="api.initialize_inspection" class="level3">
+<h3 class="anchored" data-anchor-id="api.initialize_inspection">API.initialize_inspection</h3>
+<blockquote class="blockquote">
+<pre><code> API.initialize_inspection
+                            (inspection_method_class:findmycells.inspectio
+                            n.methods.InspectionMethod, file_id:str,
+                            area_roi_id:str, plane_idx:Optional[int]=None)</code></pre>
+</blockquote>
+<p>Prepare the inspection of a given file. This intermediate step is required especially to handle processing in the GUI.</p>
+<hr>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L268" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="api.inspect" class="level3">
+<h3 class="anchored" data-anchor-id="api.inspect">API.inspect</h3>
+<blockquote class="blockquote">
+<pre><code> API.inspect
+              (inspection_method_obj:findmycells.inspection.methods.Inspec
+              tionMethod, center_coords:Tuple[int,int],
+              inspection_configs:Dict[str,Any])</code></pre>
+</blockquote>
+<p>Run the selected inspection method, focusing on the provided center coordinates (row idx, column idx) and applying the specified inspection configuration settings.</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>inspection_method_obj</td>
+<td>InspectionMethod</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>center_coords</td>
+<td>typing.Tuple[int, int]</td>
+<td>(row idx, column idx)</td>
+</tr>
+<tr class="odd">
+<td>inspection_configs</td>
+<td>typing.Dict[str, typing.Any]</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>None</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L82" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="api.save_status" class="level3">
+<h3 class="anchored" data-anchor-id="api.save_status">API.save_status</h3>
+<blockquote class="blockquote">
+<pre><code> API.save_status ()</code></pre>
+</blockquote>
+<p>Saves the current status of the <em>findmycells</em> project in the project root directory. The data will be split into two files and current date will be used as prefix.</p>
+<hr>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L94" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="api.load_status" class="level3">
+<h3 class="anchored" data-anchor-id="api.load_status">API.load_status</h3>
+<blockquote class="blockquote">
+<pre><code> API.load_status
+                  (project_configs_filepath:Optional[pathlib.PosixPath]=No
+                  ne, database_filepath:Optional[pathlib.PosixPath]=None)</code></pre>
+</blockquote>
+<p>Loads the project status of a <em>findmycells</em> project from the two files (see save_status()) from the project root directory.</p>
+<p><br> <br> <br></p>
 </section>
 </section>
 <section id="graphical-user-interface" class="level1">
 <h1>Graphical user interface</h1>
 <p>The following classes are used to create the graphical user interface of findmycells. Please note that classes will be listed here in an inverted hirarchy, such that you can find the main <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/interfaces.html#gui"><code>GUI</code></a> class at the very end, and classes that handle much more specific details at the beginning.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> StrategyConfigurator:</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">    This class implements the interface that let´s the user choose and </span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">    configurate the processing strategies. It will be placed inside of</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">    an accordion that is implemented in the `ProcessingStepPage`.</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">    It gets a list of all available processing strategies from the parent</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">    `ProcessingStepPage` and, thus, eventually from the `API` that checks</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">    for all available processing strategies in the corresponding processing</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">    submodule (e.g. "findmycells.preprocessing.strategies"). Upon initializing</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">    it´s dropdown widget, which let´s the user browser through the different</span></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">    available strategies, it also initializes an object of each strategy.</span></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">    This object can then be used to run it´s associated method </span></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">    ".initialize_gui_configs_and_widget()" to build the specified widget, </span></span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="co">    using its `GUIConfigs` instance. Essentially, this contains a</span></span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co">    description of what the processing strategy does and, if applicable,</span></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="co">    widgets to specify all parameters that can be configurated for this </span></span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="co">    strategy. Finally, a "confirm &amp; export" and a "remove" button allow</span></span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="co">    the user to load or delete the current to or from the findmycells</span></span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="co">    project, respectively.</span></span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>,</span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>                 available_strategy_classes: List,</span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>                 parent_accordion: w.Accordion,</span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>                 target_for_configs_export: List) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.available_strategy_classes <span class="op">=</span> available_strategy_classes</span>
-<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.parent_accordion <span class="op">=</span> parent_accordion</span>
-<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.target_for_configs_export <span class="op">=</span> target_for_configs_export</span>
-<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.widget <span class="op">=</span> <span class="va">self</span>._initialize_widget()</span>
-<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>._link_widgets_with_eventhandlers()</span>
-<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _initialize_widget(<span class="va">self</span>) <span class="op">-&gt;</span> WidgetType:</span>
-<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>        info_text <span class="op">=</span> w.HTML(value <span class="op">=</span> (<span class="st">'Please select one of the available processing methods from the dropdown menu below. '</span></span>
-<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>                                    <span class="st">'Feel free to click through all listed methods, as each of them will display a '</span></span>
-<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>                                    <span class="st">'short description of what exactly to expect and may also prompt you with some '</span></span>
-<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>                                    <span class="st">'customization options. To select a method with all selected customization options, '</span></span>
-<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>                                    <span class="st">'click on the "confirm selection &amp; export configurations". Using the "remove method" '</span></span>
-<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>                                    <span class="st">'button allows you to remove previously loaded methods again.'</span>))</span>
-<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.dropdown <span class="op">=</span> <span class="va">self</span>._initialize_dropdown()</span>
-<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.confirm_and_export_button <span class="op">=</span> w.Button(description <span class="op">=</span> <span class="st">'confirm selection &amp; export configurations'</span>, layout <span class="op">=</span> {<span class="st">'width'</span>: <span class="st">'30%'</span>})</span>
-<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.remove_button <span class="op">=</span> w.Button(description <span class="op">=</span> <span class="st">'remove method'</span>, layout <span class="op">=</span> {<span class="st">'width'</span>: <span class="st">'20%'</span>}, disabled <span class="op">=</span> <span class="va">True</span>)</span>
-<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.displayed_strat_widget <span class="op">=</span> w.VBox([<span class="va">self</span>.dropdown.value.widget], layout <span class="op">=</span> {<span class="st">'width'</span>: <span class="st">'95%'</span>})</span>
-<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>        widget <span class="op">=</span> w.VBox([info_text,</span>
-<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>                         GUI_SPACER,</span>
-<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>                         w.HBox([<span class="va">self</span>.dropdown, <span class="va">self</span>.confirm_and_export_button, <span class="va">self</span>.remove_button]),</span>
-<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>                         GUI_SPACER,</span>
-<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>                         <span class="va">self</span>.displayed_strat_widget])</span>
-<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> widget</span>
-<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _link_widgets_with_eventhandlers(<span class="va">self</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.confirm_and_export_button.on_click(<span class="va">self</span>._confirm_and_export_button_clicked)</span>
-<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.remove_button.on_click(<span class="va">self</span>._remove_button_clicked)</span>
-<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.dropdown.observe(<span class="va">self</span>._dropdown_option_changed, names <span class="op">=</span> <span class="st">'value'</span>)</span>
-<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _initialize_dropdown(<span class="va">self</span>) <span class="op">-&gt;</span> WidgetType:</span>
-<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a>        dropdown_option_tuples <span class="op">=</span> []</span>
-<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> strategy_class <span class="kw">in</span> <span class="va">self</span>.available_strategy_classes:</span>
-<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a>            strategy_obj <span class="op">=</span> strategy_class()</span>
-<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>            strategy_obj.initialize_gui_configs_and_widget()</span>
-<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a>            dropdown_option_tuples.append((strategy_obj.dropdown_option_value_for_gui, strategy_obj))</span>
-<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> w.Dropdown(options <span class="op">=</span> dropdown_option_tuples, layout <span class="op">=</span> {<span class="st">'width'</span>: <span class="st">'50%'</span>}) </span>
-<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _get_own_position_idx_in_parent_accordion(<span class="va">self</span>) <span class="op">-&gt;</span> <span class="bu">int</span>:</span>
-<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>.parent_accordion.children.index(<span class="va">self</span>.widget)</span>
-<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _confirm_and_export_button_clicked(<span class="va">self</span>, b) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>._export_configs()</span>
-<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>._change_disable_settings_of_customizable_widgets(disable_customizable_widgets <span class="op">=</span> <span class="va">True</span>)</span>
-<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>._add_new_strategy_configurator_to_parent_accordion()</span>
-<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>._change_own_accordion_tab_title(title <span class="op">=</span> <span class="va">self</span>.dropdown.value.dropdown_option_value_for_gui)</span>
-<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.parent_accordion.selected_index <span class="op">=</span> <span class="va">None</span></span>
-<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _add_new_strategy_configurator_to_parent_accordion(<span class="va">self</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a>        new_strategy_configurator <span class="op">=</span> StrategyConfigurator(available_strategy_classes <span class="op">=</span> <span class="va">self</span>.available_strategy_classes,</span>
-<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a>                                                         parent_accordion <span class="op">=</span> <span class="va">self</span>.parent_accordion,</span>
-<span id="cb2-83"><a href="#cb2-83" aria-hidden="true" tabindex="-1"></a>                                                         target_for_configs_export <span class="op">=</span> <span class="va">self</span>.target_for_configs_export)</span>
-<span id="cb2-84"><a href="#cb2-84" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.parent_accordion.children <span class="op">=</span> <span class="va">self</span>.parent_accordion.children <span class="op">+</span> (new_strategy_configurator.widget, )</span>
-<span id="cb2-85"><a href="#cb2-85" aria-hidden="true" tabindex="-1"></a>        position_idx <span class="op">=</span> <span class="bu">len</span>(<span class="va">self</span>.parent_accordion.children) <span class="op">-</span> <span class="dv">1</span></span>
-<span id="cb2-86"><a href="#cb2-86" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.parent_accordion.set_title(position_idx, <span class="st">'Expand me to add a processing method'</span>)</span>
-<span id="cb2-87"><a href="#cb2-87" aria-hidden="true" tabindex="-1"></a>                                                         </span>
-<span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a>                                                         </span>
-<span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _change_own_accordion_tab_title(<span class="va">self</span>, title: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a>        position_idx <span class="op">=</span> <span class="va">self</span>._get_own_position_idx_in_parent_accordion()</span>
-<span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.parent_accordion.set_title(position_idx, title)</span>
-<span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _export_configs(<span class="va">self</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a>        selected_strategy_obj <span class="op">=</span> <span class="va">self</span>.dropdown.value</span>
-<span id="cb2-96"><a href="#cb2-96" aria-hidden="true" tabindex="-1"></a>        current_configs <span class="op">=</span> selected_strategy_obj.gui_configs.export_current_config_values()</span>
-<span id="cb2-97"><a href="#cb2-97" aria-hidden="true" tabindex="-1"></a>        position_idx <span class="op">=</span> <span class="va">self</span>._get_own_position_idx_in_parent_accordion()</span>
-<span id="cb2-98"><a href="#cb2-98" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.target_for_configs_export.insert(position_idx, (selected_strategy_obj.__class__, current_configs))      </span>
-<span id="cb2-99"><a href="#cb2-99" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb2-100"><a href="#cb2-100" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb2-101"><a href="#cb2-101" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _change_disable_settings_of_customizable_widgets(<span class="va">self</span>, disable_customizable_widgets: <span class="bu">bool</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb2-102"><a href="#cb2-102" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.remove_button.disabled <span class="op">=</span> <span class="kw">not</span> disable_customizable_widgets</span>
-<span id="cb2-103"><a href="#cb2-103" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.dropdown.disabled <span class="op">=</span> disable_customizable_widgets</span>
-<span id="cb2-104"><a href="#cb2-104" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.confirm_and_export_button.disabled <span class="op">=</span> disable_customizable_widgets</span>
-<span id="cb2-105"><a href="#cb2-105" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> widget <span class="kw">in</span> <span class="va">self</span>.displayed_strat_widget.children[<span class="dv">0</span>].children:</span>
-<span id="cb2-106"><a href="#cb2-106" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="bu">hasattr</span>(widget, <span class="st">'disabled'</span>):</span>
-<span id="cb2-107"><a href="#cb2-107" aria-hidden="true" tabindex="-1"></a>                widget.disabled <span class="op">=</span> disable_customizable_widgets</span>
-<span id="cb2-108"><a href="#cb2-108" aria-hidden="true" tabindex="-1"></a>            <span class="cf">elif</span> <span class="bu">type</span>(widget) <span class="op">==</span> w.HBox:</span>
-<span id="cb2-109"><a href="#cb2-109" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> <span class="bu">hasattr</span>(widget.children[<span class="dv">0</span>], <span class="st">'disabled'</span>):</span>
-<span id="cb2-110"><a href="#cb2-110" aria-hidden="true" tabindex="-1"></a>                    widget.children[<span class="dv">0</span>].disabled <span class="op">=</span> disable_customizable_widgets</span>
-<span id="cb2-111"><a href="#cb2-111" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb2-112"><a href="#cb2-112" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb2-113"><a href="#cb2-113" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _remove_button_clicked(<span class="va">self</span>, b) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb2-114"><a href="#cb2-114" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>._remove_configs()</span>
-<span id="cb2-115"><a href="#cb2-115" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">len</span>(<span class="va">self</span>.parent_accordion.children) <span class="op">==</span> <span class="dv">1</span>:</span>
-<span id="cb2-116"><a href="#cb2-116" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>._change_disable_settings_of_customizable_widgets(disable_customizable_widgets <span class="op">=</span> <span class="va">False</span>)</span>
-<span id="cb2-117"><a href="#cb2-117" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>._change_own_accordion_tab_title(title <span class="op">=</span> <span class="st">'Expand me to add a processing method'</span>)</span>
-<span id="cb2-118"><a href="#cb2-118" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
-<span id="cb2-119"><a href="#cb2-119" aria-hidden="true" tabindex="-1"></a>            currently_present_accordion_tabs <span class="op">=</span> <span class="bu">len</span>(<span class="va">self</span>.parent_accordion.children)</span>
-<span id="cb2-120"><a href="#cb2-120" aria-hidden="true" tabindex="-1"></a>            currently_confirmed_strategies <span class="op">=</span> <span class="bu">len</span>(<span class="va">self</span>.target_for_configs_export)</span>
-<span id="cb2-121"><a href="#cb2-121" aria-hidden="true" tabindex="-1"></a>            tabs_available_for_selection <span class="op">=</span> currently_present_accordion_tabs <span class="op">-</span> currently_confirmed_strategies</span>
-<span id="cb2-122"><a href="#cb2-122" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> tabs_available_for_selection <span class="op">&gt;</span> <span class="dv">1</span>:</span>
-<span id="cb2-123"><a href="#cb2-123" aria-hidden="true" tabindex="-1"></a>                <span class="va">self</span>._remove_own_tab_from_parent_accordion()</span>
-<span id="cb2-124"><a href="#cb2-124" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
-<span id="cb2-125"><a href="#cb2-125" aria-hidden="true" tabindex="-1"></a>                <span class="va">self</span>._change_disable_settings_of_customizable_widgets(disable_customizable_widgets <span class="op">=</span> <span class="va">False</span>)</span>
-<span id="cb2-126"><a href="#cb2-126" aria-hidden="true" tabindex="-1"></a>                <span class="va">self</span>._change_own_accordion_tab_title(title <span class="op">=</span> <span class="st">'Expand me to add a processing method'</span>)</span>
-<span id="cb2-127"><a href="#cb2-127" aria-hidden="true" tabindex="-1"></a>                </span>
-<span id="cb2-128"><a href="#cb2-128" aria-hidden="true" tabindex="-1"></a>                </span>
-<span id="cb2-129"><a href="#cb2-129" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _remove_own_tab_from_parent_accordion(<span class="va">self</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb2-130"><a href="#cb2-130" aria-hidden="true" tabindex="-1"></a>        tmp_children <span class="op">=</span> <span class="bu">list</span>(<span class="va">self</span>.parent_accordion.children)</span>
-<span id="cb2-131"><a href="#cb2-131" aria-hidden="true" tabindex="-1"></a>        tmp_titles <span class="op">=</span> []</span>
-<span id="cb2-132"><a href="#cb2-132" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> idx <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(tmp_children)):</span>
-<span id="cb2-133"><a href="#cb2-133" aria-hidden="true" tabindex="-1"></a>            tmp_titles.append(<span class="va">self</span>.parent_accordion.get_title(idx))</span>
-<span id="cb2-134"><a href="#cb2-134" aria-hidden="true" tabindex="-1"></a>        position_idx <span class="op">=</span> <span class="va">self</span>._get_own_position_idx_in_parent_accordion()</span>
-<span id="cb2-135"><a href="#cb2-135" aria-hidden="true" tabindex="-1"></a>        tmp_children.pop(position_idx)</span>
-<span id="cb2-136"><a href="#cb2-136" aria-hidden="true" tabindex="-1"></a>        tmp_titles.pop(position_idx)</span>
-<span id="cb2-137"><a href="#cb2-137" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.parent_accordion.children <span class="op">=</span> <span class="bu">tuple</span>(tmp_children)</span>
-<span id="cb2-138"><a href="#cb2-138" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> idx, title <span class="kw">in</span> <span class="bu">enumerate</span>(tmp_titles):</span>
-<span id="cb2-139"><a href="#cb2-139" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.parent_accordion.set_title(idx, title)</span>
-<span id="cb2-140"><a href="#cb2-140" aria-hidden="true" tabindex="-1"></a>            </span>
-<span id="cb2-141"><a href="#cb2-141" aria-hidden="true" tabindex="-1"></a>            </span>
-<span id="cb2-142"><a href="#cb2-142" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _remove_configs(<span class="va">self</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb2-143"><a href="#cb2-143" aria-hidden="true" tabindex="-1"></a>        position_idx <span class="op">=</span> <span class="va">self</span>._get_own_position_idx_in_parent_accordion()</span>
-<span id="cb2-144"><a href="#cb2-144" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.target_for_configs_export.pop(position_idx)</span>
-<span id="cb2-145"><a href="#cb2-145" aria-hidden="true" tabindex="-1"></a>                </span>
-<span id="cb2-146"><a href="#cb2-146" aria-hidden="true" tabindex="-1"></a>                </span>
-<span id="cb2-147"><a href="#cb2-147" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _dropdown_option_changed(<span class="va">self</span>, change) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
-<span id="cb2-148"><a href="#cb2-148" aria-hidden="true" tabindex="-1"></a>        new_selection <span class="op">=</span> change.new</span>
-<span id="cb2-149"><a href="#cb2-149" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.displayed_strat_widget.children <span class="op">=</span> (new_selection.widget, )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
 <hr>
-<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L435" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L491" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="strategyconfigurator" class="level3">
+<h3 class="anchored" data-anchor-id="strategyconfigurator">StrategyConfigurator</h3>
+<blockquote class="blockquote">
+<pre><code> StrategyConfigurator (available_strategy_classes:List,
+                       parent_accordion:ipywidgets.widgets.widget_selectio
+                       ncontainer.Accordion,
+                       target_for_configs_export:List)</code></pre>
+</blockquote>
+<p>This class implements the interface that let´s the user choose and configurate the processing strategies. It will be placed inside of an accordion that is implemented in the <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/interfaces.html#processingsteppage"><code>ProcessingStepPage</code></a>. It gets a list of all available processing strategies from the parent <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/interfaces.html#processingsteppage"><code>ProcessingStepPage</code></a> and, thus, eventually from the <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/interfaces.html#api"><code>API</code></a> that checks for all available processing strategies in the corresponding processing submodule (e.g.&nbsp;“findmycells.preprocessing.strategies”). Upon initializing it´s dropdown widget, which let´s the user browser through the different available strategies, it also initializes an object of each strategy. This object can then be used to run it´s associated method “.initialize_gui_configs_and_widget()” to build the specified widget, using its <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/configs.html#guiconfigs"><code>GUIConfigs</code></a> instance. Essentially, this contains a description of what the processing strategy does and, if applicable, widgets to specify all parameters that can be configurated for this strategy. Finally, a “confirm &amp; export” and a “remove” button allow the user to load or delete the current to or from the findmycells project, respectively.</p>
+<p><br> <br> <br></p>
+<hr>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L642" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
 <section id="pagebuttonbundle" class="level3">
 <h3 class="anchored" data-anchor-id="pagebuttonbundle">PageButtonBundle</h3>
 <blockquote class="blockquote">
@@ -499,8 +584,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
                    all_navigator_buttons:List, api:__main__.API)</code></pre>
 </blockquote>
 <p>Helper class that provides a standard way to create an ABC using inheritance.</p>
+<p><br> <br> <br></p>
 <hr>
-<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L466" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L673" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="settingspage" class="level3">
 <h3 class="anchored" data-anchor-id="settingspage">SettingsPage</h3>
@@ -510,8 +596,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
                all_navigator_buttons:List, api:__main__.API)</code></pre>
 </blockquote>
 <p>Subclass of <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/interfaces.html#pagebuttonbundle"><code>PageButtonBundle</code></a> that implements the GUI interface that allows the user to specify all settings relevant to the findmycells project. It also enables saving &amp; loading of the project status, and to browse through the file history that is automatically created by findmycells.</p>
+<p><br> <br> <br></p>
 <hr>
-<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L778" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L985" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="processingsteppage" class="level3">
 <h3 class="anchored" data-anchor-id="processingsteppage">ProcessingStepPage</h3>
@@ -521,8 +608,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
                      all_navigator_buttons:List, api:__main__.API)</code></pre>
 </blockquote>
 <p>Helper class that provides a standard way to create an ABC using inheritance.</p>
+<p><br> <br> <br></p>
 <hr>
-<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L930" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L1137" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="inspectionpage" class="level3">
 <h3 class="anchored" data-anchor-id="inspectionpage">InspectionPage</h3>
@@ -532,8 +620,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
                  all_navigator_buttons:List, api:__main__.API)</code></pre>
 </blockquote>
 <p>Helper class that provides a standard way to create an ABC using inheritance.</p>
+<p><br> <br> <br></p>
 <hr>
-<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L1109" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L1316" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="gui" class="level3">
 <h3 class="anchored" data-anchor-id="gui">GUI</h3>
@@ -541,12 +630,35 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <pre><code> GUI ()</code></pre>
 </blockquote>
 <p>Initialize self. See help(type(self)) for accurate signature.</p>
+<p>The recommended way to create and use the GUI of <em>findmycells</em>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>gui <span class="op">=</span> GUI()</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>gui.displayed_widget</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"5bcb4174da414e72b268d3ff0f5bfd5a","version_major":2,"version_minor":0}
+</script>
+</div>
+</div>
+<p>The advantage of this method is that you will have the <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/interfaces.html#gui"><code>GUI</code></a> object available in your jupyter notebook, which allows you to also interact with it using your notebook, which can be very helpful in case you have to do some troubleshooting. However, if this is not needed, you can also simply use the following function to launch the GUI. Feel free to check out our GUI tutorial for a more in-depth user guide.</p>
+<hr>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L1417" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="launch_gui" class="level3">
+<h3 class="anchored" data-anchor-id="launch_gui">launch_gui</h3>
+<blockquote class="blockquote">
+<pre><code> launch_gui ()</code></pre>
+</blockquote>
+<p>Function to launch the GUI of <em>findmycells</em>. Comes, however, with the disadvantage of not having the GUI object available.</p>
 
 
 </section>
 </section>
 
 </main> <!-- /main -->
+<script type="application/vnd.jupyter.widget-state+json">
+{"state":{"15b9d1dcc7954f659d9c80688c90650f":{"model_module":"@jupyter-widgets/base","model_module_version":"1.2.0","model_name":"LayoutModel","state":{"height":"30px"}},"737dc61275b14ee482f625dbf8c97470":{"model_module":"@jupyter-widgets/base","model_module_version":"1.2.0","model_name":"LayoutModel","state":{"width":"500px"}},"b7741fde2708420eb8dbc16ce39b3611":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"DescriptionStyleModel","state":{}},"d334e377981244f69f87e566f59f56c8":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"LabelModel","state":{"_dom_classes":[],"layout":"IPY_MODEL_15b9d1dcc7954f659d9c80688c90650f","style":"IPY_MODEL_b7741fde2708420eb8dbc16ce39b3611"}}},"version_major":2,"version_minor":0}
+</script>
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
