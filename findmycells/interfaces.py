@@ -1360,11 +1360,16 @@ class GUI:
         """
         return ['preprocessing', 'segmentation', 'postprocessing', 'quantification']
     
-    def __init__(self) -> None:
-        self.displayed_widget = self._initialize_start_screen()
+    def __init__(self,
+                 project_root_dir: Optional[PosixPath]=None, # Instead of using the FileChooser, you can also provide the Path to your project root dir right away
+                ) -> None:
+        if project_root_dir != None:
+            assert type(project_root_dir) == PosixPath, f'"project_root_dir" must be a pathlib.Path object, not {project_root_dir}.'
+            assert project_root_dir.is_dir(), '"project_root_dir" must be a pathlib.Path object pointing to an existing directory!'
+        self.displayed_widget = self._initialize_start_screen(project_root_dir = project_root_dir)
         
     
-    def _initialize_start_screen(self) -> WidgetType:
+    def _initialize_start_screen(self, project_root_dir: Optional[PosixPath]) -> WidgetType:
         welcome_html = w.HTML(value = ('<br><br>'
                                        '<div style="font-size: 26px" align="center">'
                                        '<b>Welcome to <i>findmycells</i> - glad you´re here! :-)</b>'
@@ -1372,10 +1377,12 @@ class GUI:
                                        '<div style="font-size: 16px" align="center">'
                                        'Please start by selecting the root directory for your project below. '
                                        'Once you made your selection & are happy with it - click the "launch project" '
-                                       'button to launch your project:'))        
-        current_working_dir = os.getcwd()
-        self.root_dir_chooser = FileChooser(current_working_dir, show_only_dirs = True)
-        #self.root_dir_chooser = FileChooser('/mnt/c/Users/dsege/Downloads/fmc_test_project_3D/', show_only_dirs = True)
+                                       'button to launch your project:'))
+        if project_root_dir != None:
+            file_chooser_start_dir = project_root_dir
+        else:
+            file_chooser_start_dir = os.getcwd()
+        self.root_dir_chooser = FileChooser(file_chooser_start_dir, show_only_dirs = True)
         self.welcome_page_output = w.Output()
         confirm_root_dir_selection_button = w.Button(description = 'launch project', icon = 'rocket', layout = {'width': '25%'})
         confirm_root_dir_selection_button.on_click(self._confirm_root_dir_selection)
@@ -1445,10 +1452,14 @@ class GUI:
         self.displayed_widget.children = (new_widget, )
 
 # %% ../nbs/api/03_interfaces.ipynb 38
-def launch_gui() -> GUI:
+def launch_gui(project_root_dir: Optional[PosixPath]=None) -> GUI:
     """
     Function to launch the GUI of *findmycells*. Comes, however, 
     with the disadvantage of not having the GUI object available.
+    You can pass the desired root directory as pathlib.Path object
+    along, which will then be pre-set as the path in the initial 
+    file chooser widget, which can save you some time instead of 
+    clicking through a bunch of directories.
     """
-    gui = GUI()
+    gui = GUI(project_root_dir = project_root_dir)
     return gui.displayed_widget
