@@ -2,7 +2,6 @@ website:
   sidebar:
     contents:
       - index.ipynb
-      - api_tutorial.ipynb
       - section: api
         contents:
           - api/index.qmd
@@ -23,3 +22,7 @@ website:
           - api/08_quantification_01_strategies.ipynb
           - api/09_inspection_00_methods.ipynb
           - api/99_utils.ipynb
+      - section: tutorials
+        contents:
+          - tutorials/api_tutorial.ipynb
+          - tutorials/gui_tutorial.ipynb

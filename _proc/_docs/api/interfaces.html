@@ -122,10 +122,6 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     "search-submit-button-title": "Submit"
   }
 }</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
-<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
-<script src="https://unpkg.com/@jupyter-widgets/html-manager@*/dist/embed-amd.js" crossorigin="anonymous"></script>
 
 
 <link rel="stylesheet" href="../styles.css">
@@ -169,11 +165,6 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../index.html" class="sidebar-item-text sidebar-link">findmycells</a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api_tutorial.html" class="sidebar-item-text sidebar-link">API tutorials</a>
   </div>
 </li>
         <li class="sidebar-item sidebar-item-section">
@@ -276,6 +267,26 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </li>
       </ul>
   </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">tutorials</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/api_tutorial.html" class="sidebar-item-text sidebar-link">API tutorials</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/gui_tutorial.html" class="sidebar-item-text sidebar-link">gui_tutorial.html</a>
+  </div>
+</li>
+      </ul>
+  </li>
     </ul>
     </div>
 </nav>
@@ -297,6 +308,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <li><a href="#api.quantify" id="toc-api.quantify" class="nav-link" data-scroll-target="#api.quantify">API.quantify</a></li>
   <li><a href="#api.initialize_inspection" id="toc-api.initialize_inspection" class="nav-link" data-scroll-target="#api.initialize_inspection">API.initialize_inspection</a></li>
   <li><a href="#api.inspect" id="toc-api.inspect" class="nav-link" data-scroll-target="#api.inspect">API.inspect</a></li>
+  <li><a href="#api.export_quantification_results" id="toc-api.export_quantification_results" class="nav-link" data-scroll-target="#api.export_quantification_results">API.export_quantification_results</a></li>
   <li><a href="#api.save_status" id="toc-api.save_status" class="nav-link" data-scroll-target="#api.save_status">API.save_status</a></li>
   <li><a href="#api.load_status" id="toc-api.load_status" class="nav-link" data-scroll-target="#api.load_status">API.load_status</a></li>
   </ul></li>
@@ -371,6 +383,30 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
                                     ct]=None)</code></pre>
 </blockquote>
 <p>Asserts a valid input and then communicates the configs for how microscopy image data shall be imported to the <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/configs.html#projectconfigs"><code>ProjectConfigs</code></a>. Has to be run before any processing can be done.</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>microscopy_reader_configs</td>
+<td>typing.Optional[typing.Dict]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>None</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <hr>
 <p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L70" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
@@ -380,6 +416,30 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <pre><code> API.set_roi_reader_configs (roi_reader_configs:Optional[Dict]=None)</code></pre>
 </blockquote>
 <p>Asserts a valid input and then communicates the configs for how ROI files shall be imported to the <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/configs.html#projectconfigs"><code>ProjectConfigs</code></a>. Has to be run before any processing can be done.</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>roi_reader_configs</td>
+<td>typing.Optional[typing.Dict]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>None</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <hr>
 <p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L123" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
@@ -394,6 +454,54 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
                  file_ids:Optional[List[str]]=None)</code></pre>
 </blockquote>
 <p>Run specified preprocessing methods on all selected file IDs, using the processing configuration settings as well as the individual configuration settings for each preprocessing strategy (= preprocessing method).</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>strategies</td>
+<td>typing.List[findmycells.preprocessing.specs.PreprocessingStrategy]</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>strategy_configs</td>
+<td>typing.Optional[typing.List[typing.Dict]]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>processing_configs</td>
+<td>typing.Optional[typing.Dict]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>file_ids</td>
+<td>typing.Optional[typing.List[str]]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>None</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <hr>
 <p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L157" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
@@ -407,6 +515,54 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
               file_ids:Optional[List[str]]=None)</code></pre>
 </blockquote>
 <p>Run specified segmentation methods on all selected file IDs, using the processing configuration settings as well as the individual configuration settings for each segmentation strategy (= segmentation method).</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>strategies</td>
+<td>typing.List[findmycells.segmentation.specs.SegmentationStrategy]</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>strategy_configs</td>
+<td>typing.Optional[typing.List[typing.Dict]]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>processing_configs</td>
+<td>typing.Optional[typing.Dict]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>file_ids</td>
+<td>typing.Optional[typing.List[str]]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>None</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <hr>
 <p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L195" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
@@ -420,6 +576,54 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
                   file_ids:Optional[List[str]]=None)</code></pre>
 </blockquote>
 <p>Run specified postprocessing methods on all selected file IDs, using the processing configuration settings as well as the individual configuration settings for each postprocessing strategy (= postprocessing method).</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>strategies</td>
+<td>typing.List[findmycells.postprocessing.specs.PostprocessingStrategy]</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>strategy_configs</td>
+<td>typing.Optional[typing.List[typing.Dict]]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>processing_configs</td>
+<td>typing.Optional[typing.Dict]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>file_ids</td>
+<td>typing.Optional[typing.List[str]]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>None</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <hr>
 <p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L225" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
@@ -492,6 +696,48 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
                             area_roi_id:str, plane_idx:Optional[int]=None)</code></pre>
 </blockquote>
 <p>Prepare the inspection of a given file. This intermediate step is required especially to handle processing in the GUI.</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>inspection_method_class</td>
+<td>InspectionMethod</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>file_id</td>
+<td>str</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>area_roi_id</td>
+<td>str</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>plane_idx</td>
+<td>typing.Optional[int]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>InspectionMethod</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <hr>
 <p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L268" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
@@ -536,6 +782,39 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tbody>
 </table>
 <hr>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L280" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="api.export_quantification_results" class="level3">
+<h3 class="anchored" data-anchor-id="api.export_quantification_results">API.export_quantification_results</h3>
+<blockquote class="blockquote">
+<pre><code> API.export_quantification_results (export_as:str='xlsx')</code></pre>
+</blockquote>
+<p>As soon as all processing steps and quantifications are done, run this method to export all quantification results to the results subdirectory in the project root dir.</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>export_as</td>
+<td>str</td>
+<td>xlsx</td>
+<td>‘xslx’ or ‘csv’</td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>None</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr>
 <p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L82" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="api.save_status" class="level3">
@@ -555,6 +834,42 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
                   ne, database_filepath:Optional[pathlib.PosixPath]=None)</code></pre>
 </blockquote>
 <p>Loads the project status of a <em>findmycells</em> project from the two files (see save_status()) from the project root directory.</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>project_configs_filepath</td>
+<td>typing.Optional[pathlib.PosixPath]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>database_filepath</td>
+<td>typing.Optional[pathlib.PosixPath]</td>
+<td>None</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>None</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <p><br> <br> <br></p>
 </section>
 </section>
@@ -562,7 +877,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h1>Graphical user interface</h1>
 <p>The following classes are used to create the graphical user interface of findmycells. Please note that classes will be listed here in an inverted hirarchy, such that you can find the main <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/interfaces.html#gui"><code>GUI</code></a> class at the very end, and classes that handle much more specific details at the beginning.</p>
 <hr>
-<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L491" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L501" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="strategyconfigurator" class="level3">
 <h3 class="anchored" data-anchor-id="strategyconfigurator">StrategyConfigurator</h3>
 <blockquote class="blockquote">
@@ -574,7 +889,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>This class implements the interface that let´s the user choose and configurate the processing strategies. It will be placed inside of an accordion that is implemented in the <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/interfaces.html#processingsteppage"><code>ProcessingStepPage</code></a>. It gets a list of all available processing strategies from the parent <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/interfaces.html#processingsteppage"><code>ProcessingStepPage</code></a> and, thus, eventually from the <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/interfaces.html#api"><code>API</code></a> that checks for all available processing strategies in the corresponding processing submodule (e.g.&nbsp;“findmycells.preprocessing.strategies”). Upon initializing it´s dropdown widget, which let´s the user browser through the different available strategies, it also initializes an object of each strategy. This object can then be used to run it´s associated method “.initialize_gui_configs_and_widget()” to build the specified widget, using its <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/configs.html#guiconfigs"><code>GUIConfigs</code></a> instance. Essentially, this contains a description of what the processing strategy does and, if applicable, widgets to specify all parameters that can be configurated for this strategy. Finally, a “confirm &amp; export” and a “remove” button allow the user to load or delete the current to or from the findmycells project, respectively.</p>
 <p><br> <br> <br></p>
 <hr>
-<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L642" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L652" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="pagebuttonbundle" class="level3">
 <h3 class="anchored" data-anchor-id="pagebuttonbundle">PageButtonBundle</h3>
@@ -586,7 +901,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>Helper class that provides a standard way to create an ABC using inheritance.</p>
 <p><br> <br> <br></p>
 <hr>
-<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L673" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L683" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="settingspage" class="level3">
 <h3 class="anchored" data-anchor-id="settingspage">SettingsPage</h3>
@@ -598,7 +913,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>Subclass of <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/interfaces.html#pagebuttonbundle"><code>PageButtonBundle</code></a> that implements the GUI interface that allows the user to specify all settings relevant to the findmycells project. It also enables saving &amp; loading of the project status, and to browse through the file history that is automatically created by findmycells.</p>
 <p><br> <br> <br></p>
 <hr>
-<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L985" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L1016" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="processingsteppage" class="level3">
 <h3 class="anchored" data-anchor-id="processingsteppage">ProcessingStepPage</h3>
@@ -610,7 +925,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>Helper class that provides a standard way to create an ABC using inheritance.</p>
 <p><br> <br> <br></p>
 <hr>
-<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L1137" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L1168" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="inspectionpage" class="level3">
 <h3 class="anchored" data-anchor-id="inspectionpage">InspectionPage</h3>
@@ -622,7 +937,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>Helper class that provides a standard way to create an ABC using inheritance.</p>
 <p><br> <br> <br></p>
 <hr>
-<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L1316" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L1347" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="gui" class="level3">
 <h3 class="anchored" data-anchor-id="gui">GUI</h3>
@@ -632,17 +947,12 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>Initialize self. See help(type(self)) for accurate signature.</p>
 <p>The recommended way to create and use the GUI of <em>findmycells</em>:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>gui <span class="op">=</span> GUI()</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>gui.displayed_widget</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<script type="application/vnd.jupyter.widget-view+json">
-{"model_id":"5bcb4174da414e72b268d3ff0f5bfd5a","version_major":2,"version_minor":0}
-</script>
-</div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>gui <span class="op">=</span> GUI()</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>gui.displayed_widget</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>The advantage of this method is that you will have the <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/interfaces.html#gui"><code>GUI</code></a> object available in your jupyter notebook, which allows you to also interact with it using your notebook, which can be very helpful in case you have to do some troubleshooting. However, if this is not needed, you can also simply use the following function to launch the GUI. Feel free to check out our GUI tutorial for a more in-depth user guide.</p>
 <hr>
-<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L1417" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/findmycells/interfaces.py#L1448" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="launch_gui" class="level3">
 <h3 class="anchored" data-anchor-id="launch_gui">launch_gui</h3>
@@ -656,9 +966,6 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </section>
 
 </main> <!-- /main -->
-<script type="application/vnd.jupyter.widget-state+json">
-{"state":{"15b9d1dcc7954f659d9c80688c90650f":{"model_module":"@jupyter-widgets/base","model_module_version":"1.2.0","model_name":"LayoutModel","state":{"height":"30px"}},"737dc61275b14ee482f625dbf8c97470":{"model_module":"@jupyter-widgets/base","model_module_version":"1.2.0","model_name":"LayoutModel","state":{"width":"500px"}},"b7741fde2708420eb8dbc16ce39b3611":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"DescriptionStyleModel","state":{}},"d334e377981244f69f87e566f59f56c8":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"LabelModel","state":{"_dom_classes":[],"layout":"IPY_MODEL_15b9d1dcc7954f659d9c80688c90650f","style":"IPY_MODEL_b7741fde2708420eb8dbc16ce39b3611"}}},"version_major":2,"version_minor":0}
-</script>
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
