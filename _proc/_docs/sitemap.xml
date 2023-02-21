@@ -1,87 +1,87 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://Defense-Circuits-Lab.github.io/findmycells/index.html</loc>
+    <lastmod>2023-02-21T01:02:05.062Z</lastmod>
+  </url>
+  <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/configs.html</loc>
-    <lastmod>2023-02-20T22:50:24.409Z</lastmod>
+    <lastmod>2023-02-21T01:02:05.392Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/readers_02_rois.html</loc>
-    <lastmod>2023-02-20T22:50:24.659Z</lastmod>
+    <lastmod>2023-02-21T01:02:05.662Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/preprocessing_01_strategies.html</loc>
-    <lastmod>2023-02-20T22:50:24.909Z</lastmod>
+    <lastmod>2023-02-21T01:02:05.942Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/readers_01_microscopy_images.html</loc>
-    <lastmod>2023-02-20T22:50:25.169Z</lastmod>
+    <lastmod>2023-02-21T01:02:06.202Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/readers_00_specs.html</loc>
-    <lastmod>2023-02-20T22:50:25.419Z</lastmod>
+    <lastmod>2023-02-21T01:02:06.472Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/index.html</loc>
-    <lastmod>2023-02-20T22:50:25.779Z</lastmod>
+    <lastmod>2023-02-21T01:02:06.812Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/quantification_00_specs.html</loc>
-    <lastmod>2023-02-20T22:50:26.019Z</lastmod>
+    <lastmod>2023-02-21T01:02:07.052Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/preprocessing_00_specs.html</loc>
-    <lastmod>2023-02-20T22:50:26.229Z</lastmod>
+    <lastmod>2023-02-21T01:02:07.282Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/segmentation_01_strategies.html</loc>
-    <lastmod>2023-02-20T22:50:26.459Z</lastmod>
+    <lastmod>2023-02-21T01:02:07.512Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/core.html</loc>
-    <lastmod>2023-02-21T00:12:26.725Z</lastmod>
+    <lastmod>2023-02-21T01:02:07.862Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/segmentation_00_specs.html</loc>
-    <lastmod>2023-02-20T22:50:27.039Z</lastmod>
+    <lastmod>2023-02-21T01:02:08.082Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/database.html</loc>
-    <lastmod>2023-02-20T22:50:27.269Z</lastmod>
+    <lastmod>2023-02-21T01:02:08.292Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/postprocessing_01_strategies.html</loc>
-    <lastmod>2023-02-20T22:50:27.529Z</lastmod>
+    <lastmod>2023-02-21T01:02:08.552Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/interfaces.html</loc>
-    <lastmod>2023-02-20T22:50:27.879Z</lastmod>
+    <lastmod>2023-02-21T01:02:08.952Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/utils.html</loc>
-    <lastmod>2023-02-20T22:50:28.099Z</lastmod>
+    <lastmod>2023-02-21T01:02:09.172Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/inspection_00_methods.html</loc>
-    <lastmod>2023-02-20T22:50:28.319Z</lastmod>
+    <lastmod>2023-02-21T01:02:09.382Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/postprocessing_00_specs.html</loc>
-    <lastmod>2023-02-20T22:50:28.519Z</lastmod>
+    <lastmod>2023-02-21T01:02:09.612Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/api/quantification_01_strategies.html</loc>
-    <lastmod>2023-02-20T22:50:28.759Z</lastmod>
+    <lastmod>2023-02-21T01:02:09.812Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/tutorials/gui_tutorial.html</loc>
-    <lastmod>2023-02-21T00:12:44.805Z</lastmod>
+    <lastmod>2023-02-21T01:02:10.272Z</lastmod>
   </url>
   <url>
     <loc>https://Defense-Circuits-Lab.github.io/findmycells/tutorials/api_tutorial.html</loc>
-    <lastmod>2023-02-21T00:12:27.055Z</lastmod>
-  </url>
-  <url>
-    <loc>https://Defense-Circuits-Lab.github.io/findmycells/index.html</loc>
-    <lastmod>2023-02-21T00:12:26.325Z</lastmod>
+    <lastmod>2023-02-21T01:02:10.582Z</lastmod>
   </url>
 </urlset>
