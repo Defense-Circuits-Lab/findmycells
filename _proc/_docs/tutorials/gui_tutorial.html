@@ -380,7 +380,7 @@ Note
 <p>You can start a project either in an completely empty directory (<em>findmycells</em> will then automatically create all subdirectories that are required), or with an already existing subdirectory structure. Here, we will start completely from scratch in an empty directory:</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/major_refactoring/media/gui_launch_project.gif?raw=true" class="img-fluid figure-img"></p>
+<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/media/gui_launch_project.gif?raw=true" class="img-fluid figure-img"></p>
 <p></p><figcaption class="figure-caption">gui_launch_project</figcaption><p></p>
 </figure>
 </div>
@@ -485,7 +485,7 @@ Tip
 <p><em>findmycells</em> creates and maintaines a database for you that keeps track of all your files &amp; how (and when) you processed them. Once you placed all image files (and, optionally, all associated ROI files) in the corresponding subdirectory trees, your good to go &amp; can use the “update project files” button. <em>findmycells</em> will now confirm that your file structure is indeed as expected and will then infer all the relevant metadata information. Note: the actual image or ROI data will not be loaded into memory at this moment. If successfull, you should now see a table that lists the detected files with the inferred metadata information:</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/major_refactoring/media/gui_import_data.gif?raw=true" class="img-fluid figure-img"></p>
+<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/media/gui_import_data.gif?raw=true" class="img-fluid figure-img"></p>
 <p></p><figcaption class="figure-caption">gui_import_metadata</figcaption><p></p>
 </figure>
 </div>
@@ -495,7 +495,7 @@ Tip
 <p>Next, you have the option to specify how the image data and the ROI files shall be imported in the “data import settings” tab, still on the settings page. Since this time it’s really about how these data will be loaded into memory, it may make sense to limit everything right away only to a certain color channel or only to a few specific planes, in case you’re working with a z-stack. However, this is entirely up to you &amp; you can also play around a bit and try different options until you found the perfect settings for you. Please remember to click on the “confirm settings” button for both, the Microscopy images <strong>and</strong> the ROI files.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/major_refactoring/media/gui_data_import_settings.gif?raw=true" class="img-fluid figure-img"></p>
+<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/media/gui_data_import_settings.gif?raw=true" class="img-fluid figure-img"></p>
 <p></p><figcaption class="figure-caption">gui_data_reader_settings</figcaption><p></p>
 </figure>
 </div>
@@ -521,7 +521,7 @@ Tip
 <p>For all processing steps, you will be prompted to select one (or several) of the available processing methods. These resemble different options how your data gets processed. On each processing page, you will have a so-called accordion widget that you can expand by clicking on it to reveal its content. In the expanded accordion, you will see a dropdown menu that lists all available processing methods for the respective processing step. For preprocessing, these include for instance “Convert into 8-bit format”, “Adjust brightness and contrast”, or “Maximum intensity projection”. Once you select a option, a more detailed description of this method will appear below, alongside some additional customization options (if applicable). To include a processing method in your project, select it in the dropdown menu, adjust the customizable settings, and then click the “confirm selection &amp; export configurations” button. This will then cause the accordion to collapse again and to create a second accordion. The first accordion will now display the name of the processing method you selected. You can always click on it to expand it’s content again &amp; use the “remove method” button to remove it from the list of processing methods again, in case you changed your mind. Feel free to add as many processing methods as you like, but please be aware that they will be executed in the order that you selected them in (i.e.&nbsp;in which they are displayed to you - top to bottom).</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/major_refactoring/media/gui_processing_strats_selection.gif?raw=true" class="img-fluid figure-img"></p>
+<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/media/gui_processing_strats_selection.gif?raw=true" class="img-fluid figure-img"></p>
 <p></p><figcaption class="figure-caption">gui_preprocessing_strats</figcaption><p></p>
 </figure>
 </div>
@@ -544,7 +544,7 @@ Important
 <p>Once you are happy with the selection of processing methods, you need to confirm some general processing configurations. These include, for instance whether <em>findmycells</em> should try to save the progress of your project as soon &amp; wherever possible (autosave progress after each file), or whether files that you may have processed earlier already shall be overwritten or skipped. Please click the “confirm &amp; export configurations” button to fix your current selection. In case you’d like to change anything again - use the “refine configurations” button to make the widgets interactive again.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/major_refactoring/media/gui_processing_configs.gif?raw=true" class="img-fluid figure-img"></p>
+<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/media/gui_processing_configs.gif?raw=true" class="img-fluid figure-img"></p>
 <p></p><figcaption class="figure-caption">gui_preprocessing_configs</figcaption><p></p>
 </figure>
 </div>
@@ -554,7 +554,7 @@ Important
 <p>The last thing that remains to do is to specify the range of file IDs you’d like to process. By default, all files will be selected. Feel free to had back to the “project files” tab on the “settings” page, to take a look at the overview table that shows what file ID refers to which of your original files. When you’re ready - it’s finally time to hit that “launch processing” button!</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/major_refactoring/media/gui_preprocessing_run.gif?raw=true" class="img-fluid figure-img"></p>
+<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/media/gui_preprocessing_run.gif?raw=true" class="img-fluid figure-img"></p>
 <p></p><figcaption class="figure-caption">gui_run_preprocessing</figcaption><p></p>
 </figure>
 </div>
@@ -591,7 +591,7 @@ Important
 </div>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/major_refactoring/media/gui_segmentation.gif?raw=true" class="img-fluid figure-img"></p>
+<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/media/gui_segmentation.gif?raw=true" class="img-fluid figure-img"></p>
 <p></p><figcaption class="figure-caption">gui_segmentation</figcaption><p></p>
 </figure>
 </div>
@@ -601,7 +601,7 @@ Important
 <p>Once you managed to get all segmentations, you’re almost done! Next up, you can run some post-processing on the segmentation masks, for instance applying exclusion criteria to filter for clearly biological relevant &amp; meaningful features.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/major_refactoring/media/gui_postprocessing.gif?raw=true" class="img-fluid figure-img"></p>
+<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/media/gui_postprocessing.gif?raw=true" class="img-fluid figure-img"></p>
 <p></p><figcaption class="figure-caption">gui_postprocessing</figcaption><p></p>
 </figure>
 </div>
@@ -631,7 +631,7 @@ Note
 <p>The following gif shows you the inspection of the 2D data in the cfos_fmc_test_project sample dataset:</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/major_refactoring/media/gui_inspect_2d.gif?raw=true" class="img-fluid figure-img"></p>
+<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/media/gui_inspect_2d.gif?raw=true" class="img-fluid figure-img"></p>
 <p></p><figcaption class="figure-caption">gui_inspect_2d</figcaption><p></p>
 </figure>
 </div>
@@ -651,7 +651,7 @@ Tip
 <p>While processing of 3D (2.5D) datasets works just as demonstrated for the 2D sample dataset shown above, let’s have a look at a more interesting 3D inspection plot below:</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/major_refactoring/media/gui_inspect_3d.gif?raw=true" class="img-fluid figure-img"></p>
+<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/media/gui_inspect_3d.gif?raw=true" class="img-fluid figure-img"></p>
 <p></p><figcaption class="figure-caption">gui_inspect_3d</figcaption><p></p>
 </figure>
 </div>
@@ -661,7 +661,7 @@ Tip
 <p>As mentioned before, <em>findmycells</em> keeps a detailed record of your files and how you processed them. To take a look at this information, head over to the “settings” page, click the “browse file history” tab &amp; then select a file ID you’d like to know more about:</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/major_refactoring/media/gui_browse_file_history.gif?raw=true" class="img-fluid figure-img"></p>
+<p><img src="https://github.com/Defense-Circuits-Lab/findmycells/blob/main/media/gui_browse_file_history.gif?raw=true" class="img-fluid figure-img"></p>
 <p></p><figcaption class="figure-caption">gui_browse_file_histories</figcaption><p></p>
 </figure>
 </div>
@@ -724,7 +724,7 @@ Tip
 
 </main> <!-- /main -->
 <script type="application/vnd.jupyter.widget-state+json">
-{"state":{},"version_major":2,"version_minor":0}
+{"state":{"4a99c80da7854f9f90ccea9b768b4892":{"model_module":"@jupyter-widgets/base","model_module_version":"1.2.0","model_name":"LayoutModel","state":{"width":"500px"}}},"version_major":2,"version_minor":0}
 </script>
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {

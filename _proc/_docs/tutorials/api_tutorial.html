@@ -342,8 +342,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <ul>
 <li>a directory that will contain your entire <em>findmycells</em> project (from now on, referred to as project root directory)</li>
 <li>the image data you’d like to analyze in a file format that is compatible with <em>findmycells</em> (currently supported formats include: .czi, .png, .tif)</li>
-<li>a deepflash2 model ensemble trained to segment your image features of interest (models must be compatible with deepflash2 v0.1.7! check out this guide for how you can train your own model ensembles with deepflash2)</li>
-<li>optional: a complementary ROI file for each image that specifies the area(s) of interest in your image that shall be quantified (check out this guide for how to create these ROI files)</li>
+<li>a deepflash2 model ensemble trained to segment your image features of interest (models must be compatible with deepflash2 v0.1.7! check out the documentation deepflash2, especially the GUI tutorial, for how to train model ensembles)</li>
+<li>optional: a complementary ROI file for each image that specifies the area(s) of interest in your image that shall be quantified (check out the guide in the <a href="https://defense-circuits-lab.github.io/findmycells/tutorials/gui_tutorial.html">GUI tutorial</a>)</li>
 </ul>
 <p>The following tutorial assumes you meet all of the requirements listed above.</p>
 <p><strong>Also, please note:</strong> in general, <strong>we recommend to use the GUI</strong>, as it directly displays all configuration and processing options that are available for each step, and therefore doesn’t require you to browse through all source files to figure them out yourself. This tutorial will also not cover all available options, and is rather intended to give you a rough idea of how to interact with the API.</p>
@@ -393,7 +393,7 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>In addition, the “cfos_fmc_test_project” also already comes with microscopy images &amp; roi files arranged in the correct file structure. Please check out this guide on how you have to arrange your image data, and this guide for how to create ROI files.</p>
+<p>In addition, the “cfos_fmc_test_project” also already comes with microscopy images &amp; roi files arranged in the correct file structure. Please check out this <a href="https://defense-circuits-lab.github.io/findmycells/tutorials/gui_tutorial.html#add-all-your-data">section</a> on how you have to arrange your image data and on how to create ROI files.</p>
 </div>
 </div>
 <p>Since our image data &amp; roi files are already organized in the expected subdirectory structures, we can import all files to our <em>findmycells</em> project. This will create the corresponding entries in the database, but it will not yet actually read and load the data. These information are derived from all available files in the “microscopy_images” subdirectory. This also allows you to re-run the following method again later if you want to update the files associated with your project. Simply add new files, or delete any existing files - <em>findmycells</em> will automatically identify these files and add or remove them from your project, respectively.</p>
