@@ -32,9 +32,7 @@ tutorial</a> to get a first impression! </font>
 
 # Installation guide
 
-*findmycells* is available via both pip and conda:
-
-> conda install findmycells
+*findmycells* is currently only available via pip:
 
 > pip install findmycells
 
