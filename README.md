@@ -32,17 +32,69 @@ tutorial</a> to get a first impression! </font>
 
 # Installation guide
 
-*findmycells* is currently only available via pip:
+*findmycells* is currently only available via pip. Also, please be aware
+that *findmycells* was so far only tested in a Linux subsystem run under
+Windows (Ubuntu 20.04.5 in WSL2 on both Windows 10 and Windows 11).
+Moreover, having a CUDA-capable GPU is highly recommended when using
+[deepflash2](https://github.com/matjesg/deepflash2) or
+[cellpose](https://github.com/MouseLand/cellpose) for the segmentation
+of your images. For local installation, please follow the steps below:
+
+We highly recommend that you use
+[Anaconda](https://www.anaconda.com/products/distribution). In your
+terminal (command line, or Anaconda Prompt), run the following line to
+create a new conda environment, called “findmycells”:
+
+> conda create -n findmycells
+
+Once the environment is created, activate it as suggested by conda by
+running:
+
+> conda activate findmycells
+
+You should now see `(findmycells)` at the beginning of the line.
+Continue by installing pip:
+
+> conda install pip
+
+Once the installations are done, all you need to do is run:
 
 > pip install findmycells
 
-**Note:** Please be aware that *findmycells* was so far only tested in a
-Linux subsystem run under Windows (Ubuntu 20.04.5 in WSL2 on both
-Windows 10 and Windows 11). In addition, having a GPU is highly
-recommended when using
-[deepflash2](https://github.com/matjesg/deepflash2) or
-[cellpose](https://github.com/MouseLand/cellpose) for the segmentation
-of your images.
+And all required packages should come with it.
+
+## Confirming that your GPU is accessible:
+
+If you would like to use your GPU (again: using a GPU is highly
+recommended, if you want to use the integrated segmentation tools
+deepflash2 and cellpose), you can test whether it is accessible for
+python by running the following commands again in the terminal (with the
+findmycells environment still activated):
+
+> python
+
+This will now launch a python interface right in your terminal. Now
+continue with importing torch:
+
+> import torch
+
+As soon as torch is imported, you can check for GPU accessability by
+running:
+
+> torch.cuda.is_available()
+
+This will now output either `True` (whoop whoop - everything is
+working - well done!) or `False` ( :( ). In case you have a local
+CUDA-capable GPU installed & you still got a `False`, confirm that you
+have the latest GPU driver installed, and that you are using the latest
+available Windows, WSL2, and Linux builds. If you’re still not able to
+access the GPU, it may sometimes help to start by installing pytorch
+first (mix & match the correct versions for you
+[here](https://pytorch.org/get-started/locally/)), and to first confirm
+that the GPU is indeed accessible. If it is, you can now continue with
+the installation of findmycells & hope that nothing breaks! Fingers
+crossed, that you can find a version that satisfies your local
+requirements & also those of deepflash2 & cellpose!
 
 # For developers
 
