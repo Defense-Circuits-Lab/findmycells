@@ -1,3 +1,8 @@
+# Custom edits
+test_data/cfos_fmc_test_project/preprocessed_images/*
+*.dbase
+*.configs
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
