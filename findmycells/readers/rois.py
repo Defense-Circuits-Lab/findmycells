@@ -58,6 +58,7 @@ class ImageJROIReader(ROIReaders):
         for idx in range(roi_count):
             row_coords = loaded_rois[idx].coordinates()[:, 1]
             col_coords = loaded_rois[idx].coordinates()[:, 0]
+            assert (len(row_coords) > 2) & (len(col_coords) > 2), f"Can't draw a roi from file {loaded_rois[idx].name}, as it has less than 3 coordinates!"
             if reader_configs['load_roi_ids_from_file'] == True:
                 rois_as_shapely_polygons['all_planes'][loaded_rois[idx].name] = Polygon(np.asarray(list(zip(row_coords, col_coords))))
             else:
