@@ -421,7 +421,7 @@ class AdjustBrightnessAndContrastStrat(PreprocessingStrategy):
     
     @property
     def dropdown_option_value_for_gui(self):
-        return 'Adjust brightness and constrast'
+        return 'Adjust brightness and contrast'
     
     @property
     def default_configs(self):
