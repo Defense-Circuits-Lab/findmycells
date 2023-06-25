@@ -150,7 +150,7 @@ class Deepflash2SemanticSegmentationStrat(SegmentationStrategy):
             target_filepath = semantic_segmentations_target_dir_path.joinpath(mask_filepath.name)
             if target_filepath.is_file() == True:
                 target_filepath.delete()
-            shutil.move(mask_filepath, semantic_segmentations_target_dir_path)
+            shutil.move(str(mask_filepath), str(semantic_segmentations_target_dir_path))
         shutil.rmtree(segmentation_tool_dir_path.joinpath('copies_of_preprocessed_images'))
 
 
