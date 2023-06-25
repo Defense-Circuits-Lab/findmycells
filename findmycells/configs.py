@@ -4,7 +4,7 @@
 __all__ = ['ProjectConfigs', 'DefaultConfigs', 'GUIConfigs']
 
 # %% ../nbs/api/00_configs.ipynb 2
-from pathlib import Path, PosixPath
+from pathlib import Path, PosixPath, WindowsPath
 from typing import Optional, Dict, Any, List, Tuple, Callable, Union
 from traitlets.traitlets import MetaHasTraits as WidgetType
 import ipywidgets as w
@@ -25,8 +25,8 @@ class ProjectConfigs:
     """
     
     
-    def __init__(self, root_dir: PosixPath) -> None:
-        assert type(root_dir) == PosixPath, '"root_dir" must be pathlib.Path referring to an existing directory.'
+    def __init__(self, root_dir: Union[PosixPath, WindowsPath]) -> None:
+        assert type(root_dir) in [PosixPath, WindowsPath], '"root_dir" must be pathlib.Path referring to an existing directory.'
         assert root_dir.is_dir(), '"root_dir" must be pathlib.Path referring to an existing directory.'
         self.root_dir = root_dir
         self.load_available_processing_modules()

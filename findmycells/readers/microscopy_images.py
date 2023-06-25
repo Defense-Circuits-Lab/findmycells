@@ -5,8 +5,8 @@ __all__ = ['MicroscopyImageReaders', 'CZIReader', 'RegularImageFiletypeReader', 
 
 # %% ../../nbs/api/04_readers_01_microscopy_images.ipynb 2
 from abc import abstractmethod
-from typing import List, Tuple, Optional, Dict, Any
-from pathlib import PosixPath, Path
+from typing import List, Tuple, Optional, Dict, Any, Union
+from pathlib import PosixPath, Path, WindowsPath
 import numpy as np
 import czifile
 from skimage.io import imread
@@ -106,7 +106,7 @@ class RegularImageFiletypeReader(MicroscopyImageReaders):
     
     
     def read(self,
-             filepath: PosixPath, # filepath to the microscopy image file
+             filepath: Union[PosixPath, WindowsPath], # filepath to the microscopy image file
              reader_configs: Dict # a dictionary based on the DefaultConfigs specified in the MicroscopyReaderSpecs
             ) -> np.ndarray: # numpy array with the structure: [imaging-planes, rows, columns, imaging-channel]
         image_with_correct_format = self._attempt_to_load_image_at_correct_format(filepath = filepath)
@@ -116,7 +116,7 @@ class RegularImageFiletypeReader(MicroscopyImageReaders):
     
     
     def _attempt_to_load_image_at_correct_format(self, 
-                                                 filepath: PosixPath
+                                                 filepath: Union[PosixPath, WindowsPath]
                                                 ) -> np.ndarray:
         single_plane_image = imread(filepath)
         if len(single_plane_image.shape) == 2: # single color channel
@@ -147,7 +147,7 @@ class FromExcelReader(MicroscopyImageReaders):
         
     
     def read(self,
-             filepath: PosixPath, # filepath to the excel sheet that contains the filepaths to the corresponding image files
+             filepath: Union[PosixPath, WindowsPath], # filepath to the excel sheet that contains the filepaths to the corresponding image files
              reader_configs: Dict # a dictionary based on the DefaultConfigs specified in the MicroscopyReaderSpecs
             ) -> np.ndarray: # numpy array with the structure: [imaging-planes, rows, columns, imaging-channel]
 
