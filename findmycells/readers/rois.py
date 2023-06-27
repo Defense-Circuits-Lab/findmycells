@@ -4,8 +4,8 @@
 __all__ = ['ROIReaders', 'ImageJROIReader']
 
 # %% ../../nbs/api/04_readers_02_rois.ipynb 3
-from typing import Dict, List, Any
-from pathlib import PosixPath
+from typing import Dict, List, Any, Union
+from pathlib import PosixPath, WindowsPath
 import numpy as np
 from shapely.geometry import Polygon
 import roifile
@@ -46,7 +46,7 @@ class ImageJROIReader(ROIReaders):
     
     
     def read(self,
-             filepath: PosixPath, # filepath to the roi file
+             filepath: Union[PosixPath, WindowsPath], # filepath to the roi file
              reader_configs: Dict # the project database
             ) -> Dict[str, Dict[str, Polygon]]: # nested dictionaries of shapely polygons: {plane_id: {roi_id: Polygon}}
         if filepath.suffix == '.roi':

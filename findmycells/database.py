@@ -4,7 +4,7 @@
 __all__ = ['Database', 'FileHistory']
 
 # %% ../nbs/api/02_database.ipynb 2
-from pathlib import Path, PosixPath
+from pathlib import Path, PosixPath, WindowsPath
 from typing import Optional, Dict, List, Union
 import pandas as pd
 from datetime import datetime
@@ -226,7 +226,7 @@ class Database:
                                  'https://github.com/Defense-Circuits-Lab/findmycells - thank you!')
 
         
-    def _add_new_file_history_tracker(self, file_id: int, source_image_filepath: PosixPath) -> None:
+    def _add_new_file_history_tracker(self, file_id: int, source_image_filepath: Union[PosixPath, WindowsPath]) -> None:
         file_id = str(file_id).zfill(4)
         self.file_histories[file_id] = FileHistory(file_id = file_id, source_image_filepath = source_image_filepath)
                                                
@@ -350,7 +350,7 @@ class Database:
             self._delete_matching_files_from_subdir(subdir_path = area_id_subdir_path, file_id = file_id)
             
             
-    def _delete_matching_files_from_subdir(self, subdir_path: PosixPath, file_id: str) -> None:
+    def _delete_matching_files_from_subdir(self, subdir_path: Union[PosixPath, WindowsPath], file_id: str) -> None:
         all_filepaths_in_subdir = utils.list_dir_no_hidden(path = subdir_path, only_files = True)
         associated_filepaths = [filepath for filepath in all_filepaths_in_subdir if filepath.name.startswith(file_id)]
         for filepath_to_delete in associated_filepaths:
@@ -408,7 +408,7 @@ class Database:
 class FileHistory:
     
     
-    def __init__(self, file_id: str, source_image_filepath: PosixPath) -> None:
+    def __init__(self, file_id: str, source_image_filepath: Union[PosixPath, WindowsPath]) -> None:
         self.file_id = file_id
         self.source_image_filepath = source_image_filepath
         self.datetime_added = datetime.now()

@@ -4,8 +4,8 @@
 __all__ = ['Deepflash2SemanticSegmentationStrat', 'LosslessConversionOfDF2SemanticSegToInstanceSegWithCPStrat']
 
 # %% ../../nbs/api/06_segmentation_01_strategies.ipynb 2
-from typing import Tuple, List, Dict
-from pathlib import Path, PosixPath
+from typing import Tuple, List, Dict, Union
+from pathlib import Path, PosixPath, WindowsPath
 
 import numpy as np
 import shutil
@@ -44,7 +44,7 @@ class Deepflash2SemanticSegmentationStrat(SegmentationStrategy):
         default_values = {'path_to_models': Path(os.getcwd()),
                           'compute_stats': False,
                           'clear_zarrs_in_sys_temp_dir': True}
-        valid_types = {'path_to_models': [PosixPath, str],
+        valid_types = {'path_to_models': [PosixPath, str, WindowsPath],
                        'compute_stats': [bool],
                        'clear_zarrs_in_sys_temp_dir': [bool]}
         valid_options = {'path_to_models': ('')}
@@ -81,7 +81,7 @@ class Deepflash2SemanticSegmentationStrat(SegmentationStrategy):
 
     def _add_deepflash2_as_segmentation_tool(self, database: Database, strategy_configs: Dict) -> Database:
         # ToDo: replace with something that is more consistent with rest of package
-        if type(strategy_configs['path_to_models']) != PosixPath:
+        if type(strategy_configs['path_to_models']) not in [PosixPath, WindowsPath]:
             path_to_models = Path(strategy_configs['path_to_models'])
         else:
             path_to_models = strategy_configs['path_to_models']
@@ -256,7 +256,7 @@ class LosslessConversionOfDF2SemanticSegToInstanceSegWithCPStrat(SegmentationStr
         return database
 
 
-    def _compute_cellpose_diameter(self, semantic_masks_dir: PosixPath) -> float:
+    def _compute_cellpose_diameter(self, semantic_masks_dir: Union[PosixPath, WindowsPath]) -> float:
         all_median_equivalent_diameters = []
         for mask_filepath in semantic_masks_dir.iterdir():
             if mask_filepath.name.endswith('.png'):
