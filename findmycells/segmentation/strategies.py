@@ -116,7 +116,7 @@ class Deepflash2SemanticSegmentationStrat(SegmentationStrategy):
     def _compute_stats(self, database: Database) -> Tuple:
         from deepflash2.learner import EnsembleLearner
         preprocessed_images_dir_path = database.project_configs.root_dir.joinpath(database.preprocessed_images_dir)
-        expected_file_count = sum(database.file_infos['total_planes'])
+        expected_file_count = sum(filter(None, database.file_infos["total_planes"]))
         actual_file_count = len([filepath for filepath in utils.list_dir_no_hidden(preprocessed_images_dir_path) if filepath.name.endswith('.png')])
         if actual_file_count != expected_file_count:
             raise ValueError('Actual and expected counts of preprocessed images don´t match.')
