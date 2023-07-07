@@ -7,6 +7,7 @@ __all__ = ['GUI_SPACER', 'API', 'StrategyConfigurator', 'PageButtonBundle', 'Set
 # %% ../nbs/api/03_interfaces.ipynb 2
 from abc import ABC, abstractmethod
 from pathlib import Path, PosixPath, WindowsPath
+import pathlib
 from typing import List, Dict, Tuple, Optional, Union, Any
 from traitlets.traitlets import MetaHasTraits as WidgetType
 
@@ -99,7 +100,8 @@ class API:
         Loads the project status of a *findmycells* project from the two files (see save_status()) 
         from the project root directory.
         """
-        
+        if type(Path("test")) == pathlib.PosixPath:
+            pathlib.WindowsPath = pathlib.PosixPath
         if project_configs_filepath != None:
             assert type(project_configs_filepath) in [PosixPath, WindowsPath], '"project_configs_filepath" must be pathlib.Path object referring to a .configs file.'
             assert project_configs_filepath.suffix == '.configs', '"project_configs_filepath" must be pathlib.Path object referring to a .configs file.'
@@ -110,12 +112,14 @@ class API:
             assert database_filepath.suffix == '.dbase', '"database_filepath" must be pathlib.Path object referring to a .dbase file'
         else:
             database_filepath = self._look_for_latest_status_file_in_dir(suffix = '.dbase', dir_path = self.project_configs.root_dir)
+        old_root_dir = self.project_configs.root_dir
         if hasattr(self, 'project_configs'):
             delattr(self, 'project_configs')
         if hasattr(self, 'database'):
             delattr(self, 'database')
         self.project_configs = self._load_object_from_filepath(filepath = project_configs_filepath)
         self.project_configs.load_available_processing_modules()
+        self.project_configs.root_dir = old_root_dir
         self.database = self._load_object_from_filepath(filepath = database_filepath)
         setattr(self.database, 'project_configs', self.project_configs)
         
