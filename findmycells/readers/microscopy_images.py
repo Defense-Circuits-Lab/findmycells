@@ -82,13 +82,30 @@ class CZIReader(MicroscopyImageReaders):
             ) -> np.ndarray: # numpy array with the structure: [imaging-planes, rows, columns, imaging-channel]
         color_channel_slice = self._get_color_channel_slice(reader_configs = reader_configs)
         plane_idx_slice = self._get_plane_idx_slice(reader_configs = reader_configs)
-        read_image_using_configs = czifile.imread(filepath)[reader_configs['version_idx'],
-                                                            reader_configs['tile_row_idx'], 
-                                                            reader_configs['tile_col_idx'], 
-                                                            plane_idx_slice, 
-                                                            :, 
-                                                            :, 
-                                                            color_channel_slice]
+        img = czifile.CziFile(filepath)
+        meta = img.metadata(raw=False)["ImageDocument"]["Metadata"]["Information"]["Image"]
+        if meta["SizeZ"] == 1: # single plane image, multi/single channel
+            single_plane_image=img.asarray()[reader_configs["tile_row_idx"],
+                                         reader_configs["tile_col_idx"], 
+                                         :, 
+                                         :, 
+                                         color_channel_slice]
+            read_image_using_configs = np.expand_dims(single_plane_image, axis=[0])
+        elif meta["SizeS"] == 1: # single version image, multi/single channel
+            read_image_using_configs=img.asarray()[reader_configs["tile_row_idx"],
+                                         reader_configs["tile_col_idx"], 
+                                         plane_idx_slice, 
+                                         :, 
+                                         :, 
+                                         color_channel_slice]
+        else:
+            read_image_using_configs=img.asarray()[reader_configs['version_idx'],
+                reader_configs['tile_row_idx'], 
+                reader_configs['tile_col_idx'], 
+                plane_idx_slice, 
+                :, 
+                :, 
+                color_channel_slice]
         return read_image_using_configs
 
 # %% ../../nbs/api/04_readers_01_microscopy_images.ipynb 6
