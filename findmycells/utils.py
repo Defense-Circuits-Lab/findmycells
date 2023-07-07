@@ -75,13 +75,13 @@ def download_sample_data(destination_dir_path: Union[PosixPath, WindowsPath]) ->
                              f'an existing directory, not {destination_dir_path}.')
     assert destination_dir_path.is_dir(), assert_failed_message
     wget.download(url = 'https://zenodo.org/record/7655292/files/cfos_ensemble.zip?download=1',
-                  out = destination_dir_path.joinpath('ensemble.zip'))
+                  out = str(destination_dir_path.joinpath('ensemble.zip')))
     wget.download(url = 'https://zenodo.org/record/7655292/files/cfos_fmc_test_project.zip?download=1',
-                  out = destination_dir_path.joinpath('test_project.zip'))
+                  out = str(destination_dir_path.joinpath('test_project.zip')))
     with ZipFile(destination_dir_path.joinpath('ensemble.zip'), 'r') as zObject:
-        zObject.extractall()
+        zObject.extractall(path=destination_dir_path)
     with ZipFile(destination_dir_path.joinpath('test_project.zip'), 'r') as zObject:
-        zObject.extractall()
+        zObject.extractall(path=destination_dir_path)
     target_dir_path = destination_dir_path.joinpath('cfos_fmc_test_project', 'segmentation_tool', 'trained_models')
     for model_filepath in destination_dir_path.joinpath('cfos_ensemble').iterdir():
         shutil.move(model_filepath, target_dir_path)
