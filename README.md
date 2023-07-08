@@ -31,11 +31,11 @@ tutorial</a> to get a first impression! </font>
 
 # Installation guide
 
-*findmycells* is currently only available via pip. Also, please be aware
-that *findmycells* was so far only tested in a Linux subsystem run under
-Windows (Ubuntu 20.04.5 in WSL2 on both Windows 10 and Windows 11).
-Moreover, having a CUDA-capable GPU is highly recommended when using
-[deepflash2](https://github.com/matjesg/deepflash2) or
+*findmycells* is currently only available via pip. *findmycells* was so
+far tested in Windows 7, MacOS Ventura and in a Linux subsystem run
+under Windows (Ubuntu 20.04.5 in WSL2 on both Windows 10 and Windows
+11). Moreover, having a CUDA-capable GPU is highly recommended when
+using [deepflash2](https://github.com/matjesg/deepflash2) or
 [cellpose](https://github.com/MouseLand/cellpose) for the segmentation
 of your images. For local installation, please follow the steps below:
 
