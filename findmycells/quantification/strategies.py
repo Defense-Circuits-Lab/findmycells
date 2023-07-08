@@ -17,7 +17,8 @@ from .. import utils
 class CountFeaturesInWholeAreaROIsStrat(QuantificationStrategy):
     
     """
-    Strategy description
+    The number of unique features is determined in the whole image or per ROI, if provided. 
+    This step is based on the application of the connected-component algorithm. 
     """
 
     @property

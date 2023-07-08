@@ -20,9 +20,9 @@ from .. import utils
 class ReconstructCellsIn3DFrom2DInstanceLabelsStrat(PostprocessingStrategy):
     
     """
-    Description;
-    Include requirements
-    Mention multi matches traceback which can be used in inspection
+    If you're analysing a z-stack dataset, features can overlap with features in other planes. 
+    By application of this strategy, findmycells tries to merge and assign the same label to them (“multi-match-traceback”).
+    You need to run this step fo inspect features in 3D in the next step.
     """
     
     @property
