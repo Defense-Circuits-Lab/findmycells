@@ -67,8 +67,12 @@ class CZIReader(MicroscopyImageReaders):
     
     """
     This reader enables loading of images acquired with the ZEN imaging software by Zeiss, using the czifile package.
-    Note: the first three dimensions are entirely guessed, it could well be that they reflect different things and 
-    not "version_idx", "tile_row_idx", "tile_col_idx"!
+    Note: czifile returns numpy arrays of different shapes depending on the imaging conditions. As an example: if 
+    z-stack images were acquired, there is on dimension more than for plane images. As the czifile-function 
+    CziFile.asarray() behaves rather unpredictable - for the reasons mentioned above -, it could well be, that there 
+    are other format shapes, that are not taken into account in the if-elif-else loop in self.read(). 
+    Please note, that the else condition in self.read() was not tested yet, as there was no matching test data at hand!
+    If the CZIReader throws an error at your data, feel free to open up an issue or to add a solution in a pull request!
     """
     
     @property
@@ -84,21 +88,21 @@ class CZIReader(MicroscopyImageReaders):
         plane_idx_slice = self._get_plane_idx_slice(reader_configs = reader_configs)
         img = czifile.CziFile(filepath)
         meta = img.metadata(raw=False)["ImageDocument"]["Metadata"]["Information"]["Image"]
-        if meta["SizeZ"] == 1: # single plane image, multi/single channel
+        if meta["SizeZ"] == 1: # single plane image, tested
             single_plane_image=img.asarray()[reader_configs["tile_row_idx"],
                                          reader_configs["tile_col_idx"], 
                                          :, 
                                          :, 
                                          color_channel_slice]
             read_image_using_configs = np.expand_dims(single_plane_image, axis=[0])
-        elif meta["SizeS"] == 1: # single version image, multi/single channel
+        elif meta["SizeS"] == 1: # single version image, tested
             read_image_using_configs=img.asarray()[reader_configs["tile_row_idx"],
                                          reader_configs["tile_col_idx"], 
                                          plane_idx_slice, 
                                          :, 
                                          :, 
                                          color_channel_slice]
-        else:
+        else: # not tested yet
             read_image_using_configs=img.asarray()[reader_configs['version_idx'],
                 reader_configs['tile_row_idx'], 
                 reader_configs['tile_col_idx'], 
