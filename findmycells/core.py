@@ -7,9 +7,9 @@ __all__ = ['ProcessingObject', 'ProcessingStrategy', 'DataReader', 'DataLoader']
 from abc import ABC, abstractmethod
 from .database import Database
 from .configs import DefaultConfigs, GUIConfigs
-from typing import List, Dict, Tuple, Optional, Any
+from typing import List, Dict, Tuple, Optional, Any, Union
 from types import ModuleType
-from pathlib import Path, PosixPath
+from pathlib import Path, PosixPath, WindowsPath
 import inspect
 
 # %% ../nbs/api/01_core.ipynb 6
@@ -397,7 +397,7 @@ class DataLoader:
         return available_reader
     
     
-    def load(self, data_reader_class: DataReader, filepath: PosixPath, reader_configs: Dict) -> Any:
+    def load(self, data_reader_class: DataReader, filepath: Union[PosixPath, WindowsPath], reader_configs: Dict) -> Any:
         """
         Uses the provided `DataReader` subclass to import the data.
         """
