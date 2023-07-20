@@ -37,7 +37,8 @@ under Windows (Ubuntu 20.04.5 in WSL2 on both Windows 10 and Windows
 11). Moreover, having a CUDA-capable GPU is highly recommended when
 using [deepflash2](https://github.com/matjesg/deepflash2) or
 [cellpose](https://github.com/MouseLand/cellpose) for the segmentation
-of your images. For local installation, please follow the steps below:
+of your images. You can run *findmycells* on [Google Colab](https://colab.research.google.com/github/Defense-Circuits-Lab/findmycells/blob/main/findmycells_colab.ipynb) 
+as well. For local installation, please follow the steps below:
 
 We highly recommend that you use
 [Anaconda](https://www.anaconda.com/products/distribution). In your
