@@ -386,16 +386,18 @@ class Database:
 
 
     def _get_results_overview_dataframe_for_export(self, file_ids_to_include: List[Optional[str]], area_id: str) -> pd.DataFrame:
-        results_overview = {'quantified features': [],
-                            'group ID': [],
+        results_overview = {'group ID': [],
                             'subject ID': [],
                             'subgroup ID': [],
                             'file ID in fmc project': [],
                             'microscopy filepath': [],
                             'roi filepath': []}
+        for quantification_strategy in self.quantification_results:
+            results_overview[f"quantified features {quantification_strategy}"]=[]
         for file_id in file_ids_to_include:
             file_id_specific_file_infos = self.get_file_infos(file_id = file_id)
-            results_overview['quantified features'].append(self.quantification_results['CountFeaturesInWholeAreaROIsStrat'][file_id][area_id])
+            for quantification_strategy in self.quantification_results:
+                results_overview[f'quantified features {quantification_strategy}'].append(self.quantification_results[quantification_strategy][file_id][area_id])
             results_overview['group ID'].append(file_id_specific_file_infos['main_group_id'])
             results_overview['subject ID'].append(file_id_specific_file_infos['subject_id'])
             results_overview['subgroup ID'].append(file_id_specific_file_infos['subgroup_id'])
