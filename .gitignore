@@ -132,3 +132,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+token
+.pypirc.rtf
+.DS_Store
+media.DS_Store
