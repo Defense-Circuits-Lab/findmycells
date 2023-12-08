@@ -2,6 +2,13 @@
 
 <!-- do not remove -->
 
+## 0.1.4
+
+### New Features
+
+- Added quantification strategy to calculate the feature count relative to ROI areas
+- Adapted export to work with multiple quantification strategies
+
 ## 0.1.3
 
 ### New Features
