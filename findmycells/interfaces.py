@@ -1025,6 +1025,7 @@ class SettingsPage(PageButtonBundle):
             
     def _save_project_button_clicked(self, b) -> None:
         self.api.save_status()
+        self.api.load_status()
     
     
     def _load_project_button_clicked(self, b) -> None:
