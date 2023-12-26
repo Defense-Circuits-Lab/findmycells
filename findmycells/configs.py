@@ -43,7 +43,9 @@ class ProjectConfigs:
         please check out one of the implemented ones (e.g. findmycells.preprocessing) 
         to see how this can be done. The list of detected processing modules will be used 
         for instance by the `GUI` to automatically create a `ProcessingStepPage` in the 
-        GUI for each available processing module.
+        GUI for each available processing module. When adding new processing modules, 
+        developers also have to add them to the '_expected_processing_step_modules' 
+        property of the GUI class in findmycells.interfaces.
         """
         available_processing_modules = {}
         for module_name, module in inspect.getmembers(findmycells, inspect.ismodule):
@@ -73,6 +75,13 @@ class ProjectConfigs:
     
     
     def _load_available_strategies_and_objects(self) -> None:
+        """
+        Screens for all available strategies and objects. Classes will only be recognized, 
+        if their names end with 'Obejct' or 'Strat', respectively. 
+        For developers who would like to add a new reader, please check out one of the 
+        implemented ones (e.g. findmycells.preprocessing.specs.PreprocessingObject or
+        findmycells.preprocessing.strategies.CropStitchingArtefactsRGBStrat).
+        """
         available_processing_objects = {}
         available_processing_strategies = {}
         for processing_type, module in self.available_processing_modules.items():
@@ -119,7 +128,7 @@ class ProjectConfigs:
         reader_configs = self.data_reader_default_configs[reader_type].fill_user_input_with_defaults_where_needed(user_input = reader_configs)
         setattr(self, reader_type, reader_configs)
 
-# %% ../nbs/api/00_configs.ipynb 12
+# %% ../nbs/api/00_configs.ipynb 14
 class DefaultConfigs:
     
     """
@@ -223,7 +232,7 @@ class DefaultConfigs:
                 else:
                     continue
 
-# %% ../nbs/api/00_configs.ipynb 20
+# %% ../nbs/api/00_configs.ipynb 22
 class GUIConfigs:
     
     """
