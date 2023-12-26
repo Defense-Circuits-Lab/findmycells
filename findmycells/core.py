@@ -385,6 +385,9 @@ class DataLoader:
         """
         Check whether there is a reader implemented in the requested reader submodule that 
         can handle the specified filetype inferred from its extension.
+        For developers: new readers will only be recognized, if their class names end with 
+        'Reader'. Please check out one of the implemented ones (e.g. 
+        findmycells.readers.microscopy_images.CZIReader).
         """
         available_reader = None
         for name, data_reader in inspect.getmembers(data_reader_module):

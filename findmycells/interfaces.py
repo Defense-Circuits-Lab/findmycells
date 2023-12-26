@@ -1488,7 +1488,7 @@ class GUI:
         navigator_bar = w.HBox(self.navigator_buttons, layout = {'align_items': 'center'})
         self.main_screen = w.VBox([navigator_bar, self.page_screen], layout = {'width': '100%'})
         self._refresh_displayed_widget(new_widget = self.main_screen)
-        self.navigator_buttons[0].click() # simulate a click on settings page'
+        self.navigator_buttons[0].click() # simulate a click on settings page
         
         
     def _initialize_page_bundles(self) -> None:
