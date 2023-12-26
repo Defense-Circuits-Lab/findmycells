@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="How to use the API of findmycells">
+
+<title>findmycells - API tutorial</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+<script src="https://unpkg.com/@jupyter-widgets/html-manager@*/dist/embed-amd.js" crossorigin="anonymous"></script>
+
+
+<link rel="stylesheet" href="../styles.css">
+<meta property="og:title" content="findmycells - API tutorial">
+<meta property="og:description" content="How to use the API of findmycells">
+<meta property="og:site-name" content="findmycells">
+<meta name="twitter:title" content="findmycells - API tutorial">
+<meta name="twitter:description" content="How to use the API of findmycells">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">findmycells</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools ms-auto">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../tutorials/api_tutorial.html">tutorials</a></li><li class="breadcrumb-item"><a href="../tutorials/api_tutorial.html">API tutorial</a></li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">findmycells</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../api/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">api</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/configs.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">configs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">core</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/database.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">database</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/interfaces.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">interfaces</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/readers_00_specs.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">reader specifications</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/readers_01_microscopy_images.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">readers for microscopy images</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/readers_02_rois.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">readers for ROI-files</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/preprocessing_00_specs.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">preprocessing subclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/preprocessing_01_strategies.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">preprocessing options</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/segmentation_00_specs.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">segmentation subclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/segmentation_01_strategies.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">segmentation strategies</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/postprocessing_00_specs.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">postprocessing subclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/postprocessing_01_strategies.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">postprocessing options</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/quantification_00_specs.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">quantification subclasses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/quantification_01_strategies.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">quantification strategies</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/inspection_00_methods.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">inspection</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">utility functions</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">tutorials</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/api_tutorial.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">API tutorial</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/gui_tutorial.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GUI tutorial</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#before-we-start" id="toc-before-we-start" class="nav-link active" data-scroll-target="#before-we-start">Before we start:</a></li>
+  <li><a href="#getting-started---create-a-new-findmycells-project" id="toc-getting-started---create-a-new-findmycells-project" class="nav-link" data-scroll-target="#getting-started---create-a-new-findmycells-project">Getting started - create a new <em>findmycells</em> project:</a></li>
+  <li><a href="#define-how-image-and-roi-files-shall-be-read" id="toc-define-how-image-and-roi-files-shall-be-read" class="nav-link" data-scroll-target="#define-how-image-and-roi-files-shall-be-read">Define how image and roi files shall be read:</a></li>
+  <li><a href="#start-the-processing-of-your-data" id="toc-start-the-processing-of-your-data" class="nav-link" data-scroll-target="#start-the-processing-of-your-data">Start the processing of your data:</a></li>
+  <li><a href="#saving-loading-your-project" id="toc-saving-loading-your-project" class="nav-link" data-scroll-target="#saving-loading-your-project">Saving &amp; loading your project:</a></li>
+  <li><a href="#file-history" id="toc-file-history" class="nav-link" data-scroll-target="#file-history">File history:</a></li>
+  <li><a href="#continue-with-whole-test-dataset-including-pretrained-models" id="toc-continue-with-whole-test-dataset-including-pretrained-models" class="nav-link" data-scroll-target="#continue-with-whole-test-dataset-including-pretrained-models">Continue with whole test dataset, including pretrained models:</a></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/Defense-Circuits-Lab/findmycells/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">API tutorial</h1>
+</div>
+
+<div>
+  <div class="description">
+    How to use the API of <em>findmycells</em>
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<section id="before-we-start" class="level3">
+<h3 class="anchored" data-anchor-id="before-we-start">Before we start:</h3>
+<p>Please have a look at this comprehensive overview of all prerequisites of a <em>findmycells</em> project:</p>
+<ul>
+<li>a directory that will contain your entire <em>findmycells</em> project (from now on, referred to as project root directory)</li>
+<li>the image data you’d like to analyze in a file format that is compatible with <em>findmycells</em> (currently supported formats include: .czi, .png, .tif)</li>
+<li>a deepflash2 model ensemble trained to segment your image features of interest (models must be compatible with deepflash2 v0.1.7! check out the documentation deepflash2, especially the GUI tutorial, for how to train model ensembles)</li>
+<li>optional: a complementary ROI file for each image that specifies the area(s) of interest in your image that shall be quantified (check out the guide in the <a href="https://defense-circuits-lab.github.io/findmycells/tutorials/gui_tutorial.html">GUI tutorial</a>)</li>
+</ul>
+<p>The following tutorial assumes you meet all of the requirements listed above.</p>
+<p><strong>Also, please note:</strong> in general, <strong>we recommend to use the GUI</strong>, as it directly displays all configuration and processing options that are available for each step, and therefore doesn’t require you to browse through all source files to figure them out yourself. This tutorial will also not cover all available options, and is rather intended to give you a rough idea of how to interact with the API.</p>
+</section>
+<section id="getting-started---create-a-new-findmycells-project" class="level3">
+<h3 class="anchored" data-anchor-id="getting-started---create-a-new-findmycells-project">Getting started - create a new <em>findmycells</em> project:</h3>
+<p>This tutorial is made to run in the structure provided by the <em>findmycells</em> GitHub repository and to render the API tutorial for the documentation webpage. Hence, some markdown cells may not be rendered correclty if you’re running them on your local machine (they will usually start with something like: “:::{.callout”. Also, if you’re local filepaths differ, please adjust the <code>project_root_dir</code> accordingly.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># if you downloaded the GitHub repository and left everything in it's place, this will also work for you:</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>dir_containing_this_notebook <span class="op">=</span> Path(os.getcwd())</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>findmycells_repo_root_dir <span class="op">=</span> dir_containing_this_notebook.parent.parent</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>project_root_dir <span class="op">=</span> findmycells_repo_root_dir.joinpath(<span class="st">'test_data'</span>, <span class="st">'cfos_fmc_test_project'</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Root directory path: </span><span class="sc">{</span>project_root_dir<span class="sc">}</span><span class="ss">'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Root directory path: /home/ds/GitHub_repos/findmycells/test_data/cfos_fmc_test_project</code></pre>
+</div>
+</div>
+<p>Now let’s use this root directory to initialize our <em>findmycells</em> project:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> findmycells.interfaces <span class="im">import</span> API</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>fmc_cfos_project <span class="op">=</span> API(project_root_dir <span class="op">=</span> project_root_dir)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>If you are using the “cfos_fmc_test_project”, it already contains the subdirectories that <em>findmycells</em> uses to sort it’s data (e.g.&nbsp;“preprocessed_images” or “microscopy_images”). If it would have been empty, these top-level subdirectories will be created automatically.</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>In addition, the “cfos_fmc_test_project” also already comes with microscopy images &amp; roi files arranged in the correct file structure. Please check out this <a href="https://defense-circuits-lab.github.io/findmycells/tutorials/gui_tutorial.html#add-all-your-data">section</a> on how you have to arrange your image data and on how to create ROI files.</p>
+</div>
+</div>
+<p>Since our image data &amp; roi files are already organized in the expected subdirectory structures, we can import all files to our <em>findmycells</em> project. This will create the corresponding entries in the database, but it will not yet actually read and load the data. These information are derived from all available files in the “microscopy_images” subdirectory. This also allows you to re-run the following method again later if you want to update the files associated with your project. Simply add new files, or delete any existing files - <em>findmycells</em> will automatically identify these files and add or remove them from your project, respectively.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>fmc_cfos_project.update_database_with_current_source_files()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>When you remove a file from your microscopy_images subdirectory tree and run <code>.update_database_with_current_source_files()</code>, <em>findmycells</em> will automatically remove all files associated with the corresponding file ID (e.g.&nbsp;all preprocessed images, segmentation masks, and also quantification results)</p>
+</div>
+</div>
+<p>By accessing the database associated with your API object, you can also check what files are currently associated with your project:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># to improve readability, let's convert the file_infos dictionary into a pandas DataFrame:</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>pd.DataFrame(data <span class="op">=</span> fmc_cfos_project.database.file_infos)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">file_id</th>
+<th data-quarto-table-cell-role="th">original_filename</th>
+<th data-quarto-table-cell-role="th">main_group_id</th>
+<th data-quarto-table-cell-role="th">subgroup_id</th>
+<th data-quarto-table-cell-role="th">subject_id</th>
+<th data-quarto-table-cell-role="th">microscopy_filepath</th>
+<th data-quarto-table-cell-role="th">microscopy_filetype</th>
+<th data-quarto-table-cell-role="th">rois_present</th>
+<th data-quarto-table-cell-role="th">rois_filepath</th>
+<th data-quarto-table-cell-role="th">rois_filetype</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>0000</td>
+<td>dentate_gyrus_01</td>
+<td>experimental_group</td>
+<td>week_01</td>
+<td>subject_02</td>
+<td>/home/ds/GitHub_repos/findmycells/test_data/cf...</td>
+<td>.png</td>
+<td>True</td>
+<td>/home/ds/GitHub_repos/findmycells/test_data/cf...</td>
+<td>.zip</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>0001</td>
+<td>dentate_gyrus_02</td>
+<td>experimental_group</td>
+<td>week_01</td>
+<td>subject_02</td>
+<td>/home/ds/GitHub_repos/findmycells/test_data/cf...</td>
+<td>.png</td>
+<td>True</td>
+<td>/home/ds/GitHub_repos/findmycells/test_data/cf...</td>
+<td>.zip</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>0002</td>
+<td>dentate_gyrus_01</td>
+<td>control_group</td>
+<td>week_01</td>
+<td>subject_01</td>
+<td>/home/ds/GitHub_repos/findmycells/test_data/cf...</td>
+<td>.png</td>
+<td>True</td>
+<td>/home/ds/GitHub_repos/findmycells/test_data/cf...</td>
+<td>.zip</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>0003</td>
+<td>dentate_gyrus_02</td>
+<td>control_group</td>
+<td>week_01</td>
+<td>subject_01</td>
+<td>/home/ds/GitHub_repos/findmycells/test_data/cf...</td>
+<td>.png</td>
+<td>True</td>
+<td>/home/ds/GitHub_repos/findmycells/test_data/cf...</td>
+<td>.zip</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>Congrats! You successfully started a <em>findmycells</em> project and associated both images &amp; ROI files with it!</p>
+</section>
+<section id="define-how-image-and-roi-files-shall-be-read" class="level3">
+<h3 class="anchored" data-anchor-id="define-how-image-and-roi-files-shall-be-read">Define how image and roi files shall be read:</h3>
+<p>You have several configuration options, to customize how your data shall be loaded. Please head over to the source code of <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/readers_00_specs.html#microscopyreaderspecs"><code>MicroscopyReaderSpecs</code></a> or <a href="https://Defense-Circuits-Lab.github.io/findmycells/api/readers_00_specs.html#roireaderspecs"><code>ROIReaderSpecs</code></a> to see exactly what options are available. If any (or all) configuration options are missing, the corresponding default values will be used automatically. In this example, we will define some configs for the microscopy image reader (they reflect the default values, though, and are only included for illustrational purposes), and none for the roi readers (which means that all default values will be used here):</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>microscopy_reader_configs <span class="op">=</span> {<span class="st">'all_color_channels'</span>: <span class="va">True</span>,</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>                             <span class="st">'all_planes'</span>: <span class="va">True</span>}</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>fmc_cfos_project.set_microscopy_reader_configs(microscopy_reader_configs <span class="op">=</span> microscopy_reader_configs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>fmc_cfos_project.set_roi_reader_configs()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>When “configs” can be passed along as an attribute in any function / method in <em>findmycells</em>, they will always be a dictionary. (The only expection are “strategy_configs” which are actually a list of dictionaries, as this is a collection of multiple configs)</p>
+</div>
+</div>
+</section>
+<section id="start-the-processing-of-your-data" class="level3">
+<h3 class="anchored" data-anchor-id="start-the-processing-of-your-data">Start the processing of your data:</h3>
+<p>Processing of your data always works in the same way. You need to choose which processing strategy (or strategies) you want to run, and have the option to specify some general processing configurations (like which files you’d like to process, whether progress shall be autosaved, ..) and strategy-specific configurations (where applicable). You will find a list of all available processing strategies in the corresponding “strategies” submodule of the respective processing module (e.g.&nbsp;in findmycells.preprocessing.strategies). Here, we will keep things simple and we will only run two preprocessing strategies, both with their respective default values (i.e.&nbsp;not passing any “strategy_configs”)</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> findmycells.preprocessing.strategies <span class="im">import</span> CropToROIsBoundingBoxStrat, ConvertTo8BitStrat</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>You can either read through the docs webpage to know what which strategy does, or read their dosctrings:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>?CropToROIsBoundingBoxStrat</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-red-fg">Init signature:</span> CropToROIsBoundingBoxStrat<span class="ansi-blue-fg">(</span><span class="ansi-blue-fg">)</span>
+<span class="ansi-red-fg">Docstring:</span>     
+You might not be interested in analyzing the entire image, but only to quantify
+image features of interest in a certain region of your image (or actually also
+several regions). Now, chances are that it is possible to find a bounding box that
+contains all regions of the image that you are interested in, which is, however,
+smaller than the original image. Cropping your original image down to that smaller 
+size will then significantly reduce computation time, required memory space, and also
+required disk space. Therefore, it is highly recommended to add this strategy to your
+preprocessing. You can also combine it with additional cropping strategies, like the
+one that tries to remove stitching artefacts.
+<span class="ansi-red-fg">File:</span>           ~/GitHub_repos/findmycells/findmycells/preprocessing/strategies.py
+<span class="ansi-red-fg">Type:</span>           ABCMeta
+<span class="ansi-red-fg">Subclasses:</span>     
+</pre>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>?ConvertTo8BitStrat</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-red-fg">Init signature:</span> ConvertTo8BitStrat<span class="ansi-blue-fg">(</span><span class="ansi-blue-fg">)</span>
+<span class="ansi-red-fg">Docstring:</span>     
+This strategy converts your image to an 8-bit format. Adding this strategy is
+at the moment mandatory, as all implemented segmentation tools (deepflash2 &amp; cellpose)
+require 8-bit as input format. So you actually don´t really have a choice but adding it! :-)
+<span class="ansi-red-fg">File:</span>           ~/GitHub_repos/findmycells/findmycells/preprocessing/strategies.py
+<span class="ansi-red-fg">Type:</span>           ABCMeta
+<span class="ansi-red-fg">Subclasses:</span>     
+</pre>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>fmc_cfos_project.preprocess(strategies <span class="op">=</span> [CropToROIsBoundingBoxStrat, ConvertTo8BitStrat])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"1404fc9a70ac46df843308743ba31618","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>If you don’t provide any file IDs, the processing will be run on all file IDs by default (taking into account the <code>overwrite</code> argument in the <code>project_configs</code>, which is <code>False</code> by default).</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>All other processing steps in <em>findmycells</em> work the same way. However, the next processing step (i.e.&nbsp;segmentation) would require trained deepflash2 models. Since these files are too large to be appropriately hosted in this GitHub repository, we cannot continue here any further. Feel free to get in touch, though, if you have trouble with running the other processing steps!</p>
+</div>
+</div>
+</section>
+<section id="saving-loading-your-project" class="level3">
+<h3 class="anchored" data-anchor-id="saving-loading-your-project">Saving &amp; loading your project:</h3>
+<p>To avoid that you lose any progress and can always come back and continue your <em>findmycells</em> project, you can easily save &amp; load the status of your project:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>fmc_cfos_project.save_status()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fmc_cfos_project.load_status()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="file-history" class="level3">
+<h3 class="anchored" data-anchor-id="file-history">File history:</h3>
+<p><em>findmycells</em> also keeps track of how you processed your files. These information can be retrieved accessing the <code>file_histories</code> attribute of the database:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>file_id_of_interest <span class="op">=</span> <span class="st">'0000'</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>fmc_cfos_project.database.file_histories[file_id_of_interest].tracked_history</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">processing_step_id</th>
+<th data-quarto-table-cell-role="th">processing_strategy</th>
+<th data-quarto-table-cell-role="th">strategy_finished_at</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>preprocessing</td>
+<td>CropToROIsBoundingBoxStrat</td>
+<td>2023-02-20 20:33:38.766123</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>preprocessing</td>
+<td>ConvertTo8BitStrat</td>
+<td>2023-02-20 20:33:38.769788</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="continue-with-whole-test-dataset-including-pretrained-models" class="level3">
+<h3 class="anchored" data-anchor-id="continue-with-whole-test-dataset-including-pretrained-models">Continue with whole test dataset, including pretrained models:</h3>
+<p>We provide a full test dataset, including trained deepflash2 models, on the related <a href="https://zenodo.org/record/7655292#.Y_Nw0B-ZNhE">Zenodo repository</a>. You can easily download it using the corresponding utility function:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> findmycells.utils <span class="im">import</span> download_sample_data</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Please specify a path to an emtpy but existing directory on your local machine:</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>destination_dir <span class="op">=</span> Path(<span class="st">'/add/your/path/here'</span>)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Simply uncomment the following line to download the full test dataset. The download may take some minutes</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="co"># download_sample_data(destination_dir_path = destination_dir)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script type="application/vnd.jupyter.widget-state+json">
+{"state":{"00ac1b71e83645a08a03047d5ef2ff33":{"model_module":"@jupyter-widgets/base","model_module_version":"1.2.0","model_name":"LayoutModel","state":{"height":"30px"}},"3ae4a3e55b894ad9aaa91815bb4e320a":{"model_module":"@jupyter-widgets/base","model_module_version":"1.2.0","model_name":"LayoutModel","state":{"width":"500px"}},"75d211f1d87f4ab6a76cf930b044eb8e":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"DescriptionStyleModel","state":{}},"d9cd683720a04ac292f0a70136adcfaf":{"model_module":"@jupyter-widgets/controls","model_module_version":"1.5.0","model_name":"LabelModel","state":{"_dom_classes":[],"layout":"IPY_MODEL_00ac1b71e83645a08a03047d5ef2ff33","style":"IPY_MODEL_75d211f1d87f4ab6a76cf930b044eb8e"}}},"version_major":2,"version_minor":0}
+</script>
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
