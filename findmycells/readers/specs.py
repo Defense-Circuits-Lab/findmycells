@@ -6,7 +6,7 @@ __all__ = ['ReaderSpecsABC', 'MicroscopyReaderSpecs', 'ROIReaderSpecs']
 # %% ../../nbs/api/04_readers_00_specs.ipynb 2
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Optional, Dict, Any
-from pathlib import PosixPath, Path
+from pathlib import PosixPath, Path, WindowsPath
 
 from ..configs import DefaultConfigs, GUIConfigs
 

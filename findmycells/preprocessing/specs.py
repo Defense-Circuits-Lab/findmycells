@@ -111,13 +111,13 @@ class PreprocessingObject(ProcessingObject):
         else:
             if self.file_info['rois_present'] ==  False:
                 raise FileNotFoundError('Findmycells could not find a ROI file matching the microscopy file '
-                                        f'{self.file_infos["microscopy_filepath"]}. If you don`t want to use '
+                                        f'{self.file_info["microscopy_filepath"]}. If you don`t want to use '
                                         'ROI files for any of your images, consider checking the "Don`t use ROI '
                                         'files" option. But please note - this will then apply to all your images. '
                                         'If you wanted to use a ROI file, however, please make sure that there was '
                                         'no typo in the ROI filename. Remember: it must match EXACTLY with the '
                                         'filename of the corresponding microscopy image, which is '
-                                        f'"{self.file_infos["original_filename"]}" in this case.')
+                                        f'"{self.file_info["original_filename"]}" in this case.')
             else: # means: (self.file_info['rois_present'] == True) & (roi_reader_configs['create_rois'] == False)
                 roi_data_loader = DataLoader()
                 roi_reader_class = roi_data_loader.determine_reader(file_extension = self.file_info['rois_filetype'],

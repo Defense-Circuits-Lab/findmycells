@@ -18,11 +18,6 @@ from ..configs import DefaultConfigs, GUIConfigs
 # %% ../../nbs/api/05_preprocessing_01_strategies.ipynb 4
 class CropStitchingArtefactsRGBStrat(PreprocessingStrategy):
     
-    #ToDo:
-    # - Option to specify whether artefact pixel color is black or white
-    # - if white: make sure to identify bit type of the image (whether white == 255, 4095, ..)
-    # - check whether it also works if it´s only a single channel image
-    
     """
     When you acquire microscopy images that are essentially several individual 
     images (= tiles) stitched together, you may end up with some artefacts on the
@@ -43,25 +38,29 @@ class CropStitchingArtefactsRGBStrat(PreprocessingStrategy):
     
     @property
     def default_configs(self):
-        default_values = {}
-        valid_types = {}
-        default_configs = DefaultConfigs(default_values = default_values, valid_types = valid_types)
+        default_values = {"color_of_artefact_pixels": "black"}
+        valid_types = {"color_of_artefact_pixels": [str]}
+        valid_options = {"color_of_artefact_pixels": ("black", "white")}
+        default_configs = DefaultConfigs(default_values = default_values, 
+                                         valid_types = valid_types,
+                                         valid_value_options = valid_options)
         return default_configs
         
     @property
     def widget_names(self):
-        return {}
+        return {'color_of_artefact_pixels': 'Dropdown'}
 
     @property
     def descriptions(self):
-        return {}
+        return {"color_of_artefact_pixels": "Specify, whether the color of the artefact pixels, that will be removed by cropping, is black or white:"}
     
     @property
     def tooltips(self):
         return {}
+
     
     def run(self, processing_object: PreprocessingObject, strategy_configs: Dict) -> PreprocessingObject:
-        self.cropping_indices = self._determine_cropping_indices_for_entire_zstack(preprocessing_object = processing_object)
+        self.cropping_indices = self._determine_cropping_indices_for_entire_zstack(preprocessing_object = processing_object, color_of_artefact_pixels = strategy_configs["color_of_artefact_pixels"])
         processing_object.preprocessed_image = processing_object.crop_rgb_zstack(zstack = processing_object.preprocessed_image,
                                                                                  cropping_indices = self.cropping_indices)
         processing_object.preprocessed_rois = processing_object.adjust_rois(rois_dict = processing_object.preprocessed_rois,
@@ -78,12 +77,24 @@ class CropStitchingArtefactsRGBStrat(PreprocessingStrategy):
         return updates
 
 
-    def _determine_cropping_indices_for_entire_zstack(self, preprocessing_object: PreprocessingObject) -> Dict:
+    def _determine_cropping_indices_for_entire_zstack(self, preprocessing_object: PreprocessingObject, color_of_artefact_pixels: str) -> Dict:
         for plane_index in range(preprocessing_object.preprocessed_image.shape[0]):
             rgb_image_plane = preprocessing_object.preprocessed_image[plane_index]
-            rows_with_black_px, columns_with_black_px = np.where(np.all(rgb_image_plane == 0, axis = -1))
-            lower_row_idx, upper_row_idx = self._get_cropping_indices(rows_with_black_px)
-            lower_col_idx, upper_col_idx = self._get_cropping_indices(columns_with_black_px)  
+            if color_of_artefact_pixels == "black":
+                rows_with_artefact_color_px, columns_with_artefact_color_px = np.where(np.all(rgb_image_plane == 0, axis = -1))
+            else: # color_of_artefact_pixels == "white"
+                max_value = rgb_image_plane.max()
+                if max_value <= 255: # 8-bit image
+                    white_value = 255
+                elif max_value <= 4095: # 16-bit image
+                    white_value = 4095
+                elif max_value <= 65535: # 32-bit image
+                    white_value = 65535
+                else:
+                    raise NotImplementedError("The supported bit-values are 8, 16 or 32!")
+                rows_with_artefact_color_px, columns_with_artefact_color_px = np.where(np.all(rgb_image_plane == white_value, axis = -1))
+            lower_row_idx, upper_row_idx = self._get_cropping_indices(rows_with_artefact_color_px)
+            lower_col_idx, upper_col_idx = self._get_cropping_indices(columns_with_artefact_color_px)  
             if plane_index == 0:
                 min_lower_row_cropping_idx, max_upper_row_cropping_idx = lower_row_idx, upper_row_idx
                 min_lower_col_cropping_idx, max_upper_col_cropping_idx = lower_col_idx, upper_col_idx
@@ -103,23 +114,23 @@ class CropStitchingArtefactsRGBStrat(PreprocessingStrategy):
         return cropping_indices
     
     
-    def _get_cropping_indices(self, a, min_black_px_stretch: int=100) -> Tuple[int, int]:
+    def _get_cropping_indices(self, a, min_artefact_px_stretch: int=100) -> Tuple[int, int]:
         unique, counts = np.unique(a, return_counts=True)
-        indices_with_black_pixels = unique[np.where(counts >= min_black_px_stretch)]
-        if indices_with_black_pixels.shape[0] > 0: 
-            if np.where(np.diff(indices_with_black_pixels) > 1)[0].shape[0] > 0:
-                lower_cropping_index = indices_with_black_pixels[np.where(np.diff(indices_with_black_pixels) > 1)[0]][0] + 1
-                upper_cropping_index = indices_with_black_pixels[np.where(np.diff(indices_with_black_pixels) > 1)[0] + 1][0]
+        indices_with_artefact_pixels = unique[np.where(counts >= min_artefact_px_stretch)]
+        if indices_with_artefact_pixels.shape[0] > 0: 
+            if np.where(np.diff(indices_with_artefact_pixels) > 1)[0].shape[0] > 0:
+                lower_cropping_index = indices_with_artefact_pixels[np.where(np.diff(indices_with_artefact_pixels) > 1)[0]][0] + 1
+                upper_cropping_index = indices_with_artefact_pixels[np.where(np.diff(indices_with_artefact_pixels) > 1)[0] + 1][0]
             else:
-                if indices_with_black_pixels[0] == 0:
-                    lower_cropping_index = indices_with_black_pixels[-1]
-                    upper_cropping_index = a.shape[0] - 1
+                if indices_with_artefact_pixels[0] == 0:
+                    lower_cropping_index = indices_with_artefact_pixels[-1]
+                    upper_cropping_index = - 1
                 else:
                     lower_cropping_index = 0
-                    upper_cropping_index = indices_with_black_pixels[0]
+                    upper_cropping_index = indices_with_artefact_pixels[0]
         else:
             lower_cropping_index = 0
-            upper_cropping_index = a.shape[0] - 1
+            upper_cropping_index = - 1
         return lower_cropping_index, upper_cropping_index
 
 # %% ../../nbs/api/05_preprocessing_01_strategies.ipynb 5
@@ -421,7 +432,7 @@ class AdjustBrightnessAndContrastStrat(PreprocessingStrategy):
     
     @property
     def dropdown_option_value_for_gui(self):
-        return 'Adjust brightness and constrast'
+        return 'Adjust brightness and contrast'
     
     @property
     def default_configs(self):

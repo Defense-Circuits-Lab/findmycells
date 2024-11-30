@@ -5,8 +5,8 @@ __all__ = ['list_dir_no_hidden', 'load_zstack_as_array_from_single_planes', 'unp
            'get_polygon_from_instance_segmentation', 'download_sample_data']
 
 # %% ../nbs/api/99_utils.ipynb 2
-from typing import List, Optional
-from pathlib import Path, PosixPath
+from typing import List, Optional, Union
+from pathlib import Path, PosixPath, WindowsPath
 
 import numpy as np
 from skimage import io
@@ -19,7 +19,7 @@ from zipfile import ZipFile
 import shutil
 
 # %% ../nbs/api/99_utils.ipynb 4
-def list_dir_no_hidden(path: PosixPath, only_dirs: Optional[bool]=False, only_files: Optional[bool]=False) -> List[PosixPath]:
+def list_dir_no_hidden(path: Union[PosixPath, WindowsPath], only_dirs: Optional[bool]=False, only_files: Optional[bool]=False) -> List[Union[PosixPath, WindowsPath]]:
     if only_dirs == True:
         detected_paths = [elem for elem in path.iterdir() if (elem.is_dir() == True) & (elem.name.startswith('.') == False)]
     elif only_files == True:
@@ -29,7 +29,7 @@ def list_dir_no_hidden(path: PosixPath, only_dirs: Optional[bool]=False, only_fi
     return detected_paths
 
 # %% ../nbs/api/99_utils.ipynb 5
-def load_zstack_as_array_from_single_planes(path: PosixPath, file_id: str, 
+def load_zstack_as_array_from_single_planes(path: Union[PosixPath, WindowsPath], file_id: str, 
                                             minx: Optional[int]=None, maxx: Optional[int]=None, 
                                             miny: Optional[int]=None, maxy: Optional[int]=None) -> np.ndarray:
     types = list(set([type(minx), type(maxx), type(miny), type(maxy)]))    
@@ -66,7 +66,7 @@ def get_polygon_from_instance_segmentation(single_plane: np.ndarray, label_id: i
     return roi
 
 # %% ../nbs/api/99_utils.ipynb 8
-def download_sample_data(destination_dir_path: PosixPath) -> None:
+def download_sample_data(destination_dir_path: Union[PosixPath, WindowsPath]) -> None:
     """
     Test data for findmycells can be found here: https://zenodo.org/record/7655292#.Y_LI1R-ZNhE
     DOI: 10.5281/zenodo.7655292
@@ -75,13 +75,13 @@ def download_sample_data(destination_dir_path: PosixPath) -> None:
                              f'an existing directory, not {destination_dir_path}.')
     assert destination_dir_path.is_dir(), assert_failed_message
     wget.download(url = 'https://zenodo.org/record/7655292/files/cfos_ensemble.zip?download=1',
-                  out = destination_dir_path.joinpath('ensemble.zip'))
+                  out = str(destination_dir_path.joinpath('ensemble.zip')))
     wget.download(url = 'https://zenodo.org/record/7655292/files/cfos_fmc_test_project.zip?download=1',
-                  out = destination_dir_path.joinpath('test_project.zip'))
+                  out = str(destination_dir_path.joinpath('test_project.zip')))
     with ZipFile(destination_dir_path.joinpath('ensemble.zip'), 'r') as zObject:
-        zObject.extractall()
+        zObject.extractall(path=destination_dir_path)
     with ZipFile(destination_dir_path.joinpath('test_project.zip'), 'r') as zObject:
-        zObject.extractall()
+        zObject.extractall(path=destination_dir_path)
     target_dir_path = destination_dir_path.joinpath('cfos_fmc_test_project', 'segmentation_tool', 'trained_models')
     for model_filepath in destination_dir_path.joinpath('cfos_ensemble').iterdir():
         shutil.move(model_filepath, target_dir_path)

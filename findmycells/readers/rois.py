@@ -4,8 +4,8 @@
 __all__ = ['ROIReaders', 'ImageJROIReader']
 
 # %% ../../nbs/api/04_readers_02_rois.ipynb 3
-from typing import Dict, List, Any
-from pathlib import PosixPath
+from typing import Dict, List, Any, Union
+from pathlib import PosixPath, WindowsPath
 import numpy as np
 from shapely.geometry import Polygon
 import roifile
@@ -46,7 +46,7 @@ class ImageJROIReader(ROIReaders):
     
     
     def read(self,
-             filepath: PosixPath, # filepath to the roi file
+             filepath: Union[PosixPath, WindowsPath], # filepath to the roi file
              reader_configs: Dict # the project database
             ) -> Dict[str, Dict[str, Polygon]]: # nested dictionaries of shapely polygons: {plane_id: {roi_id: Polygon}}
         if filepath.suffix == '.roi':
@@ -58,6 +58,7 @@ class ImageJROIReader(ROIReaders):
         for idx in range(roi_count):
             row_coords = loaded_rois[idx].coordinates()[:, 1]
             col_coords = loaded_rois[idx].coordinates()[:, 0]
+            assert (len(row_coords) > 2) & (len(col_coords) > 2), f"Can't draw a roi from file {loaded_rois[idx].name}, as it has less than 3 coordinates!"
             if reader_configs['load_roi_ids_from_file'] == True:
                 rois_as_shapely_polygons['all_planes'][loaded_rois[idx].name] = Polygon(np.asarray(list(zip(row_coords, col_coords))))
             else:

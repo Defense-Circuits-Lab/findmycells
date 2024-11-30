@@ -6,7 +6,8 @@ __all__ = ['GUI_SPACER', 'API', 'StrategyConfigurator', 'PageButtonBundle', 'Set
 
 # %% ../nbs/api/03_interfaces.ipynb 2
 from abc import ABC, abstractmethod
-from pathlib import Path, PosixPath
+from pathlib import Path, PosixPath, WindowsPath
+import pathlib
 from typing import List, Dict, Tuple, Optional, Union, Any
 from traitlets.traitlets import MetaHasTraits as WidgetType
 
@@ -40,8 +41,8 @@ class API:
     """
     
     
-    def __init__(self, project_root_dir: PosixPath) -> None:
-        assert type(project_root_dir) == PosixPath, '"project_root_dir" must be pathlib.Path object referring to an existing directory.'
+    def __init__(self, project_root_dir: Union[PosixPath, WindowsPath]) -> None:
+        assert type(project_root_dir) in [PosixPath, WindowsPath], '"project_root_dir" must be pathlib.Path object referring to an existing directory.'
         assert project_root_dir.is_dir(), '"project_root_dir" must be pathlib.Path object referring to an existing directory.'
         self.project_configs = ProjectConfigs(root_dir = project_root_dir)
         self.database = Database(project_configs = self.project_configs)
@@ -92,30 +93,33 @@ class API:
         
         
     def load_status(self,
-                    project_configs_filepath: Optional[PosixPath]=None, #
-                    database_filepath: Optional[PosixPath]=None
+                    project_configs_filepath: Optional[Union[PosixPath, WindowsPath]]=None, #
+                    database_filepath: Optional[Union[PosixPath, WindowsPath]]=None
                    ) -> None:
         """
         Loads the project status of a *findmycells* project from the two files (see save_status()) 
         from the project root directory.
         """
-        
+        if type(Path("test")) == pathlib.PosixPath:
+            pathlib.WindowsPath = pathlib.PosixPath
         if project_configs_filepath != None:
-            assert type(project_configs_filepath) == PosixPath, '"project_configs_filepath" must be pathlib.Path object referring to a .configs file.'
+            assert type(project_configs_filepath) in [PosixPath, WindowsPath], '"project_configs_filepath" must be pathlib.Path object referring to a .configs file.'
             assert project_configs_filepath.suffix == '.configs', '"project_configs_filepath" must be pathlib.Path object referring to a .configs file.'
         else:
             project_configs_filepath = self._look_for_latest_status_file_in_dir(suffix = '.configs', dir_path = self.project_configs.root_dir)
         if database_filepath != None:
-            assert type(database_filepath) == PosixPath, '"database_filepath" must be pathlib.Path object referring to a .dbase file'
+            assert type(database_filepath) in [PosixPath, WindowsPath], '"database_filepath" must be pathlib.Path object referring to a .dbase file'
             assert database_filepath.suffix == '.dbase', '"database_filepath" must be pathlib.Path object referring to a .dbase file'
         else:
             database_filepath = self._look_for_latest_status_file_in_dir(suffix = '.dbase', dir_path = self.project_configs.root_dir)
+        old_root_dir = self.project_configs.root_dir
         if hasattr(self, 'project_configs'):
             delattr(self, 'project_configs')
         if hasattr(self, 'database'):
             delattr(self, 'database')
         self.project_configs = self._load_object_from_filepath(filepath = project_configs_filepath)
         self.project_configs.load_available_processing_modules()
+        self.project_configs.root_dir = old_root_dir
         self.database = self._load_object_from_filepath(filepath = database_filepath)
         setattr(self.database, 'project_configs', self.project_configs)
         
@@ -373,7 +377,7 @@ class API:
         pickle.dump(attribute_to_save, filehandler)
 
         
-    def _load_object_from_filepath(self, filepath: PosixPath) -> Union[Database, ProjectConfigs]:
+    def _load_object_from_filepath(self, filepath: Union[PosixPath, WindowsPath]) -> Union[Database, ProjectConfigs]:
         filehandler = open(filepath, 'rb')
         loaded_object = pickle.load(filehandler)
         return loaded_object
@@ -406,7 +410,7 @@ class API:
         return file_ids_per_batch
 
 
-    def _look_for_latest_status_file_in_dir(self, suffix: str, dir_path: PosixPath) -> PosixPath:
+    def _look_for_latest_status_file_in_dir(self, suffix: str, dir_path: Union[PosixPath, WindowsPath]) -> Union[PosixPath, WindowsPath]:
         matching_filepaths = [filepath for filepath in dir_path.iterdir() if filepath.suffix == suffix]
         if len(matching_filepaths) == 0:
             raise FileNotFoundError(f'Could not find a "{suffix}" file in {dir_path}. Consider specifying the exact filepath!')
@@ -1021,6 +1025,7 @@ class SettingsPage(PageButtonBundle):
             
     def _save_project_button_clicked(self, b) -> None:
         self.api.save_status()
+        self.api.load_status()
     
     
     def _load_project_button_clicked(self, b) -> None:
@@ -1432,15 +1437,15 @@ class GUI:
         return ['preprocessing', 'segmentation', 'postprocessing', 'quantification']
     
     def __init__(self,
-                 project_root_dir: Optional[PosixPath]=None, # Instead of using the FileChooser, you can also provide the Path to your project root dir right away
+                 project_root_dir: Optional[Union[PosixPath, WindowsPath]]=None, # Instead of using the FileChooser, you can also provide the Path to your project root dir right away
                 ) -> None:
         if project_root_dir != None:
-            assert type(project_root_dir) == PosixPath, f'"project_root_dir" must be a pathlib.Path object, not {project_root_dir}.'
+            assert type(project_root_dir) in [PosixPath, WindowsPath], f'"project_root_dir" must be a pathlib.Path object, not {project_root_dir}.'
             assert project_root_dir.is_dir(), '"project_root_dir" must be a pathlib.Path object pointing to an existing directory!'
         self.displayed_widget = self._initialize_start_screen(project_root_dir = project_root_dir)
         
     
-    def _initialize_start_screen(self, project_root_dir: Optional[PosixPath]) -> WidgetType:
+    def _initialize_start_screen(self, project_root_dir: Optional[Union[PosixPath, WindowsPath]]) -> WidgetType:
         welcome_html = w.HTML(value = ('<br><br>'
                                        '<div style="font-size: 26px" align="center">'
                                        '<b>Welcome to <i>findmycells</i> - glad you´re here! :-)</b>'
@@ -1483,7 +1488,7 @@ class GUI:
         navigator_bar = w.HBox(self.navigator_buttons, layout = {'align_items': 'center'})
         self.main_screen = w.VBox([navigator_bar, self.page_screen], layout = {'width': '100%'})
         self._refresh_displayed_widget(new_widget = self.main_screen)
-        self.navigator_buttons[0].click() # simulate a click on settings page'
+        self.navigator_buttons[0].click() # simulate a click on settings page
         
         
     def _initialize_page_bundles(self) -> None:
@@ -1523,7 +1528,7 @@ class GUI:
         self.displayed_widget.children = (new_widget, )
 
 # %% ../nbs/api/03_interfaces.ipynb 38
-def launch_gui(project_root_dir: Optional[PosixPath]=None) -> GUI:
+def launch_gui(project_root_dir: Optional[Union[PosixPath, WindowsPath]]=None) -> GUI:
     """
     Function to launch the GUI of *findmycells*. Comes, however, 
     with the disadvantage of not having the GUI object available.

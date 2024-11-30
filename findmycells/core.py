@@ -7,9 +7,9 @@ __all__ = ['ProcessingObject', 'ProcessingStrategy', 'DataReader', 'DataLoader']
 from abc import ABC, abstractmethod
 from .database import Database
 from .configs import DefaultConfigs, GUIConfigs
-from typing import List, Dict, Tuple, Optional, Any
+from typing import List, Dict, Tuple, Optional, Any, Union
 from types import ModuleType
-from pathlib import Path, PosixPath
+from pathlib import Path, PosixPath, WindowsPath
 import inspect
 
 # %% ../nbs/api/01_core.ipynb 6
@@ -385,6 +385,9 @@ class DataLoader:
         """
         Check whether there is a reader implemented in the requested reader submodule that 
         can handle the specified filetype inferred from its extension.
+        For developers: new readers will only be recognized, if their class names end with 
+        'Reader'. Please check out one of the implemented ones (e.g. 
+        findmycells.readers.microscopy_images.CZIReader).
         """
         available_reader = None
         for name, data_reader in inspect.getmembers(data_reader_module):
@@ -397,7 +400,7 @@ class DataLoader:
         return available_reader
     
     
-    def load(self, data_reader_class: DataReader, filepath: PosixPath, reader_configs: Dict) -> Any:
+    def load(self, data_reader_class: DataReader, filepath: Union[PosixPath, WindowsPath], reader_configs: Dict) -> Any:
         """
         Uses the provided `DataReader` subclass to import the data.
         """
