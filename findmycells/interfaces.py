@@ -371,6 +371,7 @@ class API:
     def _save_attr_to_disk(self, attr_id: str, filename: str, child_attr_ids_to_del: List[str]) -> None:
         filepath = self.project_configs.root_dir.joinpath(filename)
         attribute_to_save = getattr(self, attr_id)
+        
         for attr_id_to_del in child_attr_ids_to_del:
             delattr(attribute_to_save, attr_id_to_del)
         filehandler = open(filepath, 'wb')
